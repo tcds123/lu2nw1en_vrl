@@ -23,9 +23,9 @@ echo "Logging to: $LOG_PATH"
 
 python -m iterative_grpo_trainer \
     algorithm.adv_estimator=grpo \
-    data.train_files=/data/zhuldz/lunwen/data/OpenCodeInstruct/dataparquet/small_test1.parquet \
+    data.train_files=/data/zhuldz/lunwen/data/OpenCodeInstruct/dataparquet/train-00000-of-00050_1.parquet \
     data.val_files=/data/zhuldz/lunwen/data/CodeEval-Pro/dataset_1/humaneval_pro.parquet \
-    data.train_batch_size=2 \
+    data.train_batch_size=16 \
     data.micro_batch_size=1 \
     actor_rollout_ref.model.path=/data/zhuldz/lunwen/models/Qwen3-4B \
     actor_rollout_ref.actor.optim.lr=1e-6 \
@@ -33,7 +33,6 @@ python -m iterative_grpo_trainer \
     actor_rollout_ref.rollout.n=2 \
     actor_rollout_ref.model.enable_gradient_checkpointing=True \
     trainer.nnodes=1 \
-    trainer.save_freq=5 \
     trainer.total_epochs=1 \
     iterative_rl.max_iterations=2 \
     iterative_rl.convergence_threshold=0.01 \
