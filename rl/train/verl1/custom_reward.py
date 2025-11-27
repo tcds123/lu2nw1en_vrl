@@ -8,6 +8,8 @@ from datetime import datetime
 from typing import Dict, List, Any
 import traceback
 import re
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ===================================================================
 # 0. 路径修复
@@ -42,6 +44,11 @@ ROLLOUT_N = 5
 CURRENT_ITERATION = 0
 _CONFIG_INITIALIZED = False
 SAMPLE_COUNT = 0
+
+# [关键修改] 全局并发控制：设置为 60
+# 即使有多个进程，总并发量也建议通过这里控制（如果是单机多卡，这个是进程内的限制；如果是多机，需要注意总和）
+MAX_CONCURRENCY = 60 
+api_semaphore = threading.Semaphore(MAX_CONCURRENCY)
 
 # ===================================================================
 # 2. C模型评判模板
@@ -85,7 +92,6 @@ C_MODEL_TEMPLATE = """你是专业代码评判模型（C模型），需要对生
 # 3. 核心清洗函数
 # ===================================================================
 def _clean_prompt_content(dirty_text: str) -> str:
-    """从包含ICL的文本中提取原始问题"""
     if not isinstance(dirty_text, str): return str(dirty_text)
     start_marker = "Original prompt:"
     end_marker = "Correct code:"
@@ -130,44 +136,32 @@ def _initialize_globals_from_config(config):
     _CONFIG_INITIALIZED = True
 
 # ===================================================================
-# 5. 核心奖励函数
+# 5. 核心奖励函数 (并发优化版)
 # ===================================================================
 def compute_custom_reward(**kwargs):
     global SAMPLE_COUNT
     _ensure_models_loaded()
     
-    # --- 1. 提取 Prompts (A输入) ---
-    prompts = kwargs.get('data_sources')
-    if prompts is None: prompts = kwargs.get('prompts')
-    if prompts is None: prompts = kwargs.get('input_ids')
-    if prompts is None: prompts = kwargs.get('inputs')
+    prompts = kwargs.get('data_sources') or kwargs.get('prompts') or kwargs.get('input_ids') or kwargs.get('inputs')
+    responses = kwargs.get('solution_strs') or kwargs.get('responses') or kwargs.get('predictions')
     
-    # --- 2. 提取 Responses (A输出) ---
-    responses = kwargs.get('solution_strs')
-    if responses is None: responses = kwargs.get('responses')
-    if responses is None: responses = kwargs.get('predictions')
-    
-    # --- 3. 提取真值 ---
+    # 提取真值
     ground_truths = None
     if 'canonical_solution' in kwargs: ground_truths = kwargs['canonical_solution']
     elif 'output' in kwargs: ground_truths = kwargs['output']
     elif 'ground_truth' in kwargs: ground_truths = kwargs['ground_truth']
-    elif 'ground_truths' in kwargs: ground_truths = kwargs['ground_truths']
-    elif 'references' in kwargs: ground_truths = kwargs['references']
-    
-    if ground_truths is None and 'reward_model' in kwargs:
+    elif 'reward_model' in kwargs:
         rm = kwargs['reward_model']
         if isinstance(rm, dict):
             ground_truths = rm.get('ground_truth', rm.get('output'))
         elif isinstance(rm, (list, np.ndarray)) and len(rm) > 0 and isinstance(rm[0], dict):
              ground_truths = [item.get('ground_truth', item.get('output')) for item in rm]
 
-    # --- 4. 提取 raw_input (B输入) ---
+    # 提取 raw_input
     raw_inputs = kwargs.get('raw_input')
     if raw_inputs is None and prompts is not None:
         raw_inputs = [_clean_prompt_content(str(p)) for p in prompts]
 
-    # 快速失败
     if prompts is None or responses is None:
         return {"reward_tensor": torch.zeros(1), "reward_extra_info": {}}
 
@@ -187,16 +181,15 @@ def compute_custom_reward(**kwargs):
     n = 1
     if len(prompts) > 0 and len(responses) > len(prompts):
         n = len(responses) // len(prompts)
-        
-    all_scores = []
-    all_traces = [] 
+    
+    # --- [修改] 准备任务列表 ---
+    tasks = []
     response_index = 0
     
+    # 为了并发安全，先分配好每个任务的参数
     for i, original_prompt_blob in enumerate(prompts):
         gt = ground_truths[i] if i < len(ground_truths) else None
         gt_str = str(gt) if gt else "N/A (Truth Not Found)"
-        
-        # B 模型需要的清洗输入
         actual_user_query = raw_inputs[i] if i < len(raw_inputs) else str(original_prompt_blob)
         
         end_index = min(response_index + n, len(responses))
@@ -204,60 +197,62 @@ def compute_custom_reward(**kwargs):
         response_index += n
         
         for system_prompt in system_prompts_from_policy:
-            SAMPLE_COUNT += 1
-            
-            # ===================================================================
-            # 【KEY FIX】: 正则清洗 <think> 标签
-            # 允许模型思考，但在传给 Model B 之前把思考过程切掉
-            # ===================================================================
-            raw_system_prompt = str(system_prompt)
-            # 移除 <think>...</think> 之间的所有内容（包括换行符）
-            cleaned_system_prompt = re.sub(r'<think>.*?</think>', '', raw_system_prompt, flags=re.DOTALL).strip()
-            
-            # 如果清洗后为空（极端情况），回退到原始输出或给出默认提示，避免 B 模型报错
-            if not cleaned_system_prompt:
-                print(f"⚠️ [Warning] Prompt cleaned to empty! Fallback to raw.")
-                # 这里可以选择回退，或者给定一个空指令让 C 模型去惩罚它
-                # cleaned_system_prompt = raw_system_prompt 
-                cleaned_system_prompt = "Generate python code based on the user request." # 兜底策略
+            tasks.append({
+                "original_prompt_blob": original_prompt_blob,
+                "gt_str": gt_str,
+                "actual_user_query": actual_user_query,
+                "system_prompt": system_prompt
+            })
 
+    # --- [修改] 并发处理函数 ---
+    def process_single_sample(task):
+        global SAMPLE_COUNT
+        # 增加计数 (注意: 多线程下这可能不准确，但只是log ID不太重要)
+        # SAMPLE_COUNT += 1 
+        
+        system_prompt = task["system_prompt"]
+        original_prompt_blob = task["original_prompt_blob"]
+        actual_user_query = task["actual_user_query"]
+        gt_str = task["gt_str"]
+
+        # 1. 清洗 <think>
+        raw_system_prompt = str(system_prompt)
+        cleaned_system_prompt = re.sub(r'<think>.*?</think>', '', raw_system_prompt, flags=re.DOTALL).strip()
+        if not cleaned_system_prompt:
+            cleaned_system_prompt = "Generate python code based on the user request."
+
+        # 2. 并发限制控制
+        with api_semaphore:
             trace_entry = {
                 "timestamp": datetime.now().isoformat(),
-                "sample_id": SAMPLE_COUNT,
+                "sample_id": 0, # 暂不精确追踪ID
                 "iteration": CURRENT_ITERATION,
                 "a_model": {
                     "input": str(original_prompt_blob), 
-                    "raw_output": raw_system_prompt,        # 记录含思维链的原始输出
-                    "output": cleaned_system_prompt         # 记录实际生效的指令（为了兼容旧日志格式保留键名output）
+                    "raw_output": raw_system_prompt,
+                    "output": cleaned_system_prompt
                 },
                 "b_model": [], 
                 "c_model": {} 
             }
             avg_score = 0.0
-            full_c_input_log = "" 
+            full_c_input_log = ""
             
             if MODELS_LOADED:
                 try:
-                    # 1. A -> B (使用清洗后的 cleaned_system_prompt)
+                    # A -> B
                     codes_dict_list = _generate_codes(cleaned_system_prompt, str(actual_user_query))
-                    
-                    # 2. B -> C (返回 tuple: avg_score, scores, full_results)
-                    avg_score, individual_scores, full_results = _evaluate_codes(codes_dict_list, gt_str, str(actual_user_query))
+                    # B -> C
+                    avg_score, _, full_results = _evaluate_codes(codes_dict_list, gt_str, str(actual_user_query))
                     
                     b_logs = []
                     for k_idx, code_item in enumerate(codes_dict_list):
                         b_input = str(code_item.get('b_model_input', ''))
                         gen_code = str(code_item.get('code', ''))
-                        
-                        b_logs.append({
-                            "input": b_input,
-                            "output": gen_code
-                        })
-                        
-                        # 只记录第一个样本的 Prompt 作为代表
+                        b_logs.append({"input": b_input, "output": gen_code})
                         if k_idx == 0:
                             full_c_input_log = C_MODEL_TEMPLATE.format(
-                                prompt=str(cleaned_system_prompt), # 这里的 prompt 也是清洗后的
+                                prompt=str(cleaned_system_prompt),
                                 b_model_input=b_input,
                                 generated_code=gen_code,
                                 code_ground_truth=gt_str 
@@ -269,32 +264,43 @@ def compute_custom_reward(**kwargs):
                         "output": full_results, 
                         "avg_score": float(avg_score)
                     }
-                    
                 except Exception as e:
                     print(f"❌ Pipeline Error: {e}")
-                    traceback.print_exc()
                     trace_entry["b_model"] = [{"input": "Error", "output": f"Pipeline Error: {e}"}]
-                    trace_entry["c_model"] = {"input": "Pipeline Error", "output": 0.0}
             else:
                 trace_entry["b_model"] = [{"input": "Error", "output": "Models Not Loaded"}]
-                trace_entry["c_model"] = {"input": "Models Not Loaded", "output": 0.0}
             
-            all_scores.append(float(avg_score))
-            try: all_traces.append(json.dumps(trace_entry, ensure_ascii=False))
-            except: all_traces.append("{}")
+            return float(avg_score), json.dumps(trace_entry, ensure_ascii=False)
 
-    if len(all_scores) < len(responses):
-        diff = len(responses) - len(all_scores)
-        all_scores.extend([0.0] * diff)
-        all_traces.extend(["{}"] * diff)
+    # --- [修改] 使用线程池执行 ---
+    all_scores = [0.0] * len(responses)
+    all_traces = ["{}"] * len(responses)
+    
+    # 映射回原来的顺序
+    # 这里的 tasks 列表顺序对应 all_scores 的顺序，因为是按顺序 append 的
+    
+    # 使用 ThreadPoolExecutor 提高并发
+    # max_workers 设置为 60 或略高，受 semaphore 控制实际请求
+    with ThreadPoolExecutor(max_workers=64) as executor:
+        # 提交任务
+        future_to_idx = {executor.submit(process_single_sample, task): i for i, task in enumerate(tasks)}
         
+        for future in as_completed(future_to_idx):
+            idx = future_to_idx[future]
+            try:
+                score, trace = future.result()
+                all_scores[idx] = score
+                all_traces[idx] = trace
+            except Exception as e:
+                print(f"Task {idx} failed: {e}")
+
     return {
         "reward_tensor": torch.tensor(all_scores, dtype=torch.float32),
         "reward_extra_info": {"abc_trace": all_traces}
     }
 
 # ===================================================================
-# 6. 辅助函数
+# 6. 辅助函数 (保持不变)
 # ===================================================================
 def _generate_codes(system_prompt: str, prompt: str) -> List[Dict]:
     codes = []
@@ -304,6 +310,9 @@ def _generate_codes(system_prompt: str, prompt: str) -> List[Dict]:
     try:
         sys_p = str(system_prompt) if system_prompt is not None else ""
         usr_p = str(prompt) if prompt is not None else ""
+        # 注意：这里内部如果是调用本地模型，本身可能不支持多线程并发（CUDA流冲突）
+        # 但如果是调用 API (b_model_api.py)，则支持多线程。
+        # 根据你的文件列表，你使用了 b_model_api.py，所以这里多线程是有效的。
         generated_codes = generate_code_from_prompt(
             B_MODEL, B_TOKENIZER, generated_prompt=sys_p, original_prompt=usr_p, k=K_CODE_GEN
         )
@@ -331,6 +340,7 @@ def _evaluate_codes(codes: List[Dict], ground_truth: str, original_prompt: str) 
 
     for code_item in codes:
         try:
+            # 调用 C 模型 API
             score_val, full_res = compute_c_reward(
                 c_judge=C_JUDGE,
                 generated_code=code_item['code'],

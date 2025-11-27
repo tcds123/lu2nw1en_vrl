@@ -47,7 +47,7 @@ trainer:
   experiment_name: qwen3_4b_code_generation
   logger: ['console', 'tensorboard']
   nnodes: 1
-  n_gpus_per_node: 4
+  n_gpus_per_node: 8
   save_freq: 5
   test_freq: -1
   critic_warmup: 0
@@ -70,9 +70,9 @@ trainer:
 # 参考: verl1/config_verl/data/legacy_data.yaml
 data:
   # 移除了 _target_ 和 SFT 特有的字段
-  train_files: "/data/zhuldz/lunwen/data/OpenCodeInstruct/dataparquet/small_test1.parquet"
+  train_files: "/data/zhuldz/lunwen/data/OpenCodeInstruct/dataparquet/train-00000-of-00050_1.parquet"
   val_files: /data/zhuldz/lunwen/data/CodeEval-Pro/dataset_1/humaneval_pro.parquet
-  train_batch_size: 2
+  train_batch_size: 16
   micro_batch_size: 2
   val_batch_size: null
   max_prompt_length: 8192
@@ -80,11 +80,10 @@ data:
   shuffle: false
   reward_fn_key: "output"
   prompt_key: "input"
-  dataloader_num_workers: 4 
+  dataloader_num_workers: 32 
   return_raw_chat: True
   filter_overlong_prompts: false
 
-  # 修正了 sampler 的结构，如果不需要，保持 null 即可
   sampler:
     class_path: null
     class_name: null
@@ -94,21 +93,19 @@ actor_rollout_ref:
   model:
     # 目标类在 hf_model.yaml 中定义
     _target_: verl.workers.config.HFModelConfig
-    path: "/data/zhuldz/lunwen/models/Qwen3-0.6B/v1"
+    path: "/data/zhuldz/lunwen/models/Qwen3-4B"
     use_remove_padding: true
     trust_remote_code: true
     enable_gradient_checkpointing: true
     custom_chat_template: null
-    # --- 关键修正 ---
-    # 'dtype' 和 'torch_dtype' 不属于 HFModelConfig，已移除
 
   actor:
     _target_: verl.workers.config.FSDPActorConfig
     strategy: fsdp
     use_remove_padding: true
-    ppo_mini_batch_size: 2
+    ppo_mini_batch_size: 8
     ppo_micro_batch_size: null
-    ppo_micro_batch_size_per_gpu: 1
+    ppo_micro_batch_size_per_gpu: 4
     use_dynamic_bsz: false
     use_kl_loss: false
     kl_loss_coef: 0.001
@@ -216,7 +213,7 @@ actor_rollout_ref:
     _target_: verl.workers.config.RolloutConfig
     name: vllm
     max_model_len: 8192
-    n: 2
+    n: 3
     log_prob_micro_batch_size: null
     log_prob_micro_batch_size_per_gpu: 1
     temperature: 1.0
@@ -225,7 +222,7 @@ actor_rollout_ref:
     prompt_length: 512
     response_length: 2048
     dtype: bfloat16  # 'dtype' 属于这里，用于配置 vLLM/SGLang
-    gpu_memory_utilization: 0.25
+    gpu_memory_utilization: 0.4
     ignore_eos: false
     enforce_eager: false
     free_cache_engine: true
