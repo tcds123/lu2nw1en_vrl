@@ -11,7 +11,7 @@ LOG_ROOT = "/data/zhuldz/lunwen/rl/train/verl1/outputs/log"
 # 图片保存名称 (确保目录存在)
 OUTPUT_IMG = "/data/zhuldz/lunwen/rl/train/verl1/outputs/train_para/live_monitor.png"
 # 刷新间隔
-REFRESH_RATE = 15
+REFRESH_RATE = 45
 
 # === 核心监控指标 (6个) ===
 METRICS_CONFIG = [

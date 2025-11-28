@@ -45,9 +45,8 @@ CURRENT_ITERATION = 0
 _CONFIG_INITIALIZED = False
 SAMPLE_COUNT = 0
 
-# [关键修改] 全局并发控制：设置为 60
-# 即使有多个进程，总并发量也建议通过这里控制（如果是单机多卡，这个是进程内的限制；如果是多机，需要注意总和）
-MAX_CONCURRENCY = 60 
+# [关键配置] 全局并发控制：设置为 60
+MAX_CONCURRENCY = 55 
 api_semaphore = threading.Semaphore(MAX_CONCURRENCY)
 
 # ===================================================================
@@ -136,14 +135,27 @@ def _initialize_globals_from_config(config):
     _CONFIG_INITIALIZED = True
 
 # ===================================================================
-# 5. 核心奖励函数 (并发优化版)
+# 5. 核心奖励函数 (NumPy Fix + ThreadPool)
 # ===================================================================
 def compute_custom_reward(**kwargs):
     global SAMPLE_COUNT
     _ensure_models_loaded()
     
-    prompts = kwargs.get('data_sources') or kwargs.get('prompts') or kwargs.get('input_ids') or kwargs.get('inputs')
-    responses = kwargs.get('solution_strs') or kwargs.get('responses') or kwargs.get('predictions')
+    # --- [Fix] 安全获取 prompts (避免 numpy bool 错误) ---
+    prompts = kwargs.get('data_sources')
+    if prompts is None:
+        prompts = kwargs.get('prompts')
+    if prompts is None:
+        prompts = kwargs.get('input_ids')
+    if prompts is None:
+        prompts = kwargs.get('inputs')
+        
+    # --- [Fix] 安全获取 responses ---
+    responses = kwargs.get('solution_strs')
+    if responses is None:
+        responses = kwargs.get('responses')
+    if responses is None:
+        responses = kwargs.get('predictions')
     
     # 提取真值
     ground_truths = None
@@ -182,11 +194,10 @@ def compute_custom_reward(**kwargs):
     if len(prompts) > 0 and len(responses) > len(prompts):
         n = len(responses) // len(prompts)
     
-    # --- [修改] 准备任务列表 ---
+    # --- 准备任务列表 ---
     tasks = []
     response_index = 0
     
-    # 为了并发安全，先分配好每个任务的参数
     for i, original_prompt_blob in enumerate(prompts):
         gt = ground_truths[i] if i < len(ground_truths) else None
         gt_str = str(gt) if gt else "N/A (Truth Not Found)"
@@ -204,10 +215,9 @@ def compute_custom_reward(**kwargs):
                 "system_prompt": system_prompt
             })
 
-    # --- [修改] 并发处理函数 ---
+    # --- 并发处理函数 ---
     def process_single_sample(task):
         global SAMPLE_COUNT
-        # 增加计数 (注意: 多线程下这可能不准确，但只是log ID不太重要)
         # SAMPLE_COUNT += 1 
         
         system_prompt = task["system_prompt"]
@@ -225,7 +235,7 @@ def compute_custom_reward(**kwargs):
         with api_semaphore:
             trace_entry = {
                 "timestamp": datetime.now().isoformat(),
-                "sample_id": 0, # 暂不精确追踪ID
+                "sample_id": 0, 
                 "iteration": CURRENT_ITERATION,
                 "a_model": {
                     "input": str(original_prompt_blob), 
@@ -240,9 +250,7 @@ def compute_custom_reward(**kwargs):
             
             if MODELS_LOADED:
                 try:
-                    # A -> B
                     codes_dict_list = _generate_codes(cleaned_system_prompt, str(actual_user_query))
-                    # B -> C
                     avg_score, _, full_results = _evaluate_codes(codes_dict_list, gt_str, str(actual_user_query))
                     
                     b_logs = []
@@ -272,17 +280,12 @@ def compute_custom_reward(**kwargs):
             
             return float(avg_score), json.dumps(trace_entry, ensure_ascii=False)
 
-    # --- [修改] 使用线程池执行 ---
+    # --- 使用线程池执行 ---
     all_scores = [0.0] * len(responses)
     all_traces = ["{}"] * len(responses)
     
-    # 映射回原来的顺序
-    # 这里的 tasks 列表顺序对应 all_scores 的顺序，因为是按顺序 append 的
-    
-    # 使用 ThreadPoolExecutor 提高并发
-    # max_workers 设置为 60 或略高，受 semaphore 控制实际请求
-    with ThreadPoolExecutor(max_workers=64) as executor:
-        # 提交任务
+    # 使用 ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=MAX_CONCURRENCY + 4) as executor:
         future_to_idx = {executor.submit(process_single_sample, task): i for i, task in enumerate(tasks)}
         
         for future in as_completed(future_to_idx):
@@ -310,9 +313,6 @@ def _generate_codes(system_prompt: str, prompt: str) -> List[Dict]:
     try:
         sys_p = str(system_prompt) if system_prompt is not None else ""
         usr_p = str(prompt) if prompt is not None else ""
-        # 注意：这里内部如果是调用本地模型，本身可能不支持多线程并发（CUDA流冲突）
-        # 但如果是调用 API (b_model_api.py)，则支持多线程。
-        # 根据你的文件列表，你使用了 b_model_api.py，所以这里多线程是有效的。
         generated_codes = generate_code_from_prompt(
             B_MODEL, B_TOKENIZER, generated_prompt=sys_p, original_prompt=usr_p, k=K_CODE_GEN
         )
@@ -340,7 +340,6 @@ def _evaluate_codes(codes: List[Dict], ground_truth: str, original_prompt: str) 
 
     for code_item in codes:
         try:
-            # 调用 C 模型 API
             score_val, full_res = compute_c_reward(
                 c_judge=C_JUDGE,
                 generated_code=code_item['code'],
