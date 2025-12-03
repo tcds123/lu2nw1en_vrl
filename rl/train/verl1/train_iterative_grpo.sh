@@ -23,17 +23,15 @@ echo "Logging to: $LOG_PATH"
 
 python -m iterative_grpo_trainer \
     algorithm.adv_estimator=grpo \
-    data.train_files=/data/zhuldz/lunwen/data/OpenCodeInstruct/dataparquet/train-00000-of-00050_1.parquet \
+    data.train_files=/data/zhuldz/lunwen/data/OpenCodeInstruct/dataparquet/train_cleaned_1.parquet \
     data.val_files=/data/zhuldz/lunwen/data/CodeEval-Pro/dataset_1/humaneval_pro.parquet \
-    data.train_batch_size=16 \
+    data.train_batch_size=8 \
     data.micro_batch_size=1 \
     actor_rollout_ref.model.path=/data/zhuldz/lunwen/models/Qwen3-4B \
-    actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=1 \
-    actor_rollout_ref.rollout.n=2 \
+    actor_rollout_ref.rollout.n=4 \
     actor_rollout_ref.model.enable_gradient_checkpointing=True \
     trainer.nnodes=1 \
-    trainer.total_epochs=1 \
     iterative_rl.max_iterations=2 \
     iterative_rl.convergence_threshold=0.01 \
     > "$LOG_PATH/out.txt" 2>&1

@@ -20,7 +20,7 @@ if project_root not in sys.path:
     sys.path.append(project_root)
 
 # ===================================================================
-# 1. 导入接口
+# 1. 导入接口 (修复 NameError 问题)
 # ===================================================================
 B_MODEL = None
 B_TOKENIZER = None
@@ -31,10 +31,14 @@ try:
     from verl1.b_interface import load_b_model, generate_code_from_prompt
     from verl1.c_interface import load_c_model, compute_reward as compute_c_reward
 except Exception as e:
-    def load_b_model(**kwargs): raise ImportError(f"b_interface import failed: {e}")
-    def load_c_model(**kwargs): raise ImportError(f"c_interface import failed: {e}")
+    # [关键修复] Python 3 会在 except 块结束后删除 e，必须先转存为字符串
+    err_msg = str(e)
+    print(f"⚠️ [CustomReward] Import Failed: {err_msg}") # 立即打印，方便调试
+    
+    def load_b_model(**kwargs): raise ImportError(f"b_interface import failed: {err_msg}")
+    def load_c_model(**kwargs): raise ImportError(f"c_interface import failed: {err_msg}")
     def generate_code_from_prompt(**kwargs): return ["Error: Import failed"]
-    def compute_c_reward(**kwargs): return 0.0
+    def compute_c_reward(**kwargs): return 0.0, {}
 
 # 全局配置
 ROLLOUT_DATA_DIR = "./a_model_grpo_standard/rollouts"
@@ -45,59 +49,47 @@ CURRENT_ITERATION = 0
 _CONFIG_INITIALIZED = False
 SAMPLE_COUNT = 0
 
-# [关键配置] 全局并发控制：设置为 60
-MAX_CONCURRENCY = 55 
+
+MAX_CONCURRENCY = 55  
 api_semaphore = threading.Semaphore(MAX_CONCURRENCY)
 
 # ===================================================================
-# 2. C模型评判模板
+# 2. 动态加载 C 模型模板
 # ===================================================================
-C_MODEL_TEMPLATE = """你是专业代码评判模型（C模型），需要对生成代码和其对应的提示词进行评分。请严格按照以下规则评估：
+C_PROMPT_FILE_PATH = "/data/zhuldz/lunwen/judge/c_model_prompt.txt"
 
-【评估对象】
-- 提示词（A模型输出）：{prompt}
-- B模型输入（合并提示词）：{b_model_input}
-- 生成代码（B模型输出）：{generated_code}
-- 代码真值（参考标准）：{code_ground_truth}
-
-【评估维度及权重】
-1. 符合提示词度（30%）：生成代码是否严格遵循B模型输入的要求（功能、格式、约束等）
-2. 代码质量（30%）：代码内容语法正确性、逻辑完整性、可读性（命名规范、注释等）
-3. 功能一致性（40%）：与真值代码的核心功能是否一致（输入输出、处理逻辑）
-4. 模型生成代码含有自然语言内容，在总分基础上扣两分。
-
-【评分规则】
-- 总分：-10 ~ +10（分数越高表示提示词效果越好，A模型应被奖励）
-  - +7~+10：优秀（完全符合B模型输入，代码质量高，功能一致）
-  - +3~+6：良好（基本符合B模型输入，少量问题，功能基本一致）
-  - -2~+2：一般（部分符合B模型输入，有明显问题，功能有偏差）
-  - -6~-3：较差（很少符合B模型输入，严重问题，功能偏差大）
-  - -10~-7：极差（完全不符合B模型输入，无法运行，功能错误）
-- 必须给出具体扣分/加分理由，禁止模糊评价
-
-【输出格式】（严格按照JSON格式输出，键名不可修改）
-{{
-  "total_score": 具体分数（整数）,
-  "match_prompt": 布尔值（true/false，是否符合B模型输入）,
-  "score_details": {{
-    "prompt_match_score": 维度1得分（-4~+4）,
-    "code_quality_score": 维度2得分（-3~+3）,
-    "function_consistency_score": 维度3得分（-3~+3）
-  }},
-  "reason": "具体评价理由（分点说明）"
-}}"""
+def _get_c_model_template():
+    """每次调用时从文件读取最新的 Prompt 模板，支持热修改"""
+    try:
+        if os.path.exists(C_PROMPT_FILE_PATH):
+            with open(C_PROMPT_FILE_PATH, "r", encoding="utf-8") as f:
+                return f.read().strip()
+        else:
+            # 默认模板作为兜底
+            return "Error: c_model_prompt.txt not found. Please check path."
+    except Exception as e:
+        return f"Error reading prompt file: {e}"
 
 # ===================================================================
 # 3. 核心清洗函数
 # ===================================================================
 def _clean_prompt_content(dirty_text: str) -> str:
+    """
+    从包含ICL示例和指令的复杂文本中，提取出原始的用户问题。
+    """
     if not isinstance(dirty_text, str): return str(dirty_text)
+    
+    # 标记必须与 convert_data.py 中的模板一致
     start_marker = "Original prompt:"
     end_marker = "Correct code:"
+    
     start_idx = dirty_text.find(start_marker)
     end_idx = dirty_text.find(end_marker)
+    
     if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+        # 提取中间部分并去除空白
         return dirty_text[start_idx + len(start_marker):end_idx].strip()
+    
     return dirty_text
 
 # ===================================================================
@@ -107,15 +99,19 @@ def _ensure_models_loaded():
     global B_MODEL, B_TOKENIZER, C_JUDGE, MODELS_LOADED
     if MODELS_LOADED: return True
     try:
+        # [关键] 多卡环境下 Ray 会屏蔽 CUDA_VISIBLE_DEVICES，导致子进程看不到卡
         if "CUDA_VISIBLE_DEVICES" in os.environ and not os.environ["CUDA_VISIBLE_DEVICES"]:
             del os.environ["CUDA_VISIBLE_DEVICES"]
+            
         if B_MODEL is None: B_MODEL, B_TOKENIZER = load_b_model()
         if C_JUDGE is None: C_JUDGE = load_c_model()
+        
         if B_MODEL is not None and C_JUDGE is not None:
             MODELS_LOADED = True
             return True
         return False
     except Exception as e:
+        # 这里捕获的是 load_b_model 抛出的 ImportError
         print(f"❌ [CustomReward] Model Init Failed: {e}")
         traceback.print_exc()
         return False
@@ -135,141 +131,156 @@ def _initialize_globals_from_config(config):
     _CONFIG_INITIALIZED = True
 
 # ===================================================================
-# 5. 核心奖励函数 (NumPy Fix + ThreadPool)
+# 5. 核心奖励函数
 # ===================================================================
 def compute_custom_reward(**kwargs):
     global SAMPLE_COUNT
     _ensure_models_loaded()
     
-    # --- [Fix] 安全获取 prompts (避免 numpy bool 错误) ---
+    # --- 1. 提取 Prompts (A输入) ---
     prompts = kwargs.get('data_sources')
-    if prompts is None:
-        prompts = kwargs.get('prompts')
-    if prompts is None:
-        prompts = kwargs.get('input_ids')
-    if prompts is None:
-        prompts = kwargs.get('inputs')
+    if prompts is None: prompts = kwargs.get('prompts')
+    if prompts is None: prompts = kwargs.get('input_ids')
+    if prompts is None: prompts = kwargs.get('inputs')
         
-    # --- [Fix] 安全获取 responses ---
+    # --- 2. 提取 Responses (A输出) ---
     responses = kwargs.get('solution_strs')
-    if responses is None:
-        responses = kwargs.get('responses')
-    if responses is None:
-        responses = kwargs.get('predictions')
+    if responses is None: responses = kwargs.get('responses')
+    if responses is None: responses = kwargs.get('predictions')
     
-    # 提取真值
+    # --- 3. 提取真值 (兼容多种 Key) ---
     ground_truths = None
     if 'canonical_solution' in kwargs: ground_truths = kwargs['canonical_solution']
     elif 'output' in kwargs: ground_truths = kwargs['output']
     elif 'ground_truth' in kwargs: ground_truths = kwargs['ground_truth']
-    elif 'reward_model' in kwargs:
+    elif 'ground_truths' in kwargs: ground_truths = kwargs['ground_truths']
+    elif 'references' in kwargs: ground_truths = kwargs['references']
+    
+    if ground_truths is None and 'reward_model' in kwargs:
         rm = kwargs['reward_model']
         if isinstance(rm, dict):
             ground_truths = rm.get('ground_truth', rm.get('output'))
         elif isinstance(rm, (list, np.ndarray)) and len(rm) > 0 and isinstance(rm[0], dict):
              ground_truths = [item.get('ground_truth', item.get('output')) for item in rm]
 
-    # 提取 raw_input
+    # --- 4. 提取 raw_input (B输入) ---
     raw_inputs = kwargs.get('raw_input')
-    if raw_inputs is None and prompts is not None:
-        raw_inputs = [_clean_prompt_content(str(p)) for p in prompts]
 
+    # 快速失败
     if prompts is None or responses is None:
         return {"reward_tensor": torch.zeros(1), "reward_extra_info": {}}
 
     config = kwargs.get('config')
     _initialize_globals_from_config(config)
 
-    # 格式化
+    # 格式化列表
     if isinstance(prompts, (np.ndarray, torch.Tensor)): prompts = prompts.tolist()
     if isinstance(raw_inputs, (np.ndarray, torch.Tensor)): raw_inputs = raw_inputs.tolist()
     if isinstance(responses, (np.ndarray, torch.Tensor)): responses = responses.tolist()
     if ground_truths is not None and isinstance(ground_truths, (np.ndarray, torch.Tensor)):
         ground_truths = ground_truths.tolist()
     
+    # 确保长度匹配
     if ground_truths is None: ground_truths = [None] * len(prompts)
-    if raw_inputs is None: raw_inputs = [""] * len(prompts)
-
-    n = 1
-    if len(prompts) > 0 and len(responses) > len(prompts):
-        n = len(responses) // len(prompts)
     
-    # --- 准备任务列表 ---
+    # --- [关键逻辑] 计算 N_Ratio (数据对齐) ---
+    num_responses = len(responses)
+    num_prompts = len(prompts)
+    
+    n_ratio = 1
+    if num_prompts > 0 and num_responses > num_prompts:
+        n_ratio = num_responses // num_prompts
+    
+    # 准备任务列表 (Flattened)
     tasks = []
-    response_index = 0
-    
-    for i, original_prompt_blob in enumerate(prompts):
-        gt = ground_truths[i] if i < len(ground_truths) else None
-        gt_str = str(gt) if gt else "N/A (Truth Not Found)"
-        actual_user_query = raw_inputs[i] if i < len(raw_inputs) else str(original_prompt_blob)
+    current_template = _get_c_model_template()
+
+    for i in range(num_responses):
+        # 回溯索引
+        p_idx = i if num_prompts == num_responses else i // n_ratio
         
-        end_index = min(response_index + n, len(responses))
-        system_prompts_from_policy = responses[response_index : end_index]
-        response_index += n
-        
-        for system_prompt in system_prompts_from_policy:
-            tasks.append({
-                "original_prompt_blob": original_prompt_blob,
-                "gt_str": gt_str,
-                "actual_user_query": actual_user_query,
-                "system_prompt": system_prompt
-            })
+        # 获取对应的数据
+        if p_idx < len(prompts):
+            original_prompt_blob = prompts[p_idx]
+        else:
+            original_prompt_blob = "Error: Prompt index out of bounds"
+
+        # 获取真值
+        if ground_truths and p_idx < len(ground_truths):
+            gt = ground_truths[p_idx]
+        else:
+            gt = None
+        gt_str = str(gt) if gt else "N/A"
+
+        # 获取/清洗原始输入
+        if raw_inputs and p_idx < len(raw_inputs):
+            actual_user_query = str(raw_inputs[p_idx])
+        else:
+            actual_user_query = _clean_prompt_content(str(original_prompt_blob))
+            
+        system_prompt = responses[i]
+
+        tasks.append({
+            "index": i,
+            "original_prompt_blob": original_prompt_blob,
+            "gt_str": gt_str,
+            "actual_user_query": actual_user_query,
+            "system_prompt": system_prompt,
+            "template": current_template
+        })
 
     # --- 并发处理函数 ---
     def process_single_sample(task):
-        global SAMPLE_COUNT
-        # SAMPLE_COUNT += 1 
+        sys_p = task["system_prompt"]
+        query = task["actual_user_query"]
+        gt = task["gt_str"]
+        tmpl = task["template"]
         
-        system_prompt = task["system_prompt"]
-        original_prompt_blob = task["original_prompt_blob"]
-        actual_user_query = task["actual_user_query"]
-        gt_str = task["gt_str"]
+        raw_sys_p = str(sys_p)
+        clean_sys_p = re.sub(r'<think>.*?</think>', '', raw_sys_p, flags=re.DOTALL).strip()
+        if not clean_sys_p: clean_sys_p = "Generate python code."
 
-        # 1. 清洗 <think>
-        raw_system_prompt = str(system_prompt)
-        cleaned_system_prompt = re.sub(r'<think>.*?</think>', '', raw_system_prompt, flags=re.DOTALL).strip()
-        if not cleaned_system_prompt:
-            cleaned_system_prompt = "Generate python code based on the user request."
-
-        # 2. 并发限制控制
         with api_semaphore:
             trace_entry = {
                 "timestamp": datetime.now().isoformat(),
-                "sample_id": 0, 
                 "iteration": CURRENT_ITERATION,
                 "a_model": {
-                    "input": str(original_prompt_blob), 
-                    "raw_output": raw_system_prompt,
-                    "output": cleaned_system_prompt
+                    "input": str(task["original_prompt_blob"]), 
+                    "output": clean_sys_p
                 },
                 "b_model": [], 
                 "c_model": {} 
             }
             avg_score = 0.0
-            full_c_input_log = ""
             
             if MODELS_LOADED:
                 try:
-                    codes_dict_list = _generate_codes(cleaned_system_prompt, str(actual_user_query))
-                    avg_score, _, full_results = _evaluate_codes(codes_dict_list, gt_str, str(actual_user_query))
+                    # A -> B
+                    codes_dict_list = _generate_codes(clean_sys_p, query)
+                    
+                    # B -> C
+                    avg_score, _, full_results = _evaluate_codes(codes_dict_list, gt, query)
                     
                     b_logs = []
-                    for k_idx, code_item in enumerate(codes_dict_list):
-                        b_input = str(code_item.get('b_model_input', ''))
-                        gen_code = str(code_item.get('code', ''))
-                        b_logs.append({"input": b_input, "output": gen_code})
-                        if k_idx == 0:
-                            full_c_input_log = C_MODEL_TEMPLATE.format(
-                                prompt=str(cleaned_system_prompt),
-                                b_model_input=b_input,
-                                generated_code=gen_code,
-                                code_ground_truth=gt_str 
+                    c_log_input = ""
+                    
+                    for k, code_item in enumerate(codes_dict_list):
+                        b_in = str(code_item.get('b_model_input', ''))
+                        b_out = str(code_item.get('code', ''))
+                        b_logs.append({"input": b_in, "output": b_out})
+                        
+                        if k == 0:
+                            c_log_input = tmpl.format(
+                                prompt=str(clean_sys_p),
+                                b_model_input=b_in,
+                                generated_code=b_out,
+                                code_ground_truth=gt 
                             )
 
                     trace_entry["b_model"] = b_logs
                     trace_entry["c_model"] = {
-                        "input": full_c_input_log if full_c_input_log else "Error: No code generated",
-                        "output": full_results, 
+                        "input": c_log_input,
+                        "output": full_results,
                         "avg_score": float(avg_score)
                     }
                 except Exception as e:
@@ -280,13 +291,12 @@ def compute_custom_reward(**kwargs):
             
             return float(avg_score), json.dumps(trace_entry, ensure_ascii=False)
 
-    # --- 使用线程池执行 ---
+    # --- 执行线程池 ---
     all_scores = [0.0] * len(responses)
     all_traces = ["{}"] * len(responses)
     
-    # 使用 ThreadPoolExecutor
     with ThreadPoolExecutor(max_workers=MAX_CONCURRENCY + 4) as executor:
-        future_to_idx = {executor.submit(process_single_sample, task): i for i, task in enumerate(tasks)}
+        future_to_idx = {executor.submit(process_single_sample, task): task["index"] for task in tasks}
         
         for future in as_completed(future_to_idx):
             idx = future_to_idx[future]
@@ -303,7 +313,7 @@ def compute_custom_reward(**kwargs):
     }
 
 # ===================================================================
-# 6. 辅助函数 (保持不变)
+# 6. 辅助函数
 # ===================================================================
 def _generate_codes(system_prompt: str, prompt: str) -> List[Dict]:
     codes = []
