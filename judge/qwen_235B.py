@@ -94,8 +94,8 @@ class CModelJudge:
             "messages": [{"role": "user", "content": judge_prompt}],
             "stream": False,  # 非流式响应（必须，否则返回分段数据）
             "chat_template_kwargs": {"enable_thinking": False},  # C模型无需推理过程
-            "temperature": 0.2,  # 低随机性，确保评判稳定
-            "max_tokens": 500  # 限制响应长度，避免冗余
+            "temperature": 0.05,  # 低随机性，确保评判稳定
+            "max_tokens": 512  # 限制响应长度，避免冗余
         }
 
         # 3. 发送请求
@@ -152,7 +152,7 @@ class CModelJudge:
             json_start = judge_text.find("{")
             json_end = judge_text.rfind("}") + 1
             if json_start == -1 or json_end == 0:
-                raise ValueError(f"C模型输出不包含有效JSON，原始文本：{judge_text[:200]}...")
+                raise ValueError(f"C模型输出不包含有效JSON，原始文本：{judge_text[:100]}...")
             
             # 解析JSON
             try:
@@ -280,9 +280,15 @@ def process_json_evaluation(
 
 if __name__ == "__main__":
     # 配置参数
-    API_URL = "https://aimpapi.midea.com/t-aigc/aimp-qwen3-235b-a22b/v1/chat/completions"
-    AUTH_TOKEN = "msk-8a895e7fa53a8785f9cc4dc0364fae9064ccc540bbd419b5ba7cde8340ec2af8"
-    MODEL_C = "/model/qwen3-235b-a22b"  # C模型标识
+    # API_URL = "https://aimpapi.midea.com/t-aigc/aimp-qwen3-235b-a22b/v1/chat/completions"
+    # AUTH_TOKEN = "msk-8a895e7fa53a8785f9cc4dc0364fae9064ccc540bbd419b5ba7cde8340ec2af8"
+    # MODEL_C = "/model/qwen3-235b-a22b"  # C模型标识
+    # API_URL = "https://aimpapi.midea.com/t-aigc/aimp-deepseek-r1/v1/chat/completions"
+    # AUTH_TOKEN = "msk-ca04571203246b31eec2dae635521ea079ca23818fdbe1f2177e17934382d378"
+    # MODEL_C = "/model/DeepSeek-R1"  # C模型标识
+    API_URL = "https://aimpapi.midea.com/t-aigc/f-devops-qwen3-coder-480b-a35b-instruct/v1/chat/completions"
+    AUTH_TOKEN = "msk-4b8773bf749c892f2c9803aa69ef94b8b96e7cf807da78cbfdf8606ed919adef"
+    MODEL_C = "f-devops-qwen3-coder-480b-a35b-instruct"  # C模型标识
     SOURCE_JSON_PATH = "/data/zhuldz/lunwen/generation/humaneval_pro.json"  # 替换为你的源JSON文件路径
     SLEEP_TIME = 5  # 每条数据评分后的休眠时间（秒）
 

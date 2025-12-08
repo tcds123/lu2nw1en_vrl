@@ -5,7 +5,7 @@ import logging
 import torch
 import numpy as np
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Tuple
 import traceback
 import re
 import threading
@@ -20,7 +20,7 @@ if project_root not in sys.path:
     sys.path.append(project_root)
 
 # ===================================================================
-# 1. 导入接口 (修复 NameError 问题)
+# 1. 导入接口
 # ===================================================================
 B_MODEL = None
 B_TOKENIZER = None
@@ -31,9 +31,8 @@ try:
     from verl1.b_interface import load_b_model, generate_code_from_prompt
     from verl1.c_interface import load_c_model, compute_reward as compute_c_reward
 except Exception as e:
-    # [关键修复] Python 3 会在 except 块结束后删除 e，必须先转存为字符串
     err_msg = str(e)
-    print(f"⚠️ [CustomReward] Import Failed: {err_msg}") # 立即打印，方便调试
+    print(f"⚠️ [CustomReward] Import Failed: {err_msg}")
     
     def load_b_model(**kwargs): raise ImportError(f"b_interface import failed: {err_msg}")
     def load_c_model(**kwargs): raise ImportError(f"c_interface import failed: {err_msg}")
@@ -43,119 +42,151 @@ except Exception as e:
 # 全局配置
 ROLLOUT_DATA_DIR = "./a_model_grpo_standard/rollouts"
 ITERATION_LOG_DIR = "./a_model_grpo_standard/iterations"
-K_CODE_GEN = 2
+K_CODE_GEN = 1  # 配合通用性测试，每个题目只生成1个代码，控制计算成本
 ROLLOUT_N = 5 
 CURRENT_ITERATION = 0
 _CONFIG_INITIALIZED = False
 SAMPLE_COUNT = 0
 
-
-MAX_CONCURRENCY = 50  
+# 并发控制
+MAX_CONCURRENCY = 10  
 api_semaphore = threading.Semaphore(MAX_CONCURRENCY)
 
 # ===================================================================
-# 1.5 新增：Token 重叠惩罚函数 (兼容无 Tokenizer 的 API 模型)
+# [核心配置] 通用性测试集与惩罚参数
+# ===================================================================
+# 测试集路径
+TEST_SET_PATH = "/data/zhuldz/lunwen/generation/humaneval_pro.json"
+# 每次校验使用的题目数量
+NUM_TEST_CASES = 4
+# 全局测试集缓存
+GENERAL_TEST_SET: List[Tuple[str, str]] = []
+
+# 惩罚权重
+USER_OVERLAP_WEIGHT = 15.0       # 复读用户题目惩罚权重
+GT_LEAKAGE_THRESHOLD = 0.15      # 本地硬熔断阈值 (15%)
+MIN_REWARD_FLOOR = -10.0         # 地板分
+
+# ===================================================================
+# 1.4 加载通用测试集
+# ===================================================================
+def _load_general_test_set():
+    global GENERAL_TEST_SET
+    if GENERAL_TEST_SET: return
+
+    print(f"⏳ [CustomReward] 正在加载通用测试集 (Top {NUM_TEST_CASES})...")
+    try:
+        if os.path.exists(TEST_SET_PATH):
+            with open(TEST_SET_PATH, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            if isinstance(data, dict): data = [data]
+            
+            count = 0
+            for item in data:
+                q = item.get('raw_problem', '').strip()
+                gt = item.get('raw_solution', '').strip()
+                if q and gt:
+                    GENERAL_TEST_SET.append((q, gt))
+                    count += 1
+                    if count >= NUM_TEST_CASES:
+                        break
+            print(f"✅ [CustomReward] 加载完成，共 {len(GENERAL_TEST_SET)} 条。")
+        else:
+            print(f"❌ [CustomReward] 文件未找到: {TEST_SET_PATH}")
+            GENERAL_TEST_SET = [("Print hello world", "print('hello world')")]
+    except Exception as e:
+        print(f"❌ [CustomReward] 加载失败: {e}")
+        GENERAL_TEST_SET = [("Error loading data", "pass")]
+
+# ===================================================================
+# 1.5 & 1.6 本地检测函数
 # ===================================================================
 def calculate_overlap_penalty(generated_prompt: str, original_prompt: str, tokenizer) -> float:
-    """
-    计算 System Prompt 和 Original Prompt 之间的 Token 重叠率作为惩罚项。
-    如果 tokenizer 不可用，则使用词汇重叠率作为回退。
-    """
-    # 清理输入字符串，确保所有字符为小写并去除多余空白
+    """计算 A模型输出 与 用户原始问题 之间的 Token 重叠率 (防止复读机)"""
     sp_clean = generated_prompt.strip().lower()
     up_clean = original_prompt.strip().lower()
-
-    if not sp_clean:
-        return 0.0
+    if not sp_clean: return 0.0
 
     if tokenizer:
-        # 优先使用 Tokenizer (更精确)
         try:
             sp_tokens = set(tokenizer.encode(sp_clean, add_special_tokens=False))
             up_tokens = set(tokenizer.encode(up_clean, add_special_tokens=False))
         except Exception:
-            # Tokenizer 编码失败时回退
             sp_tokens = set(sp_clean.split())
             up_tokens = set(up_clean.split())
     else:
-        # Tokenizer 不可用时，使用基于空格的词汇重叠 (作为回退)
         sp_tokens = set(sp_clean.split())
         up_tokens = set(up_clean.split())
     
-    # 如果生成的 Prompt 为空 (split 之后)，则无惩罚
-    if not sp_tokens:
-        return 0.0
+    if not sp_tokens: return 0.0
+    shared = len(sp_tokens.intersection(up_tokens))
+    return shared / len(sp_tokens)
 
-    # 计算交集（共同的 Token/词汇）
-    shared_tokens_count = len(sp_tokens.intersection(up_tokens))
+def check_ground_truth_leakage(generated_text: str, ground_truth: str) -> float:
+    """本地快速行重叠检测 (Layer 1 防御)"""
+    if not generated_text or not ground_truth: return 0.0
+    gen_lines = generated_text.split('\n')
+    gt_lines = ground_truth.split('\n')
     
-    # 惩罚项：交集长度 / 生成 Prompt 长度 (惩罚其重复程度)
-    overlap_rate = shared_tokens_count / len(sp_tokens)
-    
-    return overlap_rate
+    def clean_lines(lines):
+        cleaned = set()
+        for line in lines:
+            s = line.strip()
+            if len(s) > 3: cleaned.add(s)
+        return cleaned
 
+    gen_set = clean_lines(gen_lines)
+    gt_set = clean_lines(gt_lines)
+    if not gen_set: return 0.0
+    
+    intersection = gen_set.intersection(gt_set)
+    return len(intersection) / len(gen_set)
 
 # ===================================================================
-# 2. 动态加载 C 模型模板
+# 2. 动态加载模板
 # ===================================================================
 C_PROMPT_FILE_PATH = "/data/zhuldz/lunwen/judge/c_model_prompt.txt"
 
 def _get_c_model_template():
-    """每次调用时从文件读取最新的 Prompt 模板，支持热修改"""
     try:
         if os.path.exists(C_PROMPT_FILE_PATH):
             with open(C_PROMPT_FILE_PATH, "r", encoding="utf-8") as f:
                 return f.read().strip()
-        else:
-            # 默认模板作为兜底
-            return "Error: c_model_prompt.txt not found. Please check path."
+        return "Error: c_model_prompt.txt not found."
     except Exception as e:
         return f"Error reading prompt file: {e}"
 
 # ===================================================================
-# 3. 核心清洗函数
+# 3. 清洗函数
 # ===================================================================
 def _clean_prompt_content(dirty_text: str) -> str:
-    """
-    从包含ICL示例和指令的复杂文本中，提取出原始的用户问题。
-    """
     if not isinstance(dirty_text, str): return str(dirty_text)
-    
-    # 标记必须与 convert_data.py 中的模板一致
     start_marker = "Original prompt:"
     end_marker = "Correct code:"
-    
     start_idx = dirty_text.find(start_marker)
     end_idx = dirty_text.find(end_marker)
-    
     if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-        # 提取中间部分并去除空白
         return dirty_text[start_idx + len(start_marker):end_idx].strip()
-    
     return dirty_text
 
 # ===================================================================
-# 4. 模型懒加载
+# 4. 模型加载
 # ===================================================================
 def _ensure_models_loaded():
     global B_MODEL, B_TOKENIZER, C_JUDGE, MODELS_LOADED
     if MODELS_LOADED: return True
     try:
-        # [关键] 多卡环境下 Ray 会屏蔽 CUDA_VISIBLE_DEVICES，导致子进程看不到卡
         if "CUDA_VISIBLE_DEVICES" in os.environ and not os.environ["CUDA_VISIBLE_DEVICES"]:
             del os.environ["CUDA_VISIBLE_DEVICES"]
-            
         if B_MODEL is None: B_MODEL, B_TOKENIZER = load_b_model()
         if C_JUDGE is None: C_JUDGE = load_c_model()
-        
         if B_MODEL is not None and C_JUDGE is not None:
             MODELS_LOADED = True
+            _load_general_test_set()
             return True
         return False
     except Exception as e:
-        # 这里捕获的是 load_b_model 抛出的 ImportError
-        print(f"❌ [CustomReward] Model Init Failed: {e}")
-        traceback.print_exc()
+        print(f"❌ Model Init Failed: {e}")
         return False
 
 def _initialize_globals_from_config(config):
@@ -163,127 +194,50 @@ def _initialize_globals_from_config(config):
     if _CONFIG_INITIALIZED: return
     if config:
         CURRENT_ITERATION = config.get('current_iteration', 0) if isinstance(config, dict) else getattr(config, 'current_iteration', 0)
-        if hasattr(config, 'iterative_rl'):
-            K_CODE_GEN = config.iterative_rl.code_generation_count or 2
-            ROLLOUT_DATA_DIR = config.iterative_rl.rollout_data_dir
-        elif isinstance(config, dict) and 'iterative_rl' in config:
-            K_CODE_GEN = config['iterative_rl'].get('code_generation_count', 2)
+        if isinstance(config, dict) and 'iterative_rl' in config:
             ROLLOUT_DATA_DIR = config['iterative_rl'].get('rollout_data_dir', ROLLOUT_DATA_DIR)
     os.makedirs(ROLLOUT_DATA_DIR, exist_ok=True)
     _CONFIG_INITIALIZED = True
 
 # ===================================================================
-# 5. 核心奖励函数
+# 5. 核心奖励函数 (通用性测试 + 反幻觉支持)
 # ===================================================================
-# 定义一个全局的惩罚权重 (可根据训练效果进行调整，最大惩罚值为 2.0)
-PENALTY_WEIGHT = 15
-
 def compute_custom_reward(**kwargs):
-    global SAMPLE_COUNT
     _ensure_models_loaded()
     
-    # --- 1. 提取 Prompts (A输入) ---
-    prompts = kwargs.get('data_sources')
-    if prompts is None: prompts = kwargs.get('prompts')
-    if prompts is None: prompts = kwargs.get('input_ids')
-    if prompts is None: prompts = kwargs.get('inputs')
-        
-    # --- 2. 提取 Responses (A输出) ---
-    responses = kwargs.get('solution_strs')
-    if responses is None: responses = kwargs.get('responses')
-    if responses is None: responses = kwargs.get('predictions')
+    # 提取 A 模型输出 (System Prompts)
+    prompts = kwargs.get('data_sources') or kwargs.get('prompts') or kwargs.get('input_ids')
+    responses = kwargs.get('solution_strs') or kwargs.get('responses') or kwargs.get('predictions')
     
-    # --- 3. 提取真值 (兼容多种 Key) ---
-    ground_truths = None
-    if 'canonical_solution' in kwargs: ground_truths = kwargs['canonical_solution']
-    elif 'output' in kwargs: ground_truths = kwargs['output']
-    elif 'ground_truth' in kwargs: ground_truths = kwargs['ground_truth']
-    elif 'ground_truths' in kwargs: ground_truths = kwargs['ground_truths']
-    elif 'references' in kwargs: ground_truths = kwargs['references']
-    
-    if ground_truths is None and 'reward_model' in kwargs:
-        rm = kwargs['reward_model']
-        if isinstance(rm, dict):
-            ground_truths = rm.get('ground_truth', rm.get('output'))
-        elif isinstance(rm, (list, np.ndarray)) and len(rm) > 0 and isinstance(rm[0], dict):
-             ground_truths = [item.get('ground_truth', item.get('output')) for item in rm]
-
-    # --- 4. 提取 raw_input (B输入) ---
-    raw_inputs = kwargs.get('raw_input')
-
-    # 快速失败
     if prompts is None or responses is None:
         return {"reward_tensor": torch.zeros(1), "reward_extra_info": {}}
 
     config = kwargs.get('config')
     _initialize_globals_from_config(config)
 
-    # 格式化列表
     if isinstance(prompts, (np.ndarray, torch.Tensor)): prompts = prompts.tolist()
-    if isinstance(raw_inputs, (np.ndarray, torch.Tensor)): raw_inputs = raw_inputs.tolist()
     if isinstance(responses, (np.ndarray, torch.Tensor)): responses = responses.tolist()
-    if ground_truths is not None and isinstance(ground_truths, (np.ndarray, torch.Tensor)):
-        ground_truths = ground_truths.tolist()
     
-    # 确保长度匹配
-    if ground_truths is None: ground_truths = [None] * len(prompts)
-    
-    # --- [关键逻辑] 计算 N_Ratio (数据对齐) ---
     num_responses = len(responses)
-    num_prompts = len(prompts)
-    
-    n_ratio = 1
-    if num_prompts > 0 and num_responses > num_prompts:
-        n_ratio = num_responses // num_prompts
-    
-    # 准备任务列表 (Flattened)
     tasks = []
     current_template = _get_c_model_template()
 
     for i in range(num_responses):
-        # 回溯索引
-        p_idx = i if num_prompts == num_responses else i // n_ratio
-        
-        # 获取对应的数据
-        if p_idx < len(prompts):
-            original_prompt_blob = prompts[p_idx]
-        else:
-            original_prompt_blob = "Error: Prompt index out of bounds"
-
-        # 获取真值
-        if ground_truths and p_idx < len(ground_truths):
-            gt = ground_truths[p_idx]
-        else:
-            gt = None
-        gt_str = str(gt) if gt else "N/A"
-
-        # 获取/清洗原始输入
-        if raw_inputs and p_idx < len(raw_inputs):
-            actual_user_query = str(raw_inputs[p_idx])
-        else:
-            actual_user_query = _clean_prompt_content(str(original_prompt_blob))
-            
-        system_prompt = responses[i]
-
+        p_idx = i % len(prompts) if len(prompts) > 0 else 0
         tasks.append({
             "index": i,
-            "original_prompt_blob": original_prompt_blob,
-            "gt_str": gt_str,
-            "actual_user_query": actual_user_query,
-            "system_prompt": system_prompt,
+            "original_input": prompts[p_idx],
+            "system_prompt": responses[i],
             "template": current_template
         })
 
     # --- 并发处理函数 ---
-    def process_single_sample(task):
-        global B_TOKENIZER # 确保能访问到全局的 B_TOKENIZER
+    def process_single_sample_general(task):
+        global B_TOKENIZER, GENERAL_TEST_SET
         
         sys_p = task["system_prompt"]
-        query = task["actual_user_query"]
-        gt = task["gt_str"]
-        tmpl = task["template"]
-        
         raw_sys_p = str(sys_p)
+        # 去除思维链标记
         clean_sys_p = re.sub(r'<think>.*?</think>', '', raw_sys_p, flags=re.DOTALL).strip()
         if not clean_sys_p: clean_sys_p = "Generate python code."
 
@@ -291,80 +245,89 @@ def compute_custom_reward(**kwargs):
             trace_entry = {
                 "timestamp": datetime.now().isoformat(),
                 "iteration": CURRENT_ITERATION,
-                "a_model": {
-                    "input": str(task["original_prompt_blob"]), 
-                    "output": clean_sys_p
-                },
-                "b_model": [], 
-                "c_model": {} 
+                "a_model": {"input": str(task["original_input"]), "output": clean_sys_p},
+                "generalization_tests": [],
+                "final_stats": {}
             }
-            avg_score = 0.0
-            penalty_score = 0.0 # 重复惩罚分数
-            final_score = 0.0   # 最终奖励分数
-
-            if MODELS_LOADED:
-                try:
-                    # A -> B
-                    codes_dict_list = _generate_codes(clean_sys_p, query)
-                    
-                    # B -> C
-                    avg_score, _, full_results = _evaluate_codes(codes_dict_list, gt, query)
-                    
-                    # --- 新增核心逻辑：计算并应用重复惩罚 ---
-                    overlap_penalty = calculate_overlap_penalty(clean_sys_p, query, B_TOKENIZER)
-                    
-                    # 计算惩罚分数：权重为 PENALTY_WEIGHT (8.0)
-                    # 惩罚分数最大值为 -8.0
-                    penalty_score = - (overlap_penalty * PENALTY_WEIGHT)
-                    
-                    # 最终得分： C模型平均分 + 惩罚分
-                    final_score = avg_score + penalty_score
-                    final_score = max(final_score, -10.0)
-                    
-                    # 记录日志
-                    b_logs = []
-                    c_log_input = ""
-                    
-                    for k, code_item in enumerate(codes_dict_list):
-                        b_in = str(code_item.get('b_model_input', ''))
-                        b_out = str(code_item.get('code', ''))
-                        b_logs.append({"input": b_in, "output": b_out})
-                        
-                        if k == 0:
-                            c_log_input = tmpl.format(
-                                prompt=str(clean_sys_p),
-                                user_prompt=query,
-                                generated_code=b_out,
-                                code_ground_truth=gt 
-                            )
-
-                    trace_entry["b_model"] = b_logs
-                    trace_entry["c_model"] = {
-                        "input": c_log_input,
-                        "output": full_results,
-                        "avg_score": float(avg_score),
-                        # 记录惩罚项到日志
-                        "overlap_penalty": float(overlap_penalty),
-                        "penalty_score": float(penalty_score),
-                        "final_reward": float(final_score)
-                    }
-                except Exception as e:
-                    print(f"❌ Pipeline Error: {e}")
-                    traceback.print_exc()
-                    trace_entry["b_model"] = [{"input": "Error", "output": f"Pipeline Error: {e}"}]
-                    final_score = 0.0 # 发生错误时奖励为 0
-            else:
-                trace_entry["b_model"] = [{"input": "Error", "output": "Models Not Loaded"}]
-                final_score = 0.0
             
-            return float(final_score), json.dumps(trace_entry, ensure_ascii=False)
+            total_score = 0.0
+            test_count = 0
+            
+            if MODELS_LOADED and GENERAL_TEST_SET:
+                # 遍历每条测试数据
+                for t_idx, (test_query, test_gt) in enumerate(GENERAL_TEST_SET):
+                    try:
+                        # [Layer 1] 本地硬性熔断检测
+                        # 如果 System Prompt 大段照抄了当前题目的答案，直接 -10
+                        local_leakage_ratio = check_ground_truth_leakage(clean_sys_p, test_gt)
+                        
+                        if local_leakage_ratio > GT_LEAKAGE_THRESHOLD:
+                            case_score = MIN_REWARD_FLOOR
+                            case_info = {
+                                "status": "Hard Leakage Detected",
+                                "leakage_ratio": local_leakage_ratio,
+                                "final_case_score": case_score
+                            }
+                        else:
+                            # [生成阶段] A -> B
+                            codes_list = _generate_codes(clean_sys_p, test_query, k=1)
+                            
+                            # [评判阶段] B -> C (这里会调用 c_interface 的反幻觉核实)
+                            # avg_val 已经是经过 C 模型核实后的 (Base Score - Verified Penalties)
+                            avg_val, _, results = _evaluate_codes(codes_list, test_gt, test_query)
+                            
+                            # [本地惩罚] 复读机检测 (检查 System Prompt 是否复读了题目)
+                            # 这一步 Judge 很难判断，因为 Judge 可能会认为复读题目是“相关性高”
+                            # 所以我们在本地扣分
+                            overlap = calculate_overlap_penalty(clean_sys_p, test_query, B_TOKENIZER)
+                            p_user_overlap = overlap * USER_OVERLAP_WEIGHT
+                            
+                            # [最终单题得分]
+                            # C模型分 (含质量+泄露扣分) - 本地复读扣分
+                            case_score = avg_val - p_user_overlap
+                            case_score = max(case_score, MIN_REWARD_FLOOR)
+                            
+                            # 记录
+                            b_out = codes_list[0].get('code', '') if codes_list else ''
+                            c_res = results[0] if results else {}
+                            
+                            case_info = {
+                                "query_snippet": test_query[:30] + "...",
+                                "b_output_snippet": b_out[:30] + "...",
+                                "c_model_raw_score": float(avg_val),
+                                "c_model_details": c_res, # 包含 violation_report 和 核实结果
+                                "local_penalties": {"user_prompt_overlap": -float(p_user_overlap)},
+                                "final_case_score": float(case_score)
+                            }
 
-    # --- 执行线程池 ---
+                        total_score += case_score
+                        test_count += 1
+                        trace_entry["generalization_tests"].append(case_info)
+                        
+                    except Exception as e:
+                        print(f"Test case {t_idx} failed: {e}")
+                        trace_entry["generalization_tests"].append({"error": str(e)})
+            else:
+                trace_entry["error"] = "Models not loaded or Test Set empty"
+            
+            # 计算平均分
+            final_avg_score = (total_score / test_count) if test_count > 0 else MIN_REWARD_FLOOR
+            final_avg_score = max(final_avg_score, MIN_REWARD_FLOOR)
+            
+            trace_entry["final_stats"] = {
+                "tests_run": test_count,
+                "total_score": float(total_score),
+                "final_average_reward": float(final_avg_score)
+            }
+            
+            return float(final_avg_score), json.dumps(trace_entry, ensure_ascii=False)
+
+    # --- 执行 ---
     all_scores = [0.0] * len(responses)
     all_traces = ["{}"] * len(responses)
     
-    with ThreadPoolExecutor(max_workers=MAX_CONCURRENCY + 4) as executor:
-        future_to_idx = {executor.submit(process_single_sample, task): task["index"] for task in tasks}
+    with ThreadPoolExecutor(max_workers=MAX_CONCURRENCY + 2) as executor:
+        future_to_idx = {executor.submit(process_single_sample_general, task): task["index"] for task in tasks}
         
         for future in as_completed(future_to_idx):
             idx = future_to_idx[future]
@@ -384,20 +347,20 @@ def compute_custom_reward(**kwargs):
 # ===================================================================
 # 6. 辅助函数
 # ===================================================================
-def _generate_codes(system_prompt: str, prompt: str) -> List[Dict]:
+def _generate_codes(system_prompt: str, prompt: str, k: int = 1) -> List[Dict]:
     codes = []
     if B_MODEL is None:
-        return [{'code': "Error: B_MODEL is None", 'b_model_input': "", 'system_prompt': system_prompt}] * K_CODE_GEN
+        return [{'code': "Error: B_MODEL is None", 'b_model_input': "", 'system_prompt': system_prompt}] * k
 
     try:
         sys_p = str(system_prompt) if system_prompt is not None else ""
         usr_p = str(prompt) if prompt is not None else ""
         generated_codes = generate_code_from_prompt(
-            B_MODEL, B_TOKENIZER, generated_prompt=sys_p, original_prompt=usr_p, k=K_CODE_GEN
+            B_MODEL, B_TOKENIZER, generated_prompt=sys_p, original_prompt=usr_p, k=k
         )
     except Exception as e:
         print(f"Error in Model B: {e}")
-        generated_codes = [f"Error: {e}"] * K_CODE_GEN
+        generated_codes = [f"Error: {e}"] * k
         
     for code in generated_codes:
         b_input = f"{system_prompt}\n{prompt}"
@@ -419,6 +382,8 @@ def _evaluate_codes(codes: List[Dict], ground_truth: str, original_prompt: str) 
 
     for code_item in codes:
         try:
+            # 这里调用 c_interface.compute_reward
+            # 里面已经包含了 反幻觉核实 和 分数计算逻辑
             score_val, full_res = compute_c_reward(
                 c_judge=C_JUDGE,
                 generated_code=code_item['code'],
