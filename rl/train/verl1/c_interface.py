@@ -21,91 +21,103 @@ except ImportError as e:
         def judge(self, **kwargs): return {"valid": False, "error": f"Import Failed: {e}"}
 
 # ===================================================================
-# 2. 核心逻辑：反幻觉核实与算分 (新增)
+# 2. 核心逻辑：反幻觉核实与详细算分
 # ===================================================================
 
-def _verify_claim(claim_flag: bool, evidence: str, source_text: str, label: str) -> bool:
+def _verify_claim(claim_flag: bool, evidence: str, source_text: str, label: str, index: int = None, timestamp: str = None) -> bool:
     """
-    通用核实函数：验证模型提取的证据是否存在于源文本中
+    通用核实函数
+    timestamp: 用于日志定位的唯一时间戳
     """
-    if not claim_flag:
-        return False
-        
+    # 构建日志前缀 [Time: 2025-...] [Case: 0]
+    log_prefix = ""
+    if timestamp: log_prefix += f"[Time: {timestamp}] "
+    if index is not None: log_prefix += f"[Case: {index}] "
+
+    if not claim_flag: return False
+    
     if not evidence or not isinstance(evidence, str) or evidence.lower() == "null":
-        print(f"⚠️ [Hallucination] 模型判定 {label}=True 但未提供证据 -> 修正为 False")
+        print(f"{log_prefix}⚠️ [Hallucination] 模型判定 {label}=True 但未提供证据 -> 修正为 False")
         return False
     
-    # 简单的去空白处理，提高匹配鲁棒性
     def clean(s): return str(s).replace("\n", "").replace(" ", "").replace("`", "").strip()
     
-    # 检查证据是否在原文中
     if clean(evidence) in clean(source_text):
-        print(f"🔴 [Verified {label}] 证据核实通过: {evidence[:30]}...")
+        print(f"{log_prefix}🔴 [Verified {label}] 证据核实通过: {evidence[:30]}...")
         return True
     else:
-        print(f"⚠️ [Hallucination] 模型判定 {label}=True 但证据与原文不符 -> 修正为 False")
-        print(f"   - 伪造证据: {evidence[:50]}")
+        # 这里的日志现在会带上时间戳，方便您直接搜索
+        print(f"{log_prefix}⚠️ [Hallucination] 模型判定 {label}=True 但证据与原文不符 -> 修正为 False")
         return False
 
 def calculate_final_reward_with_verification(
     judge_result_json: dict, 
     system_prompt: str,
-    generated_code: str
+    generated_code: str,
+    index: int = None,
+    timestamp: str = None # [新增]
 ) -> float:
     """
-    计算最终得分：基础分 - 核实后的违规扣分
+    计算最终得分
     """
-    # 1. 提取常规质量分 (Quality Scores)
     q_scores = judge_result_json.get("quality_scores", {})
-    # 兼容可能返回字符串的情况
     def get_float(k): return float(q_scores.get(k, 0))
-    
     s1 = get_float("prompt_fluency")
     s2 = get_float("code_quality")
     s3 = get_float("function_consistency")
     base_score = s1 + s2 + s3
 
-    # 2. 提取并核实违规报告 (Violation Report)
     v_report = judge_result_json.get("violation_report", {})
     deductions = 0.0
-    
-    # --- A. 真值泄露核实 (查 System Prompt) ---
+    trace_log = {}
+
+    # A. 泄露核实
     is_leakage = _verify_claim(
         v_report.get("has_code_leakage", False),
         v_report.get("leakage_quote"),
-        source_text=system_prompt,
-        label="Leakage"
+        system_prompt, "Leakage", index, timestamp
     )
     if is_leakage:
-        penalty = float(v_report.get("leakage_penalty_score", 0))
-        # 限制扣分在 5-10 分之间
-        deductions += max(5.0, min(10.0, penalty))
+        p = float(v_report.get("leakage_penalty_score", 0))
+        d_val = max(10.0, min(15.0, p))
+        deductions += d_val
+        trace_log["leakage_deduction"] = -d_val
+    else:
+        trace_log["leakage_deduction"] = 0.0
 
-    # --- B. 代码含自然语言核实 (查 Generated Code) ---
-    is_nl_in_code = _verify_claim(
+    # B. 自然语言核实
+    is_nl = _verify_claim(
         v_report.get("has_natural_language_in_code", False),
         v_report.get("natural_language_quote"),
-        source_text=generated_code,
-        label="NL_in_Code"
+        generated_code, "NL_in_Code", index, timestamp
     )
-    if is_nl_in_code:
-        deductions += 4.0 # 固定扣4分
+    if is_nl:
+        deductions += 4.0
+        trace_log["nl_in_code_deduction"] = -4.0
+    else:
+        trace_log["nl_in_code_deduction"] = 0.0
 
-    # --- C. 提示词不可读核实 (查 System Prompt) ---
+    # C. 乱码核实
     is_unreadable = _verify_claim(
         v_report.get("is_prompt_unreadable", False),
         v_report.get("unreadable_quote"),
-        source_text=system_prompt,
-        label="Unreadable"
+        system_prompt, "Unreadable", index, timestamp
     )
     if is_unreadable:
-        deductions += 5.0 # 固定扣5分
+        deductions += 5.0
+        trace_log["unreadable_deduction"] = -5.0
+    else:
+        trace_log["unreadable_deduction"] = 0.0
 
-    # 3. 计算最终分
     final_score = base_score - deductions
-    
-    # 4. 兜底限制 (-10 ~ 10)
-    return max(-10.0, min(10.0, final_score))
+    final_score = max(-15.0, min(10.0, final_score))
+
+    trace_log["base_score_sum"] = base_score
+    trace_log["total_deductions"] = -deductions
+    trace_log["final_score_clipped"] = final_score
+    judge_result_json["calculation_trace"] = trace_log
+
+    return final_score
 
 # ===================================================================
 # 3. 接口定义
@@ -128,11 +140,10 @@ def compute_reward(
     generated_prompt: str,
     b_model_input: str,
     user_prompt: str,
-    model_c: str = "/model/qwen3-235b-a22b"
+    model_c: str = "/model/qwen3-235b-a22b",
+    index: int = None,
+    timestamp: str = None # [新增] 接收时间戳
 ) -> Tuple[float, Dict]:
-    """
-    调用C模型计算奖励，包含完整反幻觉机制
-    """
     try:
         judge_result = c_judge.judge(
             model_c=model_c,
@@ -143,58 +154,45 @@ def compute_reward(
             user_prompt=user_prompt
         )
 
-        # 辅助函数：尝试从文本中提取JSON
         def parse_json_safely(text):
             try:
                 if not text: return None
-                # 尝试找到最外层大括号
                 start = text.find("{")
                 end = text.rfind("}") + 1
                 if start != -1 and end != 0:
                     return json.loads(text[start:end])
-            except:
-                pass
+            except: pass
             return None
 
-        # 处理 API 返回结果
         if judge_result.get("valid", False):
             result_json = judge_result["result"]
         else:
-            # 尝试抢救损坏的JSON
             err_msg = judge_result.get("error", "")
             raw_text = ""
             if "原始JSON部分" in err_msg:
-                # 提取错误信息中的原始内容
-                try:
-                    raw_text = err_msg.split("原始JSON部分")[-1].strip(":").strip()
-                except:
-                    pass
+                try: raw_text = err_msg.split("原始JSON部分")[-1].strip(":").strip()
+                except: pass
             
             rescued_json = parse_json_safely(raw_text)
-            
             if rescued_json and "quality_scores" in rescued_json:
-                print("✅ [JSON Rescue] 成功从错误信息中提取有效JSON")
+                # 只有成功抢救才打印，避免刷屏，带上时间戳方便定位
+                print(f"[Time: {timestamp}] [Case: {index}] ✅ [JSON Rescue] 成功抢救分数")
                 result_json = rescued_json
-                # 将抢救回来的结果写回，以便后续记录日志
-                judge_result["result"] = rescued_json 
-                judge_result["valid"] = True
+                judge_result["result"] = rescued_json
             else:
-                print(f"❌ 评判失败且无法修复: {err_msg[:100]}...")
                 return 0.0, {"error": err_msg, "valid": False}
 
-        # [关键步骤] 调用核实逻辑计算最终分数
-        # 不再读取 total_score，而是根据分项和证据核实重新计算
         final_score = calculate_final_reward_with_verification(
             result_json, 
             system_prompt=generated_prompt,
-            generated_code=generated_code
+            generated_code=generated_code,
+            index=index,
+            timestamp=timestamp # [传递]
         )
         
-        # 将计算后的真实分数写回 result 方便日志记录
         result_json["final_calculated_score"] = final_score
-        
         return final_score, result_json
 
     except Exception as e:
-        print(f"Pipeline Error: {e}")
+        print(f"[Time: {timestamp}] [Case: {index}] Pipeline Error: {e}")
         return 0.0, {"error": str(e), "valid": False}
