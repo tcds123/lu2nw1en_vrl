@@ -23,7 +23,7 @@ echo "Logging to: $LOG_PATH"
 
 python -m iterative_grpo_trainer \
     algorithm.adv_estimator=grpo \
-    data.train_files=/data/zhuldz/lunwen/data/OpenCodeInstruct/dataparquet/train_cleaned_1.parquet \
+    data.train_files=/data/zhuldz/lunwen/data/OpenCodeInstruct/dataparquet/train_cleaned_2.parquet \
     data.val_files=/data/zhuldz/lunwen/data/CodeEval-Pro/dataset_1/humaneval_pro.parquet \
     data.train_batch_size=8 \
     data.micro_batch_size=1 \

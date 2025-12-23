@@ -4,6 +4,7 @@ import json
 import logging
 import torch
 import numpy as np
+import pandas as pd  # [新增] 引入 pandas 读取 parquet
 from datetime import datetime
 from typing import Dict, List, Any, Tuple
 import traceback
@@ -13,7 +14,7 @@ import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ===================================================================
-# 0. 路径修复
+# 0. 路径修复 (保持原样)
 # ===================================================================
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
@@ -21,7 +22,7 @@ if project_root not in sys.path:
     sys.path.append(project_root)
 
 # ===================================================================
-# 1. 导入接口
+# 1. 导入接口 (保持原样)
 # ===================================================================
 B_MODEL = None
 B_TOKENIZER = None
@@ -40,7 +41,7 @@ except Exception as e:
     def generate_code_from_prompt(**kwargs): return ["Error: Import failed"]
     def compute_c_reward(**kwargs): return 0.0, {}
 
-# 全局配置
+# 全局配置 (保持原样)
 ROLLOUT_DATA_DIR = "./a_model_grpo_standard/rollouts"
 ITERATION_LOG_DIR = "./a_model_grpo_standard/iterations"
 K_CODE_GEN = 1  
@@ -53,76 +54,83 @@ MAX_CONCURRENCY = 10
 api_semaphore = threading.Semaphore(MAX_CONCURRENCY)
 
 # ===================================================================
-# [核心配置] 1(本题) + N(随机) 混合测试
+# [核心配置修改] 指向 Parquet 数据
 # ===================================================================
-TEST_SET_PATH = "/data/zhuldz/lunwen/data/mbpp/mbpp.jsonl"
-#TEST_SET_PATH = "/data/zhuldz/lunwen/generation/humaneval_pro.json"
-TOTAL_POOL_SIZE = 50  
+# 优先从环境变量读取，如果没有则使用默认路径
+TRAIN_SET_PATH = os.environ.get("VERL_DATA_PATH", "/data/zhuldz/lunwen/data/OpenCodeInstruct/dataparquet/train_cleaned_2.parquet")
 
-# 随机抽取的通用题目数量
-# 注意：最终测试数量 = 1 (本题) + RANDOM_TESTS_COUNT
-RANDOM_TESTS_COUNT = 2  
+# 组的大小 (1 Center + 2 Aux)
+GROUP_SIZE = 3
 
 FAIL_FAST_THRESHOLD = -5.0 
 
-GENERAL_TEST_SET: List[Tuple[str, str]] = []
+# 全量数据池与索引 (替代原本的 GENERAL_TEST_SET)
+TRAINING_POOL_LIST: List[Tuple[str, str]] = [] 
+PROMPT_TO_INDEX: Dict[str, int] = {}
 
 USER_OVERLAP_WEIGHT = 15.0       
 GT_LEAKAGE_THRESHOLD = 0.15      
 MIN_REWARD_FLOOR = -15.0  
 
 # ===================================================================
-# 1.4 加载通用测试集
+# 1.4 加载全量训练数据 (修复索引匹配问题)
 # ===================================================================
-def _load_general_test_set():
-    global GENERAL_TEST_SET
-    if GENERAL_TEST_SET: return
+def _load_training_pool():
+    global TRAINING_POOL_LIST, PROMPT_TO_INDEX
+    if TRAINING_POOL_LIST: return
 
-    print(f"⏳ [CustomReward] 正在加载 MBPP 测试集池 (Top {TOTAL_POOL_SIZE})...")
+    print(f"⏳ [CustomReward] 正在加载全量训练数据集(Parquet): {TRAIN_SET_PATH} ...")
     try:
-        if os.path.exists(TEST_SET_PATH):
-            GENERAL_TEST_SET = []
-            count = 0
+        if os.path.exists(TRAIN_SET_PATH):
+            TRAINING_POOL_LIST = []
+            PROMPT_TO_INDEX = {}
             
-            # [修改] 使用逐行读取 (JSONL 专用)
-            with open(TEST_SET_PATH, 'r', encoding='utf-8') as f:
-                for line_idx, line in enumerate(f):
-                    if not line.strip(): continue
-                    try:
-                        item = json.loads(line)
+            # 使用 pandas 读取 parquet
+            df = pd.read_parquet(TRAIN_SET_PATH)
+            
+            # 自动探测列名
+            cols = df.columns
+            # [关键] 优先找 raw_input，因为它是不带 Template 的纯净 Query
+            prompt_col = next((c for c in ['raw_input', 'input', 'instruction', 'prompt', 'question', 'content'] if c in cols), None)
+            gt_col = next((c for c in ['output', 'response', 'target', 'solution', 'code', 'answer', 'canonical_solution'] if c in cols), None)
+            
+            if not prompt_col or not gt_col:
+                print(f"⚠️ [CustomReward] 无法自动识别列名。现有列: {cols}")
+                # 尝试强制指定，防止报错
+                prompt_col = prompt_col or cols[0]
+                gt_col = gt_col or cols[1]
+                print(f"⚠️ [CustomReward] 强制使用: Prompt='{prompt_col}', GT='{gt_col}'")
+            else:
+                print(f"✅ [CustomReward] 使用列名: Prompt='{prompt_col}', GT='{gt_col}'")
+
+            # 遍历加载
+            for _, row in df.iterrows():
+                try:
+                    q = str(row[prompt_col]).strip()
+                    gt = str(row[gt_col]).strip()
+                    
+                    if q and gt:
+                        # 存入列表
+                        current_list_idx = len(TRAINING_POOL_LIST)
+                        TRAINING_POOL_LIST.append((q, gt))
+                        # 建立映射: Query -> 全局List索引 (用于快速查找 Center 的位置)
+                        PROMPT_TO_INDEX[q] = current_list_idx
+                except Exception:
+                    continue
                         
-                        # 1. 获取题目 (Query)
-                        q = item.get('raw_prompt') or item.get('text') or item.get('prompt')
-                        
-                        # 2. 获取真值 (Ground Truth)
-                        # 注意：MBPP 的 'code' 字段有时只包含函数体，'test_list' 包含测试用例
-                        # 这里我们假设 'code' 是标准答案。如果您的数据里 'raw_solution' 是答案就更好了。
-                        gt = item.get('raw_solution') or item.get('code') or item.get('canonical_solution')
-                        
-                        if q and gt:
-                            q = q.strip()
-                            gt = gt.strip()
-                            
-                            GENERAL_TEST_SET.append((q, gt))
-                            count += 1
-                            if count >= TOTAL_POOL_SIZE:
-                                break
-                    except json.JSONDecodeError:
-                        print(f"⚠️ [CustomReward] 第 {line_idx+1} 行 JSON 解析失败，跳过。")
-                        continue
-                        
-            print(f"✅ [CustomReward] 加载完成，共 {len(GENERAL_TEST_SET)} 条测试数据。")
+            print(f"✅ [CustomReward] 数据集加载完成，共 {len(TRAINING_POOL_LIST)} 条。")
         else:
-            print(f"❌ [CustomReward] 文件未找到: {TEST_SET_PATH}")
-            # 兜底数据
-            GENERAL_TEST_SET = [("Write a python function to print hello world", "print('hello world')")]
+            print(f"❌ [CustomReward] 文件未找到: {TRAIN_SET_PATH}")
+            TRAINING_POOL_LIST = [("Write a python function", "pass")]
+            PROMPT_TO_INDEX = {TRAINING_POOL_LIST[0][0]: 0}
             
     except Exception as e:
         print(f"❌ [CustomReward] 加载失败: {e}")
-        GENERAL_TEST_SET = [("Error loading data", "pass")]
+        TRAINING_POOL_LIST = [("Error loading data", "pass")]
+        PROMPT_TO_INDEX = {}
 
 # ===================================================================
-# 1.5 & 1.6 本地检测
+# 1.5 & 1.6 本地检测 (保持原样)
 # ===================================================================
 def calculate_overlap_penalty(generated_prompt: str, original_prompt: str, tokenizer) -> float:
     sp_clean = generated_prompt.strip().lower()
@@ -164,7 +172,7 @@ def check_ground_truth_leakage(generated_text: str, ground_truth: str) -> float:
     return len(intersection) / len(gen_set)
 
 # ===================================================================
-# 2. 模板加载
+# 2. 模板加载 (保持原样)
 # ===================================================================
 C_PROMPT_FILE_PATH = "/data/zhuldz/lunwen/judge/c_model_prompt.txt"
 
@@ -178,20 +186,41 @@ def _get_c_model_template():
         return f"Error reading prompt file: {e}"
 
 # ===================================================================
-# 3. 清洗
+# 3. 清洗 [关键修改] 严格提取 User Query
 # ===================================================================
 def _clean_prompt_content(dirty_text: str) -> str:
+    """
+    从完整的模型输入中提取 User Query。
+    输入示例: ...【Target Case】\nUser Query: You are given ...\nReference Solution: ...
+    目标: 提取 "You are given ..."
+    """
     if not isinstance(dirty_text, str): return str(dirty_text)
-    start_marker = "Original prompt:"
-    end_marker = "Correct code:"
+    
+    # 严格的起始标记
+    # 注意：JSONL里的换行符可能是 \\n 也可能是实际换行，这里用 User Query: 定位比较稳
+    start_marker = "User Query:"
+    end_marker = "Reference Solution:" 
+    
     start_idx = dirty_text.find(start_marker)
-    end_idx = dirty_text.find(end_marker)
-    if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-        return dirty_text[start_idx + len(start_marker):end_idx].strip()
-    return dirty_text
+    
+    if start_idx != -1:
+        # 内容实际开始位置
+        content_start = start_idx + len(start_marker)
+        
+        # 查找结束位置
+        end_idx = dirty_text.find(end_marker, content_start)
+        
+        if end_idx != -1:
+            return dirty_text[content_start:end_idx].strip()
+        else:
+            # 如果没找到结束标记，取剩下所有
+            return dirty_text[content_start:].strip()
+            
+    # 如果没找到标记，返回原文本（可能是纯 Query）
+    return dirty_text.strip()
 
 # ===================================================================
-# 4. 加载
+# 4. 加载 (保持原样)
 # ===================================================================
 def _ensure_models_loaded():
     global B_MODEL, B_TOKENIZER, C_JUDGE, MODELS_LOADED
@@ -203,7 +232,7 @@ def _ensure_models_loaded():
         if C_JUDGE is None: C_JUDGE = load_c_model()
         if B_MODEL is not None and C_JUDGE is not None:
             MODELS_LOADED = True
-            _load_general_test_set()
+            _load_training_pool() # [修改] 触发加载池
             return True
         return False
     except Exception as e:
@@ -221,7 +250,7 @@ def _initialize_globals_from_config(config):
     _CONFIG_INITIALIZED = True
 
 # ===================================================================
-# 5. 核心奖励函数
+# 5. 核心奖励函数 (修改为 1 Center + 2 Aux)
 # ===================================================================
 def compute_custom_reward(**kwargs):
     _ensure_models_loaded()
@@ -236,7 +265,6 @@ def compute_custom_reward(**kwargs):
     if responses is None: responses = kwargs.get('responses')
     if responses is None: responses = kwargs.get('predictions')
     
-    # [修改] 恢复真值提取逻辑，用于"本题测试"
     ground_truths = None
     if 'canonical_solution' in kwargs: ground_truths = kwargs['canonical_solution']
     elif 'output' in kwargs: ground_truths = kwargs['output']
@@ -261,27 +289,30 @@ def compute_custom_reward(**kwargs):
     tasks = []
     current_template = _get_c_model_template()
 
+    # 再次检查数据池
+    if not TRAINING_POOL_LIST:
+        _load_training_pool()
+
     for i in range(num_responses):
         p_idx = i % len(prompts) if len(prompts) > 0 else 0
         
-        # 提取当前训练数据 (本题)
         original_prompt_blob = prompts[p_idx]
-        current_gt_str = str(ground_truths[p_idx]) if p_idx < len(ground_truths) else "N/A"
         
-        # 提取清洗后的 User Query
+        # 清洗 Prompt，用于去索引里查
         current_query_str = _clean_prompt_content(str(original_prompt_blob))
+        current_gt_str = str(ground_truths[p_idx]) if p_idx < len(ground_truths) else "N/A"
 
         tasks.append({
             "index": i,
             "original_input": original_prompt_blob,
-            "current_query": current_query_str, # [新增] 本题 Query
-            "current_gt": current_gt_str,       # [新增] 本题 GT
+            "current_query": current_query_str, # 清洗后的 Query
+            "current_gt": current_gt_str,
             "system_prompt": responses[i],
             "template": current_template
         })
 
-    def process_single_sample_general(task):
-        global B_TOKENIZER, GENERAL_TEST_SET
+    def process_single_sample_batch(task):
+        global B_TOKENIZER, TRAINING_POOL_LIST, PROMPT_TO_INDEX
         
         sys_p = task["system_prompt"]
         raw_sys_p = str(sys_p)
@@ -290,43 +321,49 @@ def compute_custom_reward(**kwargs):
         tmpl = task["template"]
 
         with api_semaphore:
-            # 准备时间戳
             ts_str = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
             
             trace_entry = {
                 "timestamp": ts_str, 
                 "iteration": CURRENT_ITERATION,
                 "a_model": {"input": str(task["original_input"]), "output": clean_sys_p},
-                "generalization_tests": [],
+                "group_tests": [],
                 "final_stats": {}
             }
             
             total_score = 0.0
             test_count = 0
             
-            # [核心修改] 构建混合测试列表
-            # 1. 必测项：当前训练题目 (Origin Task)
-            # 2. 选测项：随机抽取 N 条通用题目
+            # [核心逻辑] 查找当前题目的 index
+            current_q_clean = task["current_query"].strip()
+            center_idx = PROMPT_TO_INDEX.get(current_q_clean)
+            
             test_queue = []
             
-            # 添加本题 (作为第0项，最先测试，也是Fail-Fast的依据)
-            test_queue.append({
-                "query": task["current_query"],
-                "gt": task["current_gt"],
-                "type": "Origin Task"
-            })
-            
-            # 添加随机通用题
-            if MODELS_LOADED and GENERAL_TEST_SET:
-                random_subset = random.sample(GENERAL_TEST_SET, min(RANDOM_TESTS_COUNT, len(GENERAL_TEST_SET)))
-                for q, gt in random_subset:
+            if center_idx is not None:
+                # 找到索引，构建 [center, center+1, center+2]
+                group_indices = [center_idx + k for k in range(GROUP_SIZE)]
+                # 过滤越界
+                group_indices = [i for i in group_indices if i < len(TRAINING_POOL_LIST)]
+                
+                for i in group_indices:
+                    q_i, gt_i = TRAINING_POOL_LIST[i]
+                    t_type = "Center Task" if i == center_idx else f"Aux Task (+{i-center_idx})"
                     test_queue.append({
-                        "query": q,
-                        "gt": gt,
-                        "type": "General Task"
+                        "query": q_i,
+                        "gt": gt_i,
+                        "type": t_type
                     })
+            else:
+                # 没找到索引 (兜底方案)
+                print(f"⚠️ [Reward] Query not found in index. First 50: {current_q_clean[:50]}...")
+                test_queue.append({
+                    "query": task["current_query"],
+                    "gt": task["current_gt"],
+                    "type": "Center Task (Unmatched)"
+                })
             
-            # 开始遍历测试
+            # 执行测试
             if MODELS_LOADED:
                 for t_idx, test_case in enumerate(test_queue):
                     test_query = test_case["query"]
@@ -334,7 +371,6 @@ def compute_custom_reward(**kwargs):
                     test_type = test_case["type"]
                     
                     try:
-                        # [Layer 1] 本地硬性熔断
                         local_leakage_ratio = check_ground_truth_leakage(clean_sys_p, test_gt)
                         
                         if local_leakage_ratio > GT_LEAKAGE_THRESHOLD:
@@ -349,7 +385,7 @@ def compute_custom_reward(**kwargs):
                             # A -> B
                             codes_list = _generate_codes(clean_sys_p, test_query, k=1)
                             
-                            # B -> C (传入 t_idx 和 timestamp)
+                            # B -> C
                             avg_val, _, results = _evaluate_codes(
                                 codes_list, test_gt, test_query, 
                                 test_index=t_idx, 
@@ -380,7 +416,7 @@ def compute_custom_reward(**kwargs):
 
                             case_info = {
                                 "test_index": t_idx,
-                                "test_type": test_type,             # [新增] 标记是本题还是通用题
+                                "test_type": test_type,
                                 "full_judge_context": c_log_input,
                                 "c_model_raw_score": float(avg_val),
                                 "c_model_details": c_res,
@@ -390,21 +426,21 @@ def compute_custom_reward(**kwargs):
 
                         total_score += case_score
                         test_count += 1
-                        trace_entry["generalization_tests"].append(case_info)
+                        trace_entry["group_tests"].append(case_info)
                         
-                        # Fail-Fast (如果在 本题 或 第一个通用题 表现极差，则停止)
+                        # Fail-Fast
                         if case_score < FAIL_FAST_THRESHOLD:
                             remaining = len(test_queue) - 1 - t_idx
                             if remaining > 0:
                                 total_score += (remaining * MIN_REWARD_FLOOR)
                                 test_count += remaining
                                 trace_entry["final_stats"]["fail_fast_triggered"] = True
-                                trace_entry["generalization_tests"].append({"info": f"Fail-fast at {test_type}, skipped {remaining} tests"})
+                                trace_entry["group_tests"].append({"info": f"Fail-fast at {test_type}, skipped {remaining} tests"})
                                 break
                         
                     except Exception as e:
                         print(f"Test case {t_idx} failed: {e}")
-                        trace_entry["generalization_tests"].append({"error": str(e)})
+                        trace_entry["group_tests"].append({"error": str(e)})
             else:
                 trace_entry["error"] = "Models not loaded"
             
@@ -425,7 +461,7 @@ def compute_custom_reward(**kwargs):
     all_traces = ["{}"] * len(responses)
     
     with ThreadPoolExecutor(max_workers=MAX_CONCURRENCY + 2) as executor:
-        future_to_idx = {executor.submit(process_single_sample_general, task): task["index"] for task in tasks}
+        future_to_idx = {executor.submit(process_single_sample_batch, task): task["index"] for task in tasks}
         
         for future in as_completed(future_to_idx):
             idx = future_to_idx[future]
@@ -443,7 +479,7 @@ def compute_custom_reward(**kwargs):
     }
 
 # ===================================================================
-# 6. 辅助函数
+# 6. 辅助函数 (保持原样)
 # ===================================================================
 def _generate_codes(system_prompt: str, prompt: str, k: int = 1) -> List[Dict]:
     codes = []

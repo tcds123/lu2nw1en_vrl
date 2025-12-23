@@ -8,15 +8,16 @@ import logging
 import ray
 import re
 import hydra
+import math
+import pandas as pd
 from omegaconf import DictConfig, OmegaConf, open_dict
 
-# 导入 verl 相关模块
 from verl.trainer.main_ppo import TaskRunner
 from verl.trainer.ppo.utils import need_critic, need_reference_policy
 from verl.utils.config import validate_config
 
 # ============================================================================
-# 【Patch 1】动态维度对齐 (解决 512 vs 511 报错)
+# 【Patch 1】动态维度对齐 (保持不变)
 # ============================================================================
 import torch
 from verl import DataProto
@@ -65,12 +66,11 @@ def robust_compute_policy_loss_vanilla(
     pg_loss = core_algos.agg_loss(loss_mat=pg_losses, loss_mask=response_mask, loss_agg_mode=loss_agg_mode)
     return pg_loss, pg_clipfrac, ppo_kl, pg_clipfrac_lower
 
-print(">>> [Patch 1] robust_compute_policy_loss_vanilla applied.")
 core_algos.POLICY_LOSS_REGISTRY["vanilla"] = robust_compute_policy_loss_vanilla
 core_algos.compute_policy_loss_vanilla = robust_compute_policy_loss_vanilla
 
 # ============================================================================
-# 【Patch 2】资源检查绕过 & 唯一 PG 名
+# 【Patch 2】资源检查绕过 & 唯一 PG 名 (保持不变)
 # ============================================================================
 def patch_ray_trainer_file():
     try:
@@ -93,12 +93,11 @@ def patch_ray_trainer_file():
             with open(target_file, 'w') as f: f.write(content)
             cache_dir = os.path.join(os.path.dirname(target_file), "__pycache__")
             if os.path.exists(cache_dir): shutil.rmtree(cache_dir)
-            print(">>> [Patch 2] ray_trainer.py patched.")
     except Exception: pass
 patch_ray_trainer_file()
 
 # ============================================================================
-# 【Patch 3】强制 Trainer 在结束时杀掉所有 Worker
+# 【Patch 3】强制 Trainer 在结束时杀掉所有 Worker (保持不变)
 # ============================================================================
 from verl.trainer.ppo.ray_trainer import RayPPOTrainer
 _original_fit = RayPPOTrainer.fit
@@ -120,137 +119,128 @@ def fit_with_active_cleanup(self):
                     for pg in wg._pgs: remove_placement_group(pg)
                 except: pass
 RayPPOTrainer.fit = fit_with_active_cleanup
-print(">>> [Patch 3] RayPPOTrainer.fit patched.")
 
 
 class IterativeGRPOTaskRunner:
     def __init__(self):
-        self.max_iterations = None
-        self.convergence_threshold = None
-        self.current_iteration = 0
+        self.group_size = 3  # 每组数据大小 (1个中心 + 2个辅助)
     
-    def _get_latest_checkpoint_path(self, base_dir):
-        if not os.path.exists(base_dir): return None
-        step_dirs = glob.glob(os.path.join(base_dir, "global_step_*"))
-        if not step_dirs: return None
+    def _prepare_filtered_dataset(self, full_data_path, output_dir):
+        """
+        [关键逻辑] 读取 Parquet 数据集，筛选每组的第一个 (Center)，保存为 Parquet
+        """
+        if not os.path.exists(full_data_path):
+            raise FileNotFoundError(f"Original dataset not found: {full_data_path}")
+            
+        print(f"📖 Reading full Parquet dataset from: {full_data_path}")
+        
         try:
-            latest_dir = max(step_dirs, key=lambda x: int(x.split('_')[-1]))
-        except ValueError: return None
-        hf_path = os.path.join(latest_dir, "actor", "huggingface")
-        if os.path.exists(hf_path) and os.path.exists(os.path.join(hf_path, "config.json")):
-            return hf_path
-        return None
+            # 1. 使用 Pandas 读取 Parquet
+            df = pd.read_parquet(full_data_path)
+            total_rows = len(df)
+            
+            # 2. 筛选：只保留每组的第 1 个 (索引 0, 3, 6...)
+            # iloc[::3] 表示从 0 开始每隔 3 行取一次
+            centers_df = df.iloc[::self.group_size].copy()
+            
+            # 3. [修复] 保存为 Parquet 格式，因为 Verl 底层 dataset 默认使用 load_dataset("parquet", ...)
+            filtered_data_path = os.path.join(output_dir, f"train_centers_only.parquet")
+            os.makedirs(output_dir, exist_ok=True)
+            
+            centers_df.to_parquet(filtered_data_path)
+                
+            print(f"✂️ Filtered dataset: Kept {len(centers_df)} centers from {total_rows} total samples.")
+            print(f"📂 Saved to: {filtered_data_path}")
+            
+            return filtered_data_path, len(centers_df)
+            
+        except Exception as e:
+            print(f"❌ Failed to process Parquet file: {e}")
+            raise e
 
     def run(self, config):
-        self.max_iterations = config.iterative_rl.max_iterations
-        self.convergence_threshold = config.iterative_rl.convergence_threshold
+        # 1. 从 config 中获取原始数据路径
+        # config.data.train_files 可能是 string 也可能是 list
+        original_train_path = config.data.train_files
+        if isinstance(original_train_path, list):
+            original_train_path = original_train_path[0]
+        
+        # 确保是绝对路径，方便传递给 Worker
+        original_train_path = os.path.abspath(original_train_path)
+
+        if not os.path.exists(original_train_path):
+            raise FileNotFoundError(f"❌ Configured train file not found: {original_train_path}")
+
         base_exp_name = config.trainer.experiment_name
         base_local_dir = config.trainer.default_local_dir
         
-        print(f"Starting iterative GRPO training with {self.max_iterations} iterations")
+        # 2. 准备 "Center Only" 的训练集
+        data_cache_dir = os.path.join(os.path.dirname(base_local_dir), "data_cache")
+        filtered_train_path, subset_size = self._prepare_filtered_dataset(original_train_path, data_cache_dir)
         
-        last_iteration_ckpt_path = None
+        print(f"\n{'='*40}")
+        print(f"🚀 Starting Group-Based Training (1 Center + 2 Aux)")
+        print(f"📂 Source (from config): {original_train_path}")
+        print(f"🎯 Training Centers: {subset_size} samples")
+        print(f"   (Effective Coverage: {subset_size} * 3 = {subset_size * 3} samples)")
+        print(f"{'='*40}")
 
-        for iteration in range(self.max_iterations):
-            self.current_iteration = iteration
-            print(f"\n{'='*40}")
-            print(f"🚀 Iteration {iteration + 1}/{self.max_iterations}")
-            print(f"{'='*40}")
-            
-            if ray.is_initialized():
-                print("Shutting down previous Ray instance...")
-                ray.shutdown()
-                time.sleep(3)
-            
-            print("Initializing FRESH Ray cluster...")
-            ray.init(
-                runtime_env={"env_vars": {"PYTHONPATH": os.environ.get("PYTHONPATH", "")}},
-                num_gpus=config.trainer.n_gpus_per_node,
-                include_dashboard=False,
-                ignore_reinit_error=True
-            )
-            
-            print("Creating TaskRunner...")
-            task_runner = TaskRunner.options(num_cpus=1, num_gpus=0).remote()
-            
-            iter_config = config.copy()
-            with open_dict(iter_config):
-                iter_config.current_iteration = self.current_iteration
-                iter_exp_name = f"{base_exp_name}_iter_{iteration}"
-                
-                # 基础输出目录
-                iter_local_dir = os.path.join(os.path.dirname(base_local_dir), iter_exp_name)
-                
-                # 1. 设置 Checkpoint 目录
-                iter_config.trainer.experiment_name = iter_exp_name
-                iter_config.trainer.default_local_dir = iter_local_dir
-                
-                # 2. 【关键修改】强制设置 Rollout 日志目录
-                # 之前这里是 null，所以没有生成 jsonl 文件
-                # 现在强制设置为 checkpoints 同级目录下的 rollouts
-                rollout_dir = os.path.join(iter_local_dir, "rollouts")
-                iter_config.trainer.rollout_data_dir = rollout_dir
-                print(f"📝 Configuring Rollout Logging to: {rollout_dir}")
-                
-                if 'hf_model' not in iter_config.actor_rollout_ref.actor.checkpoint.save_contents:
-                    iter_config.actor_rollout_ref.actor.checkpoint.save_contents.append('hf_model')
-                
-                if iteration > 0:
-                    if last_iteration_ckpt_path:
-                        print(f"Inheriting Weight: {last_iteration_ckpt_path}")
-                        iter_config.actor_rollout_ref.model.path = last_iteration_ckpt_path
-                        iter_config.actor_rollout_ref.ref.model = OmegaConf.create({"path": last_iteration_ckpt_path})
-                        iter_config.trainer.resume_mode = "disable"
-                    else:
-                        raise RuntimeError("No checkpoint found from previous iteration!")
-                else:
-                    print(f"Iteration 0: Base model.")
-
-            iter_config_hydra = OmegaConf.create(OmegaConf.to_container(iter_config, resolve=True))
-            
-            try:
-                print(f"Running PPO (Iter {iteration})...")
-                ray.get(task_runner.run.remote(iter_config_hydra))
-            except Exception as e:
-                print(f"❌ Error in iter {iteration}: {e}")
-                ray.shutdown()
-                raise e
-            
-            print("Iteration finished. Nuking Ray cluster...")
+        if ray.is_initialized():
             ray.shutdown()
-            print("Sleeping 10s...")
-            time.sleep(10) 
-
-            # 6. 检查收敛
-            if self._check_convergence(config):
-                print(f"Training converged at iteration {iteration + 1}")
-                break
+        
+        print("Initializing Ray cluster...")
+        
+        # 【关键修改】将原始数据路径放入 runtime_env，传递给所有 Worker
+        env_vars = {
+            "PYTHONPATH": os.environ.get("PYTHONPATH", ""),
+            "VERL_DATA_PATH": original_train_path  # 传递给 Custom Reward
+        }
+        
+        ray.init(
+            runtime_env={"env_vars": env_vars},
+            num_gpus=config.trainer.n_gpus_per_node,
+            include_dashboard=False,
+            ignore_reinit_error=True
+        )
+        
+        print("Creating TaskRunner...")
+        task_runner = TaskRunner.options(num_cpus=1, num_gpus=0).remote()
+        
+        # 配置调整
+        run_config = config.copy()
+        with open_dict(run_config):
+            # 1. 指向筛选后的 Parquet 文件 (Center Only)
+            run_config.data.train_files = [filtered_train_path]
+            run_config.data.val_files = [filtered_train_path]
             
-            # 7. 寻找 Checkpoint
-            if iteration < self.max_iterations - 1:
-                last_iteration_ckpt_path = self._get_latest_checkpoint_path(iter_config_hydra.trainer.default_local_dir)
-                if not last_iteration_ckpt_path:
-                    print("Error: No HF checkpoint found!")
+            # 2. 强制设置 rollout.n = 5
+            if hasattr(run_config, 'actor_rollout_ref'):
+                run_config.actor_rollout_ref.rollout.n = 5
+                print(f"🔄 Forced setting rollout.n = 5 for GRPO")
+            
+            if 'hf_model' not in run_config.actor_rollout_ref.actor.checkpoint.save_contents:
+                run_config.actor_rollout_ref.actor.checkpoint.save_contents.append('hf_model')
 
-    def _check_convergence(self, config) -> bool:
-        log_dir = config.iterative_rl.iteration_log_dir
-        iteration_file = os.path.join(log_dir, f"iteration_{self.current_iteration}.json")
-        if not os.path.exists(iteration_file): return False
+            # 3. 设置输出目录
+            run_config.trainer.rollout_data_dir = os.path.join(base_local_dir, "rollouts")
+
+        run_config_hydra = OmegaConf.create(OmegaConf.to_container(run_config, resolve=True))
+        
         try:
-            with open(iteration_file, 'r', encoding='utf-8') as f:
-                summary = json.load(f)
-            avg_reward = summary.get('average_reward', 0.0)
-            print(f"Iter {self.current_iteration} Avg Reward: {avg_reward}")
-            if avg_reward >= self.convergence_threshold: return True
-        except: pass
-        return False
+            print(f"Running PPO Training...")
+            ray.get(task_runner.run.remote(run_config_hydra))
+        except Exception as e:
+            print(f"❌ Error in training: {e}")
+            ray.shutdown()
+            raise e
+        
+        print("Training finished. Shutting down Ray...")
+        ray.shutdown()
 
 @hydra.main(config_path="config", config_name="grpo_trainer", version_base=None)
 def main(cfg: DictConfig):
     if cfg.iterative_rl.rollout_data_dir:
         cfg.iterative_rl.rollout_data_dir = os.path.abspath(cfg.iterative_rl.rollout_data_dir)
-    if cfg.iterative_rl.iteration_log_dir:
-        cfg.iterative_rl.iteration_log_dir = os.path.abspath(cfg.iterative_rl.iteration_log_dir)
     
     task_runner = IterativeGRPOTaskRunner()
     if not cfg.trainer.val_only:

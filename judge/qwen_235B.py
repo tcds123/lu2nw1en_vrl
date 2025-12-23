@@ -35,7 +35,8 @@ class CModelJudge:
         self.api_url = api_url
         self.headers = {
             "Authorization": f"Bearer {auth_token}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "AIGC-USER": "zhuldz"
         }
         self.timeout = 60  # API超时时间（秒）
         self.retry_times = 5  # 重试次数
