@@ -4,7 +4,7 @@ import json
 import logging
 import torch
 import numpy as np
-import pandas as pd  # [新增] 引入 pandas 读取 parquet
+import pandas as pd  # 必须引入 pandas 处理 parquet
 from datetime import datetime
 from typing import Dict, List, Any, Tuple
 import traceback
@@ -41,7 +41,7 @@ except Exception as e:
     def generate_code_from_prompt(**kwargs): return ["Error: Import failed"]
     def compute_c_reward(**kwargs): return 0.0, {}
 
-# 全局配置 (保持原样)
+# 全局配置
 ROLLOUT_DATA_DIR = "./a_model_grpo_standard/rollouts"
 ITERATION_LOG_DIR = "./a_model_grpo_standard/iterations"
 K_CODE_GEN = 1  
@@ -54,26 +54,30 @@ MAX_CONCURRENCY = 10
 api_semaphore = threading.Semaphore(MAX_CONCURRENCY)
 
 # ===================================================================
-# [核心配置修改] 指向 Parquet 数据
+# [核心配置] 数据源 & 奖励参数
 # ===================================================================
 # 优先从环境变量读取，如果没有则使用默认路径
 TRAIN_SET_PATH = os.environ.get("VERL_DATA_PATH", "/data/zhuldz/lunwen/data/OpenCodeInstruct/dataparquet/train_cleaned_2.parquet")
 
-# 组的大小 (1 Center + 2 Aux)
 GROUP_SIZE = 3
-
 FAIL_FAST_THRESHOLD = -5.0 
 
-# 全量数据池与索引 (替代原本的 GENERAL_TEST_SET)
 TRAINING_POOL_LIST: List[Tuple[str, str]] = [] 
 PROMPT_TO_INDEX: Dict[str, int] = {}
 
 USER_OVERLAP_WEIGHT = 15.0       
 GT_LEAKAGE_THRESHOLD = 0.15      
-MIN_REWARD_FLOOR = -15.0  
+MIN_REWARD_FLOOR = -10.0  
+
+# [新增] 系统提示词长度限制配置
+SYS_PROMPT_MIN_LEN = 50         # 最小 Token 数
+SYS_PROMPT_MAX_LEN = 100        # 最大 Token 数
+LENGTH_BONUS_SCORE = 1.0        # 达标奖励 (+1.0)
+LENGTH_PENALTY_COEFF = 0.07    # 偏离惩罚系数 (3.0/45 ≈ 0.067, 50-5=45)
+MAX_LENGTH_PENALTY = 3.0        # 最大惩罚封顶 (最多扣3分)
 
 # ===================================================================
-# 1.4 加载全量训练数据 (修复索引匹配问题)
+# 1.4 加载全量训练数据 (Parquet)
 # ===================================================================
 def _load_training_pool():
     global TRAINING_POOL_LIST, PROMPT_TO_INDEX
@@ -88,9 +92,8 @@ def _load_training_pool():
             # 使用 pandas 读取 parquet
             df = pd.read_parquet(TRAIN_SET_PATH)
             
-            # 自动探测列名
             cols = df.columns
-            # [关键] 优先找 raw_input，因为它是不带 Template 的纯净 Query
+            # 优先找 raw_input，因为它是不带 Template 的纯净 Query
             prompt_col = next((c for c in ['raw_input', 'input', 'instruction', 'prompt', 'question', 'content'] if c in cols), None)
             gt_col = next((c for c in ['output', 'response', 'target', 'solution', 'code', 'answer', 'canonical_solution'] if c in cols), None)
             
@@ -103,17 +106,15 @@ def _load_training_pool():
             else:
                 print(f"✅ [CustomReward] 使用列名: Prompt='{prompt_col}', GT='{gt_col}'")
 
-            # 遍历加载
             for _, row in df.iterrows():
                 try:
                     q = str(row[prompt_col]).strip()
                     gt = str(row[gt_col]).strip()
                     
                     if q and gt:
-                        # 存入列表
                         current_list_idx = len(TRAINING_POOL_LIST)
                         TRAINING_POOL_LIST.append((q, gt))
-                        # 建立映射: Query -> 全局List索引 (用于快速查找 Center 的位置)
+                        # 建立映射: Query -> 全局List索引
                         PROMPT_TO_INDEX[q] = current_list_idx
                 except Exception:
                     continue
@@ -130,7 +131,7 @@ def _load_training_pool():
         PROMPT_TO_INDEX = {}
 
 # ===================================================================
-# 1.5 & 1.6 本地检测 (保持原样)
+# 1.5 & 1.6 & 1.7 辅助检测函数
 # ===================================================================
 def calculate_overlap_penalty(generated_prompt: str, original_prompt: str, tokenizer) -> float:
     sp_clean = generated_prompt.strip().lower()
@@ -171,8 +172,57 @@ def check_ground_truth_leakage(generated_text: str, ground_truth: str) -> float:
     intersection = gen_set.intersection(gt_set)
     return len(intersection) / len(gen_set)
 
+# [新增] 长度奖励计算逻辑
+def _calculate_length_reward(text: str, tokenizer) -> Tuple[float, Dict[str, Any]]:
+    reward = 0.0
+    details = {"length": 0, "status": "unknown"}
+    
+    if not text:
+        # 空内容直接给最大惩罚
+        return -MAX_LENGTH_PENALTY, {"length": 0, "status": "empty"} 
+
+    try:
+        # 优先使用 B模型的 Tokenizer 计算长度
+        if tokenizer:
+            tokens = tokenizer.encode(text, add_special_tokens=False)
+            length = len(tokens)
+        else:
+            length = len(text.split())
+    except Exception:
+        length = len(text.split())
+
+    details["length"] = length
+
+    # 1. 达标奖励 (Target Zone: 50-100)
+    if SYS_PROMPT_MIN_LEN <= length <= SYS_PROMPT_MAX_LEN:
+        reward = LENGTH_BONUS_SCORE
+        details["status"] = "perfect"
+        details["modifier"] = reward
+    # 2. 偏离惩罚
+    else:
+        if length < SYS_PROMPT_MIN_LEN:
+            diff = SYS_PROMPT_MIN_LEN - length
+            status = "too_short"
+        else:
+            diff = length - SYS_PROMPT_MAX_LEN
+            status = "too_long"
+        
+        # 计算基础惩罚
+        raw_penalty = diff * LENGTH_PENALTY_COEFF
+        
+        # 应用封顶：最大扣 3.0 分
+        penalty = min(raw_penalty, MAX_LENGTH_PENALTY)
+        
+        reward = -penalty
+        details["status"] = status
+        details["modifier"] = reward
+        details["deviation"] = diff
+        details["raw_penalty"] = raw_penalty
+
+    return reward, details
+
 # ===================================================================
-# 2. 模板加载 (保持原样)
+# 2. 模板加载
 # ===================================================================
 C_PROMPT_FILE_PATH = "/data/zhuldz/lunwen/judge/c_model_prompt.txt"
 
@@ -186,41 +236,28 @@ def _get_c_model_template():
         return f"Error reading prompt file: {e}"
 
 # ===================================================================
-# 3. 清洗 [关键修改] 严格提取 User Query
+# 3. 清洗
 # ===================================================================
 def _clean_prompt_content(dirty_text: str) -> str:
-    """
-    从完整的模型输入中提取 User Query。
-    输入示例: ...【Target Case】\nUser Query: You are given ...\nReference Solution: ...
-    目标: 提取 "You are given ..."
-    """
+    """提取 User Query: 和 Reference Solution: 之间的内容"""
     if not isinstance(dirty_text, str): return str(dirty_text)
     
-    # 严格的起始标记
-    # 注意：JSONL里的换行符可能是 \\n 也可能是实际换行，这里用 User Query: 定位比较稳
     start_marker = "User Query:"
     end_marker = "Reference Solution:" 
     
     start_idx = dirty_text.find(start_marker)
-    
     if start_idx != -1:
-        # 内容实际开始位置
         content_start = start_idx + len(start_marker)
-        
-        # 查找结束位置
         end_idx = dirty_text.find(end_marker, content_start)
-        
         if end_idx != -1:
             return dirty_text[content_start:end_idx].strip()
         else:
-            # 如果没找到结束标记，取剩下所有
             return dirty_text[content_start:].strip()
             
-    # 如果没找到标记，返回原文本（可能是纯 Query）
     return dirty_text.strip()
 
 # ===================================================================
-# 4. 加载 (保持原样)
+# 4. 加载
 # ===================================================================
 def _ensure_models_loaded():
     global B_MODEL, B_TOKENIZER, C_JUDGE, MODELS_LOADED
@@ -232,7 +269,7 @@ def _ensure_models_loaded():
         if C_JUDGE is None: C_JUDGE = load_c_model()
         if B_MODEL is not None and C_JUDGE is not None:
             MODELS_LOADED = True
-            _load_training_pool() # [修改] 触发加载池
+            _load_training_pool() # 触发 Parquet 加载
             return True
         return False
     except Exception as e:
@@ -250,7 +287,7 @@ def _initialize_globals_from_config(config):
     _CONFIG_INITIALIZED = True
 
 # ===================================================================
-# 5. 核心奖励函数 (修改为 1 Center + 2 Aux)
+# 5. 核心奖励函数
 # ===================================================================
 def compute_custom_reward(**kwargs):
     _ensure_models_loaded()
@@ -289,23 +326,20 @@ def compute_custom_reward(**kwargs):
     tasks = []
     current_template = _get_c_model_template()
 
-    # 再次检查数据池
+    # 再次检查数据池是否为空
     if not TRAINING_POOL_LIST:
         _load_training_pool()
 
     for i in range(num_responses):
         p_idx = i % len(prompts) if len(prompts) > 0 else 0
-        
         original_prompt_blob = prompts[p_idx]
-        
-        # 清洗 Prompt，用于去索引里查
         current_query_str = _clean_prompt_content(str(original_prompt_blob))
         current_gt_str = str(ground_truths[p_idx]) if p_idx < len(ground_truths) else "N/A"
 
         tasks.append({
             "index": i,
             "original_input": original_prompt_blob,
-            "current_query": current_query_str, # 清洗后的 Query
+            "current_query": current_query_str,
             "current_gt": current_gt_str,
             "system_prompt": responses[i],
             "template": current_template
@@ -315,8 +349,7 @@ def compute_custom_reward(**kwargs):
         global B_TOKENIZER, TRAINING_POOL_LIST, PROMPT_TO_INDEX
         
         sys_p = task["system_prompt"]
-        raw_sys_p = str(sys_p)
-        clean_sys_p = re.sub(r'<think>.*?</think>', '', raw_sys_p, flags=re.DOTALL).strip()
+        clean_sys_p = re.sub(r'<think>.*?</think>', '', str(sys_p), flags=re.DOTALL).strip()
         if not clean_sys_p: clean_sys_p = "Generate python code."
         tmpl = task["template"]
 
@@ -331,39 +364,30 @@ def compute_custom_reward(**kwargs):
                 "final_stats": {}
             }
             
+            # 1. 计算长度奖惩
+            len_reward, len_details = _calculate_length_reward(clean_sys_p, B_TOKENIZER)
+            trace_entry["length_check"] = len_details
+            
             total_score = 0.0
             test_count = 0
             
-            # [核心逻辑] 查找当前题目的 index
             current_q_clean = task["current_query"].strip()
             center_idx = PROMPT_TO_INDEX.get(current_q_clean)
             
             test_queue = []
             
             if center_idx is not None:
-                # 找到索引，构建 [center, center+1, center+2]
+                # 1 Center + 2 Aux
                 group_indices = [center_idx + k for k in range(GROUP_SIZE)]
-                # 过滤越界
                 group_indices = [i for i in group_indices if i < len(TRAINING_POOL_LIST)]
-                
                 for i in group_indices:
                     q_i, gt_i = TRAINING_POOL_LIST[i]
                     t_type = "Center Task" if i == center_idx else f"Aux Task (+{i-center_idx})"
-                    test_queue.append({
-                        "query": q_i,
-                        "gt": gt_i,
-                        "type": t_type
-                    })
+                    test_queue.append({"query": q_i, "gt": gt_i, "type": t_type})
             else:
-                # 没找到索引 (兜底方案)
-                print(f"⚠️ [Reward] Query not found in index. First 50: {current_q_clean[:50]}...")
-                test_queue.append({
-                    "query": task["current_query"],
-                    "gt": task["current_gt"],
-                    "type": "Center Task (Unmatched)"
-                })
+                print(f"⚠️ [Reward] Query not found in index. First 50: {current_q_clean[:50]}")
+                test_queue.append({"query": task["current_query"], "gt": task["current_gt"], "type": "Center Task (Unmatched)"})
             
-            # 执行测试
             if MODELS_LOADED:
                 for t_idx, test_case in enumerate(test_queue):
                     test_query = test_case["query"]
@@ -378,32 +402,29 @@ def compute_custom_reward(**kwargs):
                             case_info = {
                                 "status": "Hard Leakage Detected",
                                 "leakage_ratio": local_leakage_ratio,
-                                "final_case_score": case_score,
-                                "reason": f"Severe code leakage in {test_type}"
+                                "final_case_score": case_score
                             }
                         else:
-                            # A -> B
                             codes_list = _generate_codes(clean_sys_p, test_query, k=1)
-                            
-                            # B -> C
                             avg_val, _, results = _evaluate_codes(
                                 codes_list, test_gt, test_query, 
                                 test_index=t_idx, 
                                 timestamp=ts_str
                             )
                             
-                            # 本地惩罚
                             overlap = calculate_overlap_penalty(clean_sys_p, test_query, B_TOKENIZER)
                             p_user_overlap = overlap * USER_OVERLAP_WEIGHT
                             
-                            # 算分
-                            case_score = avg_val - p_user_overlap
-                            case_score = max(case_score, MIN_REWARD_FLOOR)
+                            # [综合算分] 基础分 - 重复惩罚 + 长度奖惩
+                            raw_score = avg_val - p_user_overlap + len_reward
                             
-                            # 记录
+                            # [新增] 封顶逻辑：不允许超过 10.0 分
+                            raw_score = min(raw_score, 10.0)
+                            
+                            # 兜底逻辑：不允许低于最低分
+                            case_score = max(raw_score, MIN_REWARD_FLOOR)
+                            
                             b_out = codes_list[0].get('code', '') if codes_list else ''
-                            c_res = results[0] if results else {}
-                            
                             try:
                                 c_log_input = tmpl.format(
                                     prompt=clean_sys_p,
@@ -415,28 +436,19 @@ def compute_custom_reward(**kwargs):
                                 c_log_input = f"[Format Error] {clean_sys_p[:20]}..."
 
                             case_info = {
-                                "test_index": t_idx,
                                 "test_type": test_type,
-                                "full_judge_context": c_log_input,
-                                "c_model_raw_score": float(avg_val),
-                                "c_model_details": c_res,
-                                "local_penalties": {"user_prompt_overlap": -float(p_user_overlap)},
-                                "final_case_score": float(case_score)
+                                "c_model_score": float(avg_val),
+                                "length_modifier": float(len_reward),
+                                "final_case_score": float(case_score),
+                                "full_context": c_log_input
                             }
 
                         total_score += case_score
                         test_count += 1
                         trace_entry["group_tests"].append(case_info)
                         
-                        # Fail-Fast
                         if case_score < FAIL_FAST_THRESHOLD:
-                            remaining = len(test_queue) - 1 - t_idx
-                            if remaining > 0:
-                                total_score += (remaining * MIN_REWARD_FLOOR)
-                                test_count += remaining
-                                trace_entry["final_stats"]["fail_fast_triggered"] = True
-                                trace_entry["group_tests"].append({"info": f"Fail-fast at {test_type}, skipped {remaining} tests"})
-                                break
+                            break
                         
                     except Exception as e:
                         print(f"Test case {t_idx} failed: {e}")
@@ -444,19 +456,12 @@ def compute_custom_reward(**kwargs):
             else:
                 trace_entry["error"] = "Models not loaded"
             
-            # 平均分
             final_avg_score = (total_score / max(1, test_count)) 
             final_avg_score = max(final_avg_score, MIN_REWARD_FLOOR)
             
-            trace_entry["final_stats"].update({
-                "tests_run": test_count,
-                "total_score": float(total_score),
-                "final_average_reward": float(final_avg_score)
-            })
-            
+            trace_entry["final_stats"] = {"total_score": float(total_score), "avg_score": float(final_avg_score)}
             return float(final_avg_score), json.dumps(trace_entry, ensure_ascii=False)
 
-    # --- 执行 ---
     all_scores = [0.0] * len(responses)
     all_traces = ["{}"] * len(responses)
     
@@ -479,7 +484,7 @@ def compute_custom_reward(**kwargs):
     }
 
 # ===================================================================
-# 6. 辅助函数 (保持原样)
+# 6. 辅助函数 (保持原样，全部保留)
 # ===================================================================
 def _generate_codes(system_prompt: str, prompt: str, k: int = 1) -> List[Dict]:
     codes = []
