@@ -13,7 +13,7 @@ OUTPUT_DIRS = {
     "mbpp": "/data/zhuldz/lunwen/eva/evalplus_results/mbpp/code_gen"
 }
 # 定义保存的文件名 (在上述目录中)
-FILENAME = "samples_b_72b.jsonl"
+FILENAME = "samples_b_72b_1.jsonl"
 # ===========================================
 
 # --- 1. 动态导入 generation 目录下的 BModelAPI ---
@@ -45,7 +45,7 @@ def get_args():
     parser.add_argument(
         "--dataset", 
         type=str, 
-        default="mbpp", 
+        default="humaneval", 
         choices=["humaneval", "mbpp"],
         help="选择数据集: humaneval 或 mbpp"
     )
@@ -91,15 +91,18 @@ def main():
             raw_prompt = problem["prompt"]
             
             # 构造 Prompt
-             # instruct_prompt = (
+            # instruct_prompt = (
             #     f"Please complete the following Python function based on the provided docstring or description.\n"
             #     f"Do not include any explanation, just the code.\n\n"
             #     f"```python\n{raw_prompt}\n```"
             # )
             instruct_prompt = (
-                f"ResponseType\n-\n"
                 f"```python\n{raw_prompt}\n```"
             )
+            # instruct_prompt = (
+            #     f"System Prompt:  \nSystem  \nYou are Expert Coder tasked with generating code based on user queries without prior interaction. Always follow strict coding standards: PEP8, proper docstrings (with Args, Returns, Raises), and type hints. Prioritize code robustness (proper type checks, safe attribute access), performance (efficient resource management, no hard-coded limits), and modularity (no hard-coded paths, appropriate docstrings). Do not include explanations or solutions. For user requests, analyze requirements rigorously, enforce safety constraints (e.g., no insecure operations), and output only fully compliant code with comprehensive docstrings, type hints, and correct PEP8 formatting. No extra text—just code. No questions asked, direct output."
+            #     f"```python\n{raw_prompt}\n```"
+            # )
             
             response = api.generate_code(instruct_prompt)
             

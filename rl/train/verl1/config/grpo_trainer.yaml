@@ -1,5 +1,4 @@
-# GRPO训练器配置文件 - 基于verl标准格式的完整配置
-# (已根据官方 config_verl 模板修正)
+
 defaults:
   - _self_
 
@@ -10,16 +9,16 @@ iterative_rl:
   convergence_threshold: 0.01
   rollout_data_dir: "./a_model_grpo_standard/rollouts"
   iteration_log_dir: "./a_model_grpo_standard/iterations"
-  system_prompt_count: 2
-  code_generation_count: 2
+  system_prompt_count: 5
+  code_generation_count: 1
   a_model:
     #model_path: "/data/zhuldz/lunwen/models/Qwen3-0.6B/v1"
     model_path: "/data/zhuldz/lunwen/models/Qwen3-4B"
     device_id: 0
     example_file: "/data/zhuldz/lunwen/rl/train/verl1/sysprompt_icl.txt"
-    lora_r: 8
-    lora_alpha: 16
-    lora_dropout: 0.1
+    # lora_r: 8
+    # lora_alpha: 16
+    # lora_dropout: 0.1
 
 # 算法配置 - 使用GRPO
 algorithm:
@@ -35,7 +34,7 @@ algorithm:
   kl_ctrl:
     _target_: verl.trainer.config.KLControlConfig
     type: fixed
-    kl_coef: 0.001
+    kl_coef: 0.03
     horizon: 10000
     target_kl: 0.1
 
@@ -48,7 +47,7 @@ trainer:
   logger: ['console', 'tensorboard']
   nnodes: 1
   n_gpus_per_node: 8
-  save_freq: 20
+  save_freq: 50
   test_freq: -1
   critic_warmup: 0
   device: cuda
@@ -66,16 +65,14 @@ trainer:
   rollout_data_dir: "./a_model_grpo_standard/rollouts"
   # 移除了 'use_amp', 'grad_clip' (应在actor/critic中), 'grad_accumulation_steps' 等非标准PPO trainer字段
 
-# 数据配置
-# 参考: verl1/config_verl/data/legacy_data.yaml
 data:
   # 移除了 _target_ 和 SFT 特有的字段
-  train_files: "/data/zhuldz/lunwen/data/OpenCodeInstruct/dataparquet/train-00000-of-00050_1.parquet"
+  train_files: "/data/zhuldz/lunwen/data/OpenCodeInstruct/dataparquet/train_cleaned_2.parquet"
   val_files: /data/zhuldz/lunwen/data/CodeEval-Pro/dataset_1/humaneval_pro.parquet
-  train_batch_size: 16
+  train_batch_size: 8
   micro_batch_size: 2
   val_batch_size: null
-  max_prompt_length: 8192
+  max_prompt_length: 4096
   max_response_length: 2048
   shuffle: false
   reward_fn_key: "output"
@@ -120,7 +117,7 @@ actor_rollout_ref:
     optim:
       # 'optim' 在 actor 内部定义是正确的
       _target_: verl.workers.config.FSDPOptimizerConfig
-      lr: 1e-6
+      lr: 1e-5
       betas: [0.9, 0.999]
       weight_decay: 0.01
     fsdp_config:
@@ -212,17 +209,17 @@ actor_rollout_ref:
     # 目标类在 rollout.yaml 中定义
     _target_: verl.workers.config.RolloutConfig
     name: vllm
-    max_model_len: 8192
-    n: 3
+    max_model_len: 4096
+    n: 5
     log_prob_micro_batch_size: null
     log_prob_micro_batch_size_per_gpu: 1
-    temperature: 1.0
-    top_p: 1.0
+    temperature: 0.7
+    top_p: 0.9
     top_k: 50
     prompt_length: 512
     response_length: 2048
     dtype: bfloat16  # 'dtype' 属于这里，用于配置 vLLM/SGLang
-    gpu_memory_utilization: 0.4
+    gpu_memory_utilization: 0.5
     ignore_eos: false
     enforce_eager: false
     free_cache_engine: true
@@ -233,7 +230,7 @@ actor_rollout_ref:
     data_parallel_size: 1
     expert_parallel_size: 1
     pipeline_model_parallel_size: 1
-    max_num_batched_tokens: 8192
+    max_num_batched_tokens: 4096
     max_num_seqs: 256
     enable_chunked_prefill: true
     enable_prefix_caching: true
