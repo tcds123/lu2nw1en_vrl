@@ -13,7 +13,7 @@ OUTPUT_DIRS = {
     "mbpp": "/data/zhuldz/lunwen/eva/evalplus_results/mbpp/code_gen"
 }
 # 定义保存的文件名 (在上述目录中)
-FILENAME = "samples_b_72b_1.jsonl"
+FILENAME = "samples_b_72b_none.jsonl"
 # ===========================================
 
 # --- 1. 动态导入 generation 目录下的 BModelAPI ---
@@ -45,7 +45,7 @@ def get_args():
     parser.add_argument(
         "--dataset", 
         type=str, 
-        default="humaneval", 
+        default="mbpp", 
         choices=["humaneval", "mbpp"],
         help="选择数据集: humaneval 或 mbpp"
     )

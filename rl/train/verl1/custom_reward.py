@@ -72,7 +72,7 @@ MIN_REWARD_FLOOR = -10.0
 # [新增] 系统提示词长度限制配置
 SYS_PROMPT_MIN_LEN = 50         # 最小 Token 数
 SYS_PROMPT_MAX_LEN = 100        # 最大 Token 数
-LENGTH_BONUS_SCORE = 1.0        # 达标奖励 (+1.0)
+LENGTH_BONUS_SCORE = 0.01       # 达标奖励 (+0.01)
 LENGTH_PENALTY_COEFF = 0.07    # 偏离惩罚系数 (3.0/45 ≈ 0.067, 50-5=45)
 MAX_LENGTH_PENALTY = 3.0        # 最大惩罚封顶 (最多扣3分)
 
@@ -355,7 +355,6 @@ def compute_custom_reward(**kwargs):
 
         with api_semaphore:
             ts_str = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
-            
             trace_entry = {
                 "timestamp": ts_str, 
                 "iteration": CURRENT_ITERATION,
@@ -364,7 +363,6 @@ def compute_custom_reward(**kwargs):
                 "final_stats": {}
             }
             
-            # 1. 计算长度奖惩
             len_reward, len_details = _calculate_length_reward(clean_sys_p, B_TOKENIZER)
             trace_entry["length_check"] = len_details
             
@@ -375,9 +373,7 @@ def compute_custom_reward(**kwargs):
             center_idx = PROMPT_TO_INDEX.get(current_q_clean)
             
             test_queue = []
-            
             if center_idx is not None:
-                # 1 Center + 2 Aux
                 group_indices = [center_idx + k for k in range(GROUP_SIZE)]
                 group_indices = [i for i in group_indices if i < len(TRAINING_POOL_LIST)]
                 for i in group_indices:
@@ -393,95 +389,67 @@ def compute_custom_reward(**kwargs):
                     test_query = test_case["query"]
                     test_gt = test_case["gt"]
                     test_type = test_case["type"]
-                    
                     try:
                         local_leakage_ratio = check_ground_truth_leakage(clean_sys_p, test_gt)
-                        
                         if local_leakage_ratio > GT_LEAKAGE_THRESHOLD:
                             case_score = MIN_REWARD_FLOOR
-                            case_info = {
-                                "status": "Hard Leakage Detected",
-                                "leakage_ratio": local_leakage_ratio,
-                                "final_case_score": case_score
-                            }
+                            case_info = {"status": "Leakage", "score": case_score}
                         else:
                             codes_list = _generate_codes(clean_sys_p, test_query, k=1)
-                            avg_val, _, results = _evaluate_codes(
-                                codes_list, test_gt, test_query, 
-                                test_index=t_idx, 
-                                timestamp=ts_str
-                            )
-                            
+                            avg_val, _, results = _evaluate_codes(codes_list, test_gt, test_query, test_index=t_idx, timestamp=ts_str)
                             overlap = calculate_overlap_penalty(clean_sys_p, test_query, B_TOKENIZER)
                             p_user_overlap = overlap * USER_OVERLAP_WEIGHT
                             
-                            # [综合算分] 基础分 - 重复惩罚 + 长度奖惩
                             raw_score = avg_val - p_user_overlap + len_reward
-                            
-                            # [新增] 封顶逻辑：不允许超过 10.0 分
+                            # [修正] 封顶逻辑：不允许超过 10.0 分
                             raw_score = min(raw_score, 10.0)
                             
-                            # 兜底逻辑：不允许低于最低分
                             case_score = max(raw_score, MIN_REWARD_FLOOR)
                             
                             b_out = codes_list[0].get('code', '') if codes_list else ''
-                            try:
-                                c_log_input = tmpl.format(
-                                    prompt=clean_sys_p,
-                                    user_prompt=test_query,
-                                    generated_code=b_out,
-                                    code_ground_truth=test_gt
-                                )
-                            except Exception:
-                                c_log_input = f"[Format Error] {clean_sys_p[:20]}..."
+                            # [修正] 提取 C 模型详细信息
+                            c_res = results[0] if results else {}
+                            
+                            try: c_log_input = tmpl.format(prompt=clean_sys_p, user_prompt=test_query, generated_code=b_out, code_ground_truth=test_gt)
+                            except: c_log_input = "Format Error"
 
                             case_info = {
                                 "test_type": test_type,
-                                "c_model_score": float(avg_val),
+                                "generated_code": b_out, # [新增] 生成的代码
+                                "full_context": c_log_input,
+                                "c_model_details": c_res,# [新增] C模型详细信息
+                                "c_model_score": float(avg_val), 
                                 "length_modifier": float(len_reward),
-                                "final_case_score": float(case_score),
-                                "full_context": c_log_input
+                                "final_case_score": float(case_score)
                             }
-
                         total_score += case_score
                         test_count += 1
                         trace_entry["group_tests"].append(case_info)
-                        
                         if case_score < FAIL_FAST_THRESHOLD:
                             break
-                        
                     except Exception as e:
-                        print(f"Test case {t_idx} failed: {e}")
                         trace_entry["group_tests"].append({"error": str(e)})
             else:
                 trace_entry["error"] = "Models not loaded"
             
             final_avg_score = (total_score / max(1, test_count)) 
             final_avg_score = max(final_avg_score, MIN_REWARD_FLOOR)
-            
             trace_entry["final_stats"] = {"total_score": float(total_score), "avg_score": float(final_avg_score)}
             return float(final_avg_score), json.dumps(trace_entry, ensure_ascii=False)
 
     all_scores = [0.0] * len(responses)
     all_traces = ["{}"] * len(responses)
-    
     with ThreadPoolExecutor(max_workers=MAX_CONCURRENCY + 2) as executor:
         future_to_idx = {executor.submit(process_single_sample_batch, task): task["index"] for task in tasks}
-        
         for future in as_completed(future_to_idx):
             idx = future_to_idx[future]
             try:
                 score, trace = future.result()
                 all_scores[idx] = score
                 all_traces[idx] = trace
-            except Exception as e:
-                print(f"Task {idx} failed: {e}")
-                traceback.print_exc()
+            except Exception: pass
 
-    return {
-        "reward_tensor": torch.tensor(all_scores, dtype=torch.float32),
-        "reward_extra_info": {"abc_trace": all_traces}
-    }
+    return {"reward_tensor": torch.tensor(all_scores, dtype=torch.float32), "reward_extra_info": {"abc_trace": all_traces}}
 
 # ===================================================================
 # 6. 辅助函数 (保持原样，全部保留)
