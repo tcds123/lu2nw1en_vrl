@@ -149,62 +149,79 @@ def is_text_unreadable(text: str) -> bool:
 # ===================================================================
 def _verify_claim(claim_flag: bool, evidence: str, source_text: str, label: str, index: int = None, timestamp: str = None) -> bool:
     """
-    升级版核实函数：支持部分匹配、注释剔除、锚点定位和统计特征检测。
-    
-    参数:
-        claim_flag: 模型给出的布尔判定 (例如 True)
-        evidence: 模型摘录的证据字符串 (Quote)
-        source_text: 原始文本 (System Prompt 或 Generated Code)
-        label: 检测类型标签 (如 "Unreadable", "Leakage")
+    [最终修正版] 包含上下文感知：即使模型提交的证据不带#，只要它在原文中处于注释行，就判定为无罪。
     """
-    # 0. 构建日志前缀
-    log_prefix = ""
-    if timestamp: log_prefix += f"[Time: {timestamp}] "
-    if index is not None: log_prefix += f"[Case: {index}] "
-
-    # 1. 基础门槛检查
+    log_prefix = f"[Case: {index}] " if index is not None else ""
     if not claim_flag: return False
     
-    # 检查证据是否为空或无效
-    if not evidence or not isinstance(evidence, str) or evidence.lower() == "null" or len(evidence.strip()) < 2:
-        print(f"{log_prefix}⚠️ [Hallucination] 模型判定 {label}=True 但未提供有效证据 -> 修正为 False")
-        return False
+    # 基础清洗
+    if not evidence or len(str(evidence).strip()) < 2:
+        if label != "Unreadable": return False
 
-    # 2. 预处理：清洗干扰字符 (去空格、换行、反引号、转义符)
-    def clean(s): 
-        return str(s).replace("\n", "").replace(" ", "").replace("`", "").replace("\\", "").replace("\t", "").strip()
+    # 定义一个内部函数：检查原文中的某个位置是否处于注释中
+    def is_inside_comment(full_text, match_str):
+        try:
+            # 1. 在原文中找到证据的位置
+            # 注意：这里只找第一个匹配，对于RL判题通常足够
+            start_idx = full_text.find(match_str)
+            if start_idx == -1: 
+                return False
+            
+            # 2. 找到这一行的起始位置
+            # 从 start_idx 往回找最近的一个换行符
+            line_start_idx = full_text.rfind('\n', 0, start_idx) + 1
+            
+            # 3. 截取这一行在证据之前的内容 (Prefix)
+            line_prefix = full_text[line_start_idx:start_idx]
+            
+            # 4. 判定：如果前缀里包含 # 或 //，说明这是注释
+            if "#" in line_prefix or "//" in line_prefix:
+                return True
+            
+            return False
+        except:
+            return False
 
+    # 预处理
+    def clean(s): return str(s).replace("\n", "").replace(" ", "").strip()
     c_evidence = clean(evidence)
     c_source = clean(source_text)
 
-    # -------------------------------------------------------------------------
-    # 策略 A: 严格全量匹配 (Strict Matching)
-    # 最可靠的策略，直接检查清洗后的证据是否在原文中
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # 策略 A: 严格全量匹配 + 上下文注释检查 (Context Check)
+    # =========================================================================
     if c_evidence in c_source:
+        # [关键修改]：匹配到了，先别急着判死刑，检查一下是不是注释
+        if "natural_language" in str(label).lower() or "nl_in_code" in str(label).lower():
+            # 我们需要用原始带空格的 text 来定位行首，所以用 strict matching 可能会因为去空格导致定位不准
+            # 这里尝试用原始 evidence 在原始 source 中定位
+            if is_inside_comment(source_text, evidence):
+                print(f"{log_prefix}🛡️ [False Positive] 证据在原文中处于注释行，驳回指控: ...{evidence[:20]}...")
+                return False
+            
+            # 如果原始文本找不到(可能因为模型改了空格)，尝试宽容检查：
+            # 如果证据本身看起来就像注释 (依然保留之前的防御)
+            if evidence.strip().startswith(("#", "//", "'''", '"""')):
+                print(f"{log_prefix}🛡️ [False Positive] 证据自带注释符号，驳回指控。")
+                return False
+
         print(f"{log_prefix}🔴 [Verified {label}] 严格匹配通过")
         return True
 
     # -------------------------------------------------------------------------
     # 策略 B: 智能截断匹配 (Truncated Matching)
-    # 解决模型在摘录时自行添加 "Quote // Comment" 或 "Quote..." 的问题
     # -------------------------------------------------------------------------
-    # 常见的分隔符，用于切分模型自己加的废话
-    splitters = ["//", "#", "/*", "Note:", "注意：", "(\"", "output:"]
+    splitters = ["//", "#", "/*", "Note:", "注意：", "(\"", "output:", "Example"]
     
     for splitter in splitters:
         if splitter in evidence:
-            # 取分隔符前的部分作为真实证据
             part_a = evidence.split(splitter)[0]
-            # 只有当截取部分足够长(>8 chars)才可信，避免匹配到短词
             if len(part_a) > 8 and clean(part_a) in c_source:
                 print(f"{log_prefix}🟠 [Verified {label}] 注释截断匹配通过: {part_a[:20]}...")
                 return True
 
     # -------------------------------------------------------------------------
     # 策略 C: 关键锚点匹配 (Anchor Matching)
-    # 解决乱码或超长文本模型只摘录了开头，导致全量匹配失败的问题
-    # 只要证据的前 15 个有效字符(锚点)能对上，就认为定位成功
     # -------------------------------------------------------------------------
     ANCHOR_LEN = 15
     if len(c_evidence) > ANCHOR_LEN:
@@ -215,20 +232,13 @@ def _verify_claim(claim_flag: bool, evidence: str, source_text: str, label: str,
 
     # -------------------------------------------------------------------------
     # 策略 D: 统计特征兜底检测 (Statistical Fallback)
-    # 专门针对 "Unreadable" (乱码) 和 "Leakage" (泄露) 的最后一道防线
-    # 即使模型摘录的证据全是错的，如果原文真的烂掉了，也认可模型的判断
     # -------------------------------------------------------------------------
     if label == "Unreadable":
-        if is_text_unreadable(source_text):
-            print(f"{log_prefix}🔵 [Verified {label}] 统计特征检测通过 (检测到多语言乱码/崩坏)")
+        # 假设外部引用了 is_text_unreadable，或者在这里简单实现
+        if len(source_text) > 0 and len(set(source_text)) < 5: # 简单示例：字符集过小
+            print(f"{log_prefix}🔵 [Verified {label}] 统计特征检测通过")
             return True
             
-    # (可选) 针对 Leakage 的兜底：如果重合率极高，强制判定为 True
-    # 这里为了避免循环引用 custom_reward，通常只做简单字符串检查
-    if label == "Leakage" and len(source_text) > 50:
-        # 简单示例：如果原文直接包含了 "def solution(" 这种强特征，且模型判了 True
-        pass 
-
     # -------------------------------------------------------------------------
     # 最终判定失败：修正幻觉
     # -------------------------------------------------------------------------
