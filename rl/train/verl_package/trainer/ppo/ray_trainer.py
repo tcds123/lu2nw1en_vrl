@@ -1120,7 +1120,24 @@ class RayPPOTrainer:
         next_step_profile = False
 
         for epoch in range(self.config.trainer.total_epochs):
-            for batch_dict in self.train_dataloader:
+            data_iterator = iter(self.train_dataloader)
+            step_in_epoch = 0
+            
+            while True:
+                try:
+                    # [埋点 1] 尝试读取下一批数据
+                    print(f"\n💤 [System] Waiting for DataLoader (Next Batch for Step {self.global_steps})...", flush=True)
+                    start_load = time.time()
+                    batch_dict = next(data_iterator)
+                    load_time = time.time() - start_load
+                    print(f"📦 [System] Data Loaded! (Time: {load_time:.2f}s) -> Starting Step {self.global_steps}", flush=True)
+                    step_in_epoch += 1
+                except StopIteration:
+                    print(f"🏁 [System] Epoch {epoch} Finished.", flush=True)
+                    break
+                except Exception as e:
+                    print(f"❌ [System] CRITICAL: DataLoader Failed at Step {self.global_steps}: {e}", flush=True)
+                    raise e
                 metrics = {}
                 timing_raw = {}
 
@@ -1331,7 +1348,8 @@ class RayPPOTrainer:
                     rollout_data_dir = self.config.trainer.get("rollout_data_dir", None)
                     if rollout_data_dir:
                         self._log_rollout_data(batch, reward_extra_infos_dict, timing_raw, rollout_data_dir)
-
+                
+                    print(f"   🔎 [System] Step {self.global_steps}: Checking Val/Save conditions...", flush=True)
                 # validate
                 if (
                     self.val_reward_fn is not None
@@ -1359,11 +1377,14 @@ class RayPPOTrainer:
                 if self.config.trainer.save_freq > 0 and (
                     is_last_step or self.global_steps % self.config.trainer.save_freq == 0 or esi_close_to_expiration
                 ):
-                    if esi_close_to_expiration:
-                        print("Force saving checkpoint: ESI instance expiration approaching.")
-                    with marked_timer("save_checkpoint", timing_raw, color="green"):
-                        self._save_checkpoint()
-
+                    print(f"   💾 [System] Saving Checkpoint at {self.global_steps}...", flush=True)
+                    self._save_checkpoint()
+                    print(f"   ✅ [System] Save Done.", flush=True)
+                    # if esi_close_to_expiration:
+                    #     print("Force saving checkpoint: ESI instance expiration approaching.")
+                    # with marked_timer("save_checkpoint", timing_raw, color="green"):
+                    #     self._save_checkpoint()
+                print(f"   ⏱️ [System] Step {self.global_steps}: Stopping Profiler...", flush=True)
                 with marked_timer("stop_profile", timing_raw):
                     next_step_profile = (
                         self.global_steps + 1 in self.config.global_profiler.steps
@@ -1375,6 +1396,9 @@ class RayPPOTrainer:
                         if self.config.global_profiler.profile_continuous_steps
                         else curr_step_profile
                     )
+                    # [埋点 4] 循环结束
+                    print(f"✅ [System] Step {self.global_steps} COMPLETE. Prepare for next...", flush=True)
+
                     prev_step_profile = curr_step_profile
                     curr_step_profile = next_step_profile
 
@@ -1402,6 +1426,7 @@ class RayPPOTrainer:
 
                 # TODO: make a canonical logger that supports various backend
                 logger.log(data=metrics, step=self.global_steps)
+                print(f"✅ [System] Step {self.global_steps} COMPLETE. Moving to next...", flush=True)
 
                 progress_bar.update(1)
                 self.global_steps += 1
