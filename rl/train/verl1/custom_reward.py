@@ -61,7 +61,7 @@ except Exception as e:
 TRAIN_SET_PATH = os.environ.get("VERL_DATA_PATH", "/data/zhuldz/lunwen/data/OpenCodeInstruct/dataparquet/train_testexample_bestmax.parquet")
 VALIDATION_SET_PATH = os.path.join(REPO_ROOT, "generation/humaneval_pro.json")
 
-MAX_CONCURRENCY = 8
+MAX_CONCURRENCY = 6
 api_semaphore = threading.Semaphore(MAX_CONCURRENCY)
 
 TRAINING_POOL_LIST: List[Tuple[str, str, Any]] = [] 
@@ -355,16 +355,51 @@ def _load_validation_pool():
 
 def _run_monthly_exam(system_prompt: str) -> float:
     if not VALIDATION_POOL: return 0.0
+    
+    # 打印日志，确认进入函数
+    print(f"📝 [Monthly Exam] Starting exam (Size={EXAM_SIZE})...", flush=True)
+    
     exam_questions = random.sample(VALIDATION_POOL, min(EXAM_SIZE, len(VALIDATION_POOL)))
     total_pass = 0.0
-    clean_sys_p = re.sub(r'<think>.*?</think>', '', str(system_prompt), flags=re.DOTALL).strip()
-    for q_prompt, q_tests in exam_questions:
+    
+    try:
+        clean_sys_p = re.sub(r'<think>.*?</think>', '', str(system_prompt), flags=re.DOTALL).strip()
+    except Exception as e:
+        print(f"⚠️ [Monthly Exam] Regex Error: {e}", flush=True)
+        clean_sys_p = "Generate python code."
+
+    for idx, (q_prompt, q_tests) in enumerate(exam_questions):
+        # [新增] 详细进度日志
+        print(f"   📝 [Exam Q{idx+1}/{len(exam_questions)}] Generating...", flush=True)
+        
         try:
-            codes = generate_code_from_prompt(B_MODEL, B_TOKENIZER, clean_sys_p, q_prompt, k=1)
+            # [新增] B 模型超时保护 (60秒)
+            def _gen_exam_code():
+                return generate_code_from_prompt(B_MODEL, B_TOKENIZER, clean_sys_p, q_prompt, k=1)
+            
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(_gen_exam_code)
+                try:
+                    codes = future.result(timeout=60) # 强制 60s 超时
+                except TimeoutError:
+                    print(f"   ⏰ [Exam Q{idx+1}] Timeout! Skipping.", flush=True)
+                    continue # 跳过这一题
+                except Exception as e:
+                    print(f"   ❌ [Exam Q{idx+1}] Gen Error: {e}", flush=True)
+                    continue
+
+            # 执行测试 (已有内部超时，无需额外加)
+            if not codes: continue
             pr = compute_execution_pass_rate(codes[0], q_tests)
             if pr > 0: total_pass += pr
-        except: pass
-    return total_pass / len(exam_questions)
+            
+        except Exception as e:
+            print(f"   ⚠️ [Exam Q{idx+1}] Unexpected Error: {e}", flush=True)
+            pass
+
+    score = total_pass / len(exam_questions)
+    print(f"📝 [Monthly Exam] Finished. Score: {score:.2f}", flush=True)
+    return score
 
 # ===================================================================
 # 5. 生成与评测 Wrappers
@@ -479,10 +514,16 @@ def compute_custom_reward(**kwargs):
         try:
             global _consecutive_high_scores
             sys_p = task["system_prompt"]
+            
+            # [日志] 1. 开始处理 (截取前20字符作为ID)
+            task_id_short = str(task["original_input"])[:20].replace('\n', '')
+            print(f"▶️ [Start] Processing {task_id_short}...", flush=True)
+
             clean_sys_p = re.sub(r'<think>.*?</think>', '', str(sys_p), flags=re.DOTALL).strip()
             if not clean_sys_p: clean_sys_p = "Generate python code."
             tmpl = task["template"]
 
+            # 使用信号量控制并发
             with api_semaphore:
                 ts_str = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
                 trace_entry = {
@@ -509,7 +550,6 @@ def compute_custom_reward(**kwargs):
                         test_queue.append({"query": q_i, "gt": gt_i, "ut": ut_i, "type": t_type})
                 else:
                     real_q = _extract_real_query(raw_input_str)
-                    print(f"⚠️ Unmatched! Fallback using: {real_q[:50]}...")
                     test_queue.append({"query": real_q, "gt": "", "ut": [], "type": "Center Task (Unmatched)"})
                 
                 for t_idx, test_case in enumerate(test_queue):
@@ -519,79 +559,100 @@ def compute_custom_reward(**kwargs):
                     test_type = test_case["type"]
                     
                     leakage = check_ground_truth_leakage(clean_sys_p, test_gt)
+                    
                     if leakage > GT_LEAKAGE_THRESHOLD:
                         case_score = MIN_REWARD_FLOOR
                         b_out = "[Leakage]"
                         c_res = {}
                         pass_rate = 0.0
-                        c_log_input = "Skipped"
+                        print(f"🚫 [{t_idx}] Leakage Detected!", flush=True)
                     else:
-                        codes_list = _generate_codes(clean_sys_p, test_query, k=1)
-                        b_out = codes_list[0].get('code', '')
+                        # =====================================================
+                        # [Fix 1] B-Model 生成代码 (增加 60s 超时保护)
+                        # =====================================================
+                        print(f"   [{t_idx}] Generating code (Timeout=60s)...", flush=True)
+                        b_out = ""
+                        codes_list = [{'code': ''}]
                         
+                        gen_executor = ThreadPoolExecutor(max_workers=1)
+                        try:
+                            # 定义任务
+                            def _run_gen():
+                                return _generate_codes(clean_sys_p, test_query, k=1)
+                            
+                            future = gen_executor.submit(_run_gen)
+                            codes_list = future.result(timeout=60) # 60秒超时
+                            b_out = codes_list[0].get('code', '')
+                        except TimeoutError:
+                            print(f"⏰ [{t_idx}] B-Model Gen TIMEOUT! Skipping...", flush=True)
+                        except Exception as e:
+                            print(f"❌ [{t_idx}] B-Model Error: {e}", flush=True)
+                        finally:
+                            gen_executor.shutdown(wait=False) # 强制不等待僵尸线程
+
+                        # =====================================================
+                        # [Step] 执行单元测试 (已有内部超时，无需修改)
+                        # =====================================================
                         pass_rate = compute_execution_pass_rate(b_out, test_ut)
                         
                         c_score_raw = 0.0
                         c_res = {}
-                        c_log_input = ""
                         
+                        # =====================================================
+                        # [Fix 2] C-Model 判分 (增加 45s 超时保护)
+                        # =====================================================
+                        print(f"⚖️ [{t_idx}] Calling C-Model (Timeout=45s)...", flush=True)
+                        c_executor = ThreadPoolExecutor(max_workers=1)
                         try:
                             c_log_input = tmpl.format(prompt=clean_sys_p, user_prompt=test_query, generated_code=b_out, code_ground_truth=test_gt)
-                            avg_val, _, results = _evaluate_codes(codes_list, test_gt, clean_sys_p, test_query)
+                            
+                            def _run_c_eval():
+                                return _evaluate_codes(codes_list, test_gt, clean_sys_p, test_query)
+
+                            future = c_executor.submit(_run_c_eval)
+                            # 45秒超时，防止网络卡死
+                            avg_val, _, results = future.result(timeout=45)
+                            
                             c_score_raw = avg_val
                             c_res = results[0] if results else {}
+                            print(f"✅ [{t_idx}] C-Model Finished.", flush=True)
+                            
+                        except TimeoutError:
+                            print(f"⏰ [{t_idx}] C-Model TIMEOUT! Skipping...", flush=True)
+                            c_score_raw = 0.0
+                            c_res = {"error": "Timeout"}
                         except Exception as e:
-                            print(f"C-Eval Block Error: {e}")
+                            print(f"❌ [{t_idx}] C-Eval Error: {e}", flush=True)
+                            c_score_raw = 0.0
                             c_res = {"error": str(e)}
-                            c_score_raw = 0.0 # 出错保底
+                        finally:
+                            c_executor.shutdown(wait=False) # 强制释放资源，不等待卡死的请求
 
-                        # =======================================================
-                        # [Step Reward Logic] 阶梯式客观评分 + 聚合主观评分
-                        # =======================================================
-
-                        # --- 1. 计算客观分 (Objective Score) ---
-                        # 逻辑：如果不完美(pass_rate < 1.0)，最高只能拿 5 分；只有完美才给 10 分
+                        # =====================================================
+                        # [Score] 计算最终分数
+                        # =====================================================
                         if pass_rate < 0:
-                            # 语法错误/无法执行 -> -10 分
                             obj_raw = PENALTY_SYNTAX_ERROR 
                         elif pass_rate < 1.0 - 1e-6:
-                            # 不完美 -> 线性映射到 0 ~ 5 分 (和完美拉开差距)
                             obj_raw = pass_rate * 5.0
                         else:
-                            # 完美 -> 10 分 (不再叠加 Bonus)
                             obj_raw = 10.0
 
-                        # --- 2. 计算主观分 (Subjective Score) ---
-                        # 包含：C模型打分 + 格式惩罚 + 重叠惩罚
                         sub_raw = float(c_score_raw)
-                        
-
-                        # [Penalty] 重叠惩罚 (移入主观分)
                         overlap_val = calculate_overlap_penalty_value(clean_sys_p, test_query)
                         sub_raw -= overlap_val
-
-                        # [Clipping] 限制主观分在 [-10, 10] 之间
                         sub_raw = max(-10.0, min(10.0, sub_raw))
 
-                        # --- 3. 最终加权求和 ---
-                        # Final = (Obj * 0.7) + (Sub * 0.3)
                         raw_score = (obj_raw * WEIGHT_OBJ) + (sub_raw * WEIGHT_SUB)
-                        
-                        # --- 4. 地板与天花板 ---
                         case_score = max(raw_score, MIN_REWARD_FLOOR)
                         case_score = min(case_score, 10.0)
 
-                    # 用于日志记录
                     case_info = {
                         "test_type": test_type,
                         "generated_code": b_out, 
                         "c_model_details": c_res,
                         "pass_rate": pass_rate,
-                        "scores": {
-                            "obj_raw": obj_raw,
-                            "sub_raw": sub_raw,
-                            "overlap_penalty": overlap_val
-                        },
+                        "scores": {"obj_raw": obj_raw, "sub_raw": sub_raw},
                         "final_case_score": float(case_score)
                     }
                     total_score += case_score
@@ -601,33 +662,38 @@ def compute_custom_reward(**kwargs):
 
                 avg_score = total_score / max(1, test_count)
                 
-                exam_log = "Skipped"
-                is_triggered = False
-                with _counter_lock:
-                    if avg_score >= HIGH_SCORE_THRESHOLD:
-                        _consecutive_high_scores += 1
-                        if _consecutive_high_scores >= TRIGGER_COUNT:
-                            is_triggered = True
-                            _consecutive_high_scores = 0 
-                    else: _consecutive_high_scores = 0 
+                exam_log = "Disabled_Debug"
+                # # [Monthly Exam] 逻辑保持不变
+                # exam_log = "Skipped"
+                # is_triggered = False
+                # with _counter_lock:
+                #     if avg_score >= HIGH_SCORE_THRESHOLD:
+                #         _consecutive_high_scores += 1
+                #         if _consecutive_high_scores >= TRIGGER_COUNT:
+                #             is_triggered = True
+                #             _consecutive_high_scores = 0 
+                #     else: _consecutive_high_scores = 0 
                 
-                if is_triggered:
-                    print(f"🚀 [Monthly Exam] Triggered. Avg Score: {avg_score:.2f}")
-                    exam_pass_rate = _run_monthly_exam(clean_sys_p)
-                    if exam_pass_rate < EXAM_PASS_THRESHOLD:
-                        avg_score += -10.0
-                        exam_log = f"FAILED ({exam_pass_rate:.2f})"
-                    else:
-                        avg_score += 3.0
-                        exam_log = f"PASSED ({exam_pass_rate:.2f})"
-                    avg_score = max(MIN_REWARD_FLOOR, min(15.0, avg_score))
+                # if is_triggered:
+                #     print(f"🚀 [Monthly Exam] Triggered. Avg Score: {avg_score:.2f}", flush=True)
+                #     exam_pass_rate = _run_monthly_exam(clean_sys_p)
+                #     if exam_pass_rate < EXAM_PASS_THRESHOLD:
+                #         avg_score += -10.0
+                #         exam_log = f"FAILED ({exam_pass_rate:.2f})"
+                #     else:
+                #         avg_score += 3.0
+                #         exam_log = f"PASSED ({exam_pass_rate:.2f})"
+                #     avg_score = max(MIN_REWARD_FLOOR, min(15.0, avg_score))
 
                 trace_entry["final_stats"] = {"avg_score": avg_score, "count": test_count, "monthly_exam": exam_log}
                 _log_readable(trace_entry)
+                
+                # 打印最终完成日志
+                print(f"🏁 [Done] Score: {avg_score:.2f}", flush=True)
                 return avg_score, json.dumps(trace_entry, ensure_ascii=False)
         
         except Exception as e:
-            print(f"CRITICAL ERROR: {e}\n{traceback.format_exc()}")
+            print(f"🔥 CRITICAL ERROR in Task: {e}\n{traceback.format_exc()}", flush=True)
             return MIN_REWARD_FLOOR, json.dumps({"error": str(e)})
 
     all_scores = [0.0] * len(tasks)
@@ -640,7 +706,12 @@ def compute_custom_reward(**kwargs):
                 s, t = fut.result()
                 all_scores[idx] = s
                 all_traces[idx] = t
-            except:
+            except Exception as e:
+                import traceback
+                print(f"❌ [CRITICAL] Reward Collection Failed for Task {idx}!", flush=True)
+                print(f"   Error: {e}", flush=True)
+                traceback.print_exc() # 打印完整堆栈
+                
                 all_scores[idx] = MIN_REWARD_FLOOR
                 all_traces[idx] = "{}"
 

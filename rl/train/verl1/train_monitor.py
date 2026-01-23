@@ -2,7 +2,6 @@ import os
 import re
 import time
 import matplotlib
-# 设置无界面后端，防止在服务器上报错 'UserWarning: FigureCanvasAgg is non-interactive'
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -17,7 +16,6 @@ OUTPUT_DIR = "/data/zhuldz/lunwen/rl/train/verl1/outputs/train_para"
 OUTPUT_IMG = os.path.join(OUTPUT_DIR, "live_monitor.png")
 OUTPUT_CSV = os.path.join(OUTPUT_DIR, "training_history.csv")
 
-# 刷新间隔 (秒)
 REFRESH_RATE = 30
 
 # 想要画图的核心指标 (表格会记录所有指标，只有这些会画图)
@@ -32,16 +30,42 @@ METRICS_TO_PLOT = [
 # ===========================================
 
 def get_latest_log():
-    """找到最新的日志文件"""
+    """
+    智能查找日志：
+    1. 排除 'rollout' 文件夹 (它只是存 trace 的)
+    2. 只找包含 out.txt 的时间戳文件夹
+    """
     if not os.path.exists(LOG_ROOT): return None
-    subdirs = [os.path.join(LOG_ROOT, d) for d in os.listdir(LOG_ROOT) if os.path.isdir(os.path.join(LOG_ROOT, d))]
+    
+    subdirs = []
+    for d in os.listdir(LOG_ROOT):
+        full_path = os.path.join(LOG_ROOT, d)
+        
+        # 🛑 关键修改：直接跳过 'rollout' 目录
+        if d == "rollout": 
+            continue
+            
+        if os.path.isdir(full_path):
+            subdirs.append(full_path)
+    
     if not subdirs: return None
-    latest_dir = max(subdirs, key=os.path.getmtime)
-    return os.path.join(latest_dir, "out.txt")
+
+    # 按时间倒序，找最新的
+    subdirs.sort(key=os.path.getmtime, reverse=True)
+    
+    for d in subdirs:
+        candidate = os.path.join(d, "out.txt")
+        if os.path.exists(candidate):
+            # print(f"✅ 锁定日志: {os.path.basename(d)}") 
+            return candidate
+            
+    return None
 
 def parse_and_generate():
     """解析日志，生成图片和表格"""
     log_file = get_latest_log()
+    if log_file:
+        print(f"🔍 [Debug] 正在尝试读取: {log_file}")
     if not log_file or not os.path.exists(log_file):
         print(f"[{datetime.now().strftime('%H:%M:%S')}] ⏳ 等待日志文件生成...")
         return

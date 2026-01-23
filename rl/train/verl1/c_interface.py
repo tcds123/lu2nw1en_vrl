@@ -196,16 +196,16 @@ def _verify_claim(claim_flag: bool, evidence: str, source_text: str, label: str,
             # 我们需要用原始带空格的 text 来定位行首，所以用 strict matching 可能会因为去空格导致定位不准
             # 这里尝试用原始 evidence 在原始 source 中定位
             if is_inside_comment(source_text, evidence):
-                print(f"{log_prefix}🛡️ [False Positive] 证据在原文中处于注释行，驳回指控: ...{evidence[:20]}...")
+                #print(f"{log_prefix}🛡️ [False Positive] 证据在原文中处于注释行，驳回指控: ...{evidence[:20]}...")
                 return False
             
             # 如果原始文本找不到(可能因为模型改了空格)，尝试宽容检查：
             # 如果证据本身看起来就像注释 (依然保留之前的防御)
             if evidence.strip().startswith(("#", "//", "'''", '"""')):
-                print(f"{log_prefix}🛡️ [False Positive] 证据自带注释符号，驳回指控。")
+                #print(f"{log_prefix}🛡️ [False Positive] 证据自带注释符号，驳回指控。")
                 return False
 
-        print(f"{log_prefix}🔴 [Verified {label}] 严格匹配通过")
+        #print(f"{log_prefix}🔴 [Verified {label}] 严格匹配通过")
         return True
 
     # -------------------------------------------------------------------------
@@ -217,7 +217,7 @@ def _verify_claim(claim_flag: bool, evidence: str, source_text: str, label: str,
         if splitter in evidence:
             part_a = evidence.split(splitter)[0]
             if len(part_a) > 8 and clean(part_a) in c_source:
-                print(f"{log_prefix}🟠 [Verified {label}] 注释截断匹配通过: {part_a[:20]}...")
+                #print(f"{log_prefix}🟠 [Verified {label}] 注释截断匹配通过: {part_a[:20]}...")
                 return True
 
     # -------------------------------------------------------------------------
@@ -227,7 +227,7 @@ def _verify_claim(claim_flag: bool, evidence: str, source_text: str, label: str,
     if len(c_evidence) > ANCHOR_LEN:
         anchor = c_evidence[:ANCHOR_LEN]
         if anchor in c_source:
-             print(f"{log_prefix}🟠 [Verified {label}] 头部锚点匹配通过: {anchor}...")
+             #print(f"{log_prefix}🟠 [Verified {label}] 头部锚点匹配通过: {anchor}...")
              return True
 
     # -------------------------------------------------------------------------
@@ -236,14 +236,14 @@ def _verify_claim(claim_flag: bool, evidence: str, source_text: str, label: str,
     if label == "Unreadable":
         # 假设外部引用了 is_text_unreadable，或者在这里简单实现
         if len(source_text) > 0 and len(set(source_text)) < 5: # 简单示例：字符集过小
-            print(f"{log_prefix}🔵 [Verified {label}] 统计特征检测通过")
+            #print(f"{log_prefix}🔵 [Verified {label}] 统计特征检测通过")
             return True
             
     # -------------------------------------------------------------------------
     # 最终判定失败：修正幻觉
     # -------------------------------------------------------------------------
-    print(f"{log_prefix}⚠️ [Hallucination] 模型判定 {label}=True 且多重证据核实失败 -> 修正为 False")
-    print(f"   -> Evidence Raw: {evidence[:50].replace(chr(10), ' ')}...") 
+    #print(f"{log_prefix}⚠️ [Hallucination] 模型判定 {label}=True 且多重证据核实失败 -> 修正为 False")
+    #print(f"   -> Evidence Raw: {evidence[:50].replace(chr(10), ' ')}...") 
     return False
 
 def calculate_final_reward_with_verification(
