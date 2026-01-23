@@ -519,12 +519,15 @@ def compute_custom_reward(**kwargs):
             task_id_short = str(task["original_input"])[:20].replace('\n', '')
             print(f"▶️ [Start] Processing {task_id_short}...", flush=True)
 
+            print(f"   [Debug] Running Regex for {task_id_short}...", flush=True)
             clean_sys_p = re.sub(r'<think>.*?</think>', '', str(sys_p), flags=re.DOTALL).strip()
             if not clean_sys_p: clean_sys_p = "Generate python code."
+            print(f"   [Debug] Regex Done. Waiting for Semaphore...", flush=True)
             tmpl = task["template"]
 
             # 使用信号量控制并发
             with api_semaphore:
+                print(f"   [Debug] Semaphore Acquired for {task_id_short}!", flush=True)
                 ts_str = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
                 trace_entry = {
                     "timestamp": ts_str, 
@@ -698,21 +701,33 @@ def compute_custom_reward(**kwargs):
 
     all_scores = [0.0] * len(tasks)
     all_traces = ["{}"] * len(tasks)
+    import traceback
     with ThreadPoolExecutor(max_workers=MAX_CONCURRENCY) as executor:
         futures = {executor.submit(process_single_sample_batch, t): t["index"] for t in tasks}
-        for fut in as_completed(futures):
-            idx = futures[fut]
-            try:
-                s, t = fut.result()
-                all_scores[idx] = s
-                all_traces[idx] = t
-            except Exception as e:
-                import traceback
-                print(f"❌ [CRITICAL] Reward Collection Failed for Task {idx}!", flush=True)
-                print(f"   Error: {e}", flush=True)
-                traceback.print_exc() # 打印完整堆栈
-                
-                all_scores[idx] = MIN_REWARD_FLOOR
-                all_traces[idx] = "{}"
+        
+        try:
+            # ⏳ [关键修改] 加上 timeout=240 (4分钟)
+            # 如果 Step 271 再次死锁，这里会强制抛出 TimeoutError
+            for fut in as_completed(futures, timeout=240): 
+                idx = futures[fut]
+                try:
+                    s, t = fut.result(timeout=1) # 结果已就绪，取值应该很快
+                    all_scores[idx] = s
+                    all_traces[idx] = t
+                except Exception as e:
+                    print(f"❌ [Error] Task {idx} Failed inside thread: {e}", flush=True)
+                    traceback.print_exc()
+                    all_scores[idx] = MIN_REWARD_FLOOR
+                    all_traces[idx] = json.dumps({"error": str(e)})
+                    
+        except TimeoutError:
+            # 🚨 这就是解决“卡在271”的救命稻草
+            print(f"🔥 [CRITICAL] Batch Processing TIMEOUT (Deadlock suspected)!", flush=True)
+            print(f"   Skipping remaining tasks in Step to keep training alive.", flush=True)
+            # 没跑完的任务会自动保持为 0.0，训练将继续进入 Step 272
+            
+        except Exception as e:
+            print(f"🔥 [CRITICAL] Batch Executor Error: {e}", flush=True)
+            traceback.print_exc()
 
     return {"reward_tensor": torch.tensor(all_scores), "reward_extra_info": {"abc_trace": all_traces}}
