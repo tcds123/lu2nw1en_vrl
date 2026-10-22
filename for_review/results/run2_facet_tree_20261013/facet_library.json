@@ -1,0 +1,262 @@
+{
+  "F0": {
+    "id": "F0",
+    "name": "Misreading the asked quantity (count vs value vs sum vs max vs min vs remainder)",
+    "description": "Misreading the asked quantity (count vs value vs sum vs max vs min vs remainder)",
+    "keyword_signature": [
+      "quantity parsing",
+      "what is asked",
+      "count vs",
+      "restat"
+    ],
+    "is_meta": false,
+    "example_failures": [],
+    "failure_count": 0,
+    "problems_seen": [],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791891521.5536783,
+    "promoted_at": null
+  },
+  "F1": {
+    "id": "F1",
+    "name": "Off-by-one / boundary (inclusive vs exclusive counting, endpoint inclusion)",
+    "description": "Off-by-one / boundary (inclusive vs exclusive counting, endpoint inclusion)",
+    "keyword_signature": [
+      "off by one",
+      "off-by-one",
+      "boundary",
+      "inclusive",
+      "exclusive",
+      "endpoint"
+    ],
+    "is_meta": false,
+    "example_failures": [],
+    "failure_count": 0,
+    "problems_seen": [],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791891521.5536783,
+    "promoted_at": null
+  },
+  "F2": {
+    "id": "F2",
+    "name": "Case enumeration completeness (missing or overlapping cases in combinatorics)",
+    "description": "Case enumeration completeness (missing or overlapping cases in combinatorics)",
+    "keyword_signature": [
+      "case enumeration",
+      "mutually exclusive",
+      "exhaustive",
+      "casework",
+      "cases systematically",
+      "regular polygon",
+      "dodecagon",
+      "rectangle",
+      "diagonal",
+      "chord"
+    ],
+    "is_meta": false,
+    "example_failures": [
+      "Each vertex of a regular octagon is independently colored either red or blue with equal probability. The probability that the octagon can then be rotated so tha",
+      "There is a collection of $25$ indistinguishable white chips and $25$ indistinguishable black chips. Find the number of ways to place some of these chips in the ",
+      "Each vertex of a regular octagon is independently colored either red or blue with equal probability. The probability that the octagon can then be rotated so tha"
+    ],
+    "failure_count": 54,
+    "problems_seen": [
+      "aime24:62",
+      "aime24:89",
+      "aime24:81"
+    ],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791891521.5536783,
+    "promoted_at": null
+  },
+  "F3": {
+    "id": "F3",
+    "name": "Inclusion-exclusion / overcounting (double-counting, unaccounted symmetry)",
+    "description": "Inclusion-exclusion / overcounting (double-counting, unaccounted symmetry)",
+    "keyword_signature": [
+      "inclusion-exclusion",
+      "inclusion",
+      "overcount",
+      "complementary counting"
+    ],
+    "is_meta": false,
+    "example_failures": [],
+    "failure_count": 0,
+    "problems_seen": [],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791891521.5536783,
+    "promoted_at": null
+  },
+  "F4": {
+    "id": "F4",
+    "name": "Arithmetic / sign / computational slips in multi-step calculation",
+    "description": "Arithmetic / sign / computational slips in multi-step calculation",
+    "keyword_signature": [
+      "computation",
+      "arithmetic",
+      "sanity check",
+      "parity",
+      "magnitude"
+    ],
+    "is_meta": false,
+    "example_failures": [],
+    "failure_count": 0,
+    "problems_seen": [],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791891521.5536783,
+    "promoted_at": null
+  },
+  "F5": {
+    "id": "F5",
+    "name": "Answer-form conversion (unreduced fraction, missing mod 0-999, wrong rounding)",
+    "description": "Answer-form conversion (unreduced fraction, missing mod 0-999, wrong rounding)",
+    "keyword_signature": [
+      "final answer",
+      "boxed",
+      "mod 1000",
+      "0-999",
+      "reduce"
+    ],
+    "is_meta": true,
+    "example_failures": [],
+    "failure_count": 0,
+    "problems_seen": [],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791891521.5536783,
+    "promoted_at": null
+  },
+  "F6": {
+    "id": "F6",
+    "name": "Number-theoretic case analysis (missing residue classes, unbounded solution range)",
+    "description": "Number-theoretic case analysis (missing residue classes, unbounded solution range)",
+    "keyword_signature": [
+      "divisor",
+      "congruence",
+      "residue",
+      "number theory",
+      "modular"
+    ],
+    "is_meta": false,
+    "example_failures": [],
+    "failure_count": 0,
+    "problems_seen": [],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791891521.5536783,
+    "promoted_at": null
+  },
+  "F7": {
+    "id": "F7",
+    "name": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+    "description": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+    "keyword_signature": [
+      "equation setup",
+      "equation",
+      "variable",
+      "unknown",
+      "introduce variables",
+      "base",
+      "digit",
+      "sum",
+      "representation",
+      "integer",
+      "segment",
+      "family",
+      "locus",
+      "envelope",
+      "intersection",
+      "family of segments",
+      "first quadrant",
+      "unit length",
+      "tangent",
+      "intersect",
+      "circle",
+      "triangle",
+      "length",
+      "chain",
+      "inradius",
+      "hexagon",
+      "parallel sides",
+      "extension",
+      "side length"
+    ],
+    "is_meta": false,
+    "example_failures": [
+      "Define $f(x)=|| x|-\\tfrac{1}{2}|$ and $g(x)=|| x|-\\tfrac{1}{4}|$. Find the number of intersections of the graphs of \\[y=4 g(f(\\sin (2 \\pi x))) \\quad\\text{ and }",
+      "Let $ABCD$ be a tetrahedron such that $AB=CD= \\sqrt{41}$, $AC=BD= \\sqrt{80}$, and $BC=AD= \\sqrt{89}$. There exists a point $I$ inside the tetrahedron such that ",
+      "Find the number of triples of nonnegative integers \\((a,b,c)\\) satisfying \\(a + b + c = 300\\) and\n\\begin{equation*}\na^2b + a^2c + b^2a + b^2c + c^2a + c^2b = 6,"
+    ],
+    "failure_count": 79,
+    "problems_seen": [
+      "aime24:63",
+      "aime24:65",
+      "aime24:77",
+      "aime24:80",
+      "aime24:61",
+      "aime24:78",
+      "aime24:73",
+      "aime24:85"
+    ],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791891521.5536783,
+    "promoted_at": null
+  },
+  "F13": {
+    "id": "F13",
+    "name": "Nested Composition Symmetry",
+    "description": "Failure to correctly analyze the symmetry, periodicity, and range constraints in a system of equations involving nested compositions of absolute value and trigonometric functions.",
+    "keyword_signature": [
+      "absolute value",
+      "trigonometric",
+      "composition",
+      "symmetry",
+      "period"
+    ],
+    "is_meta": false,
+    "example_failures": [
+      "Define $f(x)=|| x|-\\tfrac{1}{2}|$ and $g(x)=|| x|-\\tfrac{1}{4}|$. Find the number of intersections of the graphs of \\[y=4 g(f(\\sin (2 \\pi x))) \\quad\\text{ and }",
+      "Define $f(x)=|| x|-\\tfrac{1}{2}|$ and $g(x)=|| x|-\\tfrac{1}{4}|$. Find the number of intersections of the graphs of \\[y=4 g(f(\\sin (2 \\pi x))) \\quad\\text{ and }",
+      "Define $f(x)=|| x|-\\tfrac{1}{2}|$ and $g(x)=|| x|-\\tfrac{1}{4}|$. Find the number of intersections of the graphs of \\[y=4 g(f(\\sin (2 \\pi x))) \\quad\\text{ and }"
+    ],
+    "failure_count": 19,
+    "problems_seen": [
+      "aime24:63"
+    ],
+    "status": "candidate",
+    "ate_score": null,
+    "created_at": 1791895512.0938396,
+    "promoted_at": null
+  },
+  "F14": {
+    "id": "F14",
+    "name": "Torus Geometry Misinterpretation",
+    "description": "Failure to correctly model the 3D geometry of a torus, especially the distances from its axis to points on its surface when tangent to a sphere.",
+    "keyword_signature": [
+      "torus",
+      "sphere",
+      "externally tangent",
+      "revolving circle",
+      "radius"
+    ],
+    "is_meta": false,
+    "example_failures": [
+      "Torus $T$ is the surface produced by revolving a circle with radius $3$ around an axis in the plane of the circle that is a distance $6$ from the center of the ",
+      "Torus $T$ is the surface produced by revolving a circle with radius $3$ around an axis in the plane of the circle that is a distance $6$ from the center of the "
+    ],
+    "failure_count": 2,
+    "problems_seen": [
+      "aime24:88"
+    ],
+    "status": "candidate",
+    "ate_score": null,
+    "created_at": 1791905009.0997984,
+    "promoted_at": null
+  }
+}

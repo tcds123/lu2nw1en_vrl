@@ -1,0 +1,2718 @@
+{
+  "stats": {
+    "baseline_mean": 7.3093,
+    "random_mean": 7.1386666666666665,
+    "curated_mean": 7.257399999999999,
+    "self_debug_mean": 8.164566666666667,
+    "selfdebug_vs_baseline_p": 0.0008869192252734792,
+    "selfdebug_vs_curated_p": 0.0011313011852741018,
+    "curated_vs_baseline_p": 0.728832104244668,
+    "selfdebug_winrate_vs_baseline": 0.41,
+    "selfdebug_winrate_vs_curated": 0.49,
+    "avg_self_debug_rounds": 1.6,
+    "tasks_with_fixes": 35,
+    "n_samples": 100
+  },
+  "results": [
+    {
+      "task": "# Given a list of lists of strings of numbers, write a function to sort each sublist numerically and",
+      "baseline_score": 9.04,
+      "random_score": 9.55,
+      "curated_score": 9.64,
+      "self_debug_score": 9.34,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G263",
+        "G199",
+        "G261",
+        "G252",
+        "G156"
+      ],
+      "random_skills": [
+        "G61",
+        "G115",
+        "G400",
+        "G345",
+        "G161"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists of strings, sort each sublist and then sort the entire list of lists by the ",
+      "baseline_score": 9.64,
+      "random_score": 9.34,
+      "curated_score": 9.64,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G333",
+        "G272",
+        "G220",
+        "G68",
+        "G293"
+      ],
+      "random_skills": [
+        "G383",
+        "G343",
+        "G38",
+        "G298",
+        "G49"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of strings, remove all characters from each string that are present in their correspo",
+      "baseline_score": 9.64,
+      "random_score": 9.64,
+      "curated_score": 9.64,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G112",
+        "G45",
+        "G183",
+        "G39",
+        "G385"
+      ],
+      "random_skills": [
+        "G287",
+        "G199",
+        "G352",
+        "G17",
+        "G394"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of integers, write a function to find the sum of the first 10 decagonal numbers for e",
+      "baseline_score": 9.64,
+      "random_score": 0.8999999999999999,
+      "curated_score": 2.44,
+      "self_debug_score": 2.7399999999999998,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.25,
+      "self_debug_pass_rate": 0.25,
+      "curated_skills": [
+        "G199",
+        "G112",
+        "G156",
+        "G263",
+        "G311"
+      ],
+      "random_skills": [
+        "G80",
+        "G380",
+        "G244",
+        "G46",
+        "G265"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Write a function that takes in a list and a list of integers representing the lengths of parts to ",
+      "baseline_score": 9.64,
+      "random_score": 9.64,
+      "curated_score": 9.64,
+      "self_debug_score": 9.34,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G79",
+        "G156",
+        "G263",
+        "G234"
+      ],
+      "random_skills": [
+        "G251",
+        "G36",
+        "G128",
+        "G311",
+        "G269"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of strings, write a function to find the total length of the longest palindromic subs",
+      "baseline_score": 9.64,
+      "random_score": 9.64,
+      "curated_score": 9.64,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G156",
+        "G351",
+        "G183",
+        "G341"
+      ],
+      "random_skills": [
+        "G224",
+        "G31",
+        "G159",
+        "G142",
+        "G379"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of pairs of numbers, write a Python function to find the sum of the sums of common di",
+      "baseline_score": 9.64,
+      "random_score": 9.55,
+      "curated_score": 8.74,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G351",
+        "G183",
+        "G311",
+        "G199"
+      ],
+      "random_skills": [
+        "G31",
+        "G44",
+        "G93",
+        "G119",
+        "G103"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of decimal numbers, convert each number to its binary equivalent and then concatenate",
+      "baseline_score": 9.01,
+      "random_score": 9.64,
+      "curated_score": 9.76,
+      "self_debug_score": 9.55,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G48",
+        "G39",
+        "G233",
+        "G252",
+        "G220"
+      ],
+      "random_skills": [
+        "G18",
+        "G269",
+        "G279",
+        "G66",
+        "G360"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of expressions, write a function to check if all expressions are balanced. An express",
+      "baseline_score": 2.64,
+      "random_score": 2.31,
+      "curated_score": 2.6999999999999997,
+      "self_debug_score": 7.949999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.75,
+      "curated_skills": [
+        "G263",
+        "G199",
+        "G261",
+        "G252",
+        "G156"
+      ],
+      "random_skills": [
+        "G336",
+        "G266",
+        "G117",
+        "G305",
+        "G134"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of lists, where each sublist has three elements, write a function that returns a list",
+      "baseline_score": 2.64,
+      "random_score": 2.25,
+      "curated_score": 2.25,
+      "self_debug_score": 2.49,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G263",
+        "G199",
+        "G261",
+        "G144",
+        "G228"
+      ],
+      "random_skills": [
+        "G105",
+        "G288",
+        "G231",
+        "G9",
+        "G30"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of lists of strings, write a function to find if a given substring is present in any ",
+      "baseline_score": 9.55,
+      "random_score": 9.64,
+      "curated_score": 9.31,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G79",
+        "G252",
+        "G156",
+        "G263"
+      ],
+      "random_skills": [
+        "G204",
+        "G377",
+        "G279",
+        "G20",
+        "G343"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Write a Python function to reverse multiple segments of an array. The function should take an arra",
+      "baseline_score": 0.66,
+      "random_score": 9.64,
+      "curated_score": 1.14,
+      "self_debug_score": 3.76,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.25,
+      "curated_skills": [
+        "G156",
+        "G351",
+        "G48",
+        "G112",
+        "G311"
+      ],
+      "random_skills": [
+        "G215",
+        "G209",
+        "G73",
+        "G378",
+        "G187"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of lists, where each sublist contains multiple elements, write a function to extract ",
+      "baseline_score": 9.79,
+      "random_score": 9.64,
+      "curated_score": 9.64,
+      "self_debug_score": 9.49,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G351",
+        "G48",
+        "G236",
+        "G18"
+      ],
+      "random_skills": [
+        "G12",
+        "G285",
+        "G123",
+        "G378",
+        "G164"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists of digits, write a Python function to find the largest number that can be fo",
+      "baseline_score": 9.49,
+      "random_score": 2.64,
+      "curated_score": 9.04,
+      "self_debug_score": 8.65,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G311",
+        "G18",
+        "G144",
+        "G48",
+        "G40"
+      ],
+      "random_skills": [
+        "G371",
+        "G36",
+        "G188",
+        "G209",
+        "G155"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Write a Python function to find all numbers within a given range that are one less than twice thei",
+      "baseline_score": 9.64,
+      "random_score": 9.64,
+      "curated_score": 9.04,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G112",
+        "G311",
+        "G263",
+        "G199",
+        "G261"
+      ],
+      "random_skills": [
+        "G245",
+        "G145",
+        "G217",
+        "G324",
+        "G99"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists of tuples, write a function that returns a list of the first values of the t",
+      "baseline_score": 2.55,
+      "random_score": 2.64,
+      "curated_score": 2.55,
+      "self_debug_score": 9.4,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G144",
+        "G311",
+        "G68",
+        "G296"
+      ],
+      "random_skills": [
+        "G195",
+        "G389",
+        "G288",
+        "G352",
+        "G282"
+      ],
+      "self_debug_n_rounds": 2,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of strings, write a function to count the total number of characters in all strings c",
+      "baseline_score": 9.55,
+      "random_score": 9.85,
+      "curated_score": 9.64,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G351",
+        "G48",
+        "G311",
+        "G332"
+      ],
+      "random_skills": [
+        "G240",
+        "G196",
+        "G243",
+        "G153",
+        "G112"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of colors and a list of lengths, generate all combinations (with repetition) of the c",
+      "baseline_score": 9.61,
+      "random_score": 9.49,
+      "curated_score": 9.04,
+      "self_debug_score": 9.19,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G44",
+        "G263",
+        "G261",
+        "G39"
+      ],
+      "random_skills": [
+        "G222",
+        "G94",
+        "G127",
+        "G362",
+        "G191"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists, write a Python function to find the difference between the largest and smal",
+      "baseline_score": 8.89,
+      "random_score": 8.74,
+      "curated_score": 9.49,
+      "self_debug_score": 9.49,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G263",
+        "G261",
+        "G252",
+        "G156"
+      ],
+      "random_skills": [
+        "G253",
+        "G260",
+        "G41",
+        "G63",
+        "G136"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of strings, extract all values between quotation marks from each string and return a ",
+      "baseline_score": 9.64,
+      "random_score": 9.64,
+      "curated_score": 9.7,
+      "self_debug_score": 9.49,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G44",
+        "G12",
+        "G263",
+        "G261"
+      ],
+      "random_skills": [
+        "G358",
+        "G401",
+        "G176",
+        "G61",
+        "G93"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of arrays of integers, write a function to find whether any of these arrays contain d",
+      "baseline_score": 9.64,
+      "random_score": 9.19,
+      "curated_score": 9.64,
+      "self_debug_score": 9.55,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G79",
+        "G252",
+        "G285",
+        "G234"
+      ],
+      "random_skills": [
+        "G342",
+        "G224",
+        "G252",
+        "G245",
+        "G46"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists, where each sublist contains a list of numbers and an integer representing t",
+      "baseline_score": 9.49,
+      "random_score": 8.95,
+      "curated_score": 9.64,
+      "self_debug_score": 9.4,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G263",
+        "G199",
+        "G302",
+        "G261"
+      ],
+      "random_skills": [
+        "G56",
+        "G143",
+        "G170",
+        "G382",
+        "G390"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists where each sublist contains three numbers, write a function to find the mini",
+      "baseline_score": 9.55,
+      "random_score": 9.64,
+      "curated_score": 9.64,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G263",
+        "G199",
+        "G261",
+        "G252",
+        "G156"
+      ],
+      "random_skills": [
+        "G199",
+        "G258",
+        "G19",
+        "G188",
+        "G172"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists, where each sublist contains integers, find all common elements that appear ",
+      "baseline_score": 9.64,
+      "random_score": 9.55,
+      "curated_score": 9.85,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G112",
+        "G32",
+        "G99",
+        "G263",
+        "G199"
+      ],
+      "random_skills": [
+        "G113",
+        "G163",
+        "G246",
+        "G400",
+        "G220"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of 32-bit numbers and a list of corresponding rotation values, write a function to ro",
+      "baseline_score": 4.973333333333333,
+      "random_score": 5.123333333333333,
+      "curated_score": 4.973333333333333,
+      "self_debug_score": 4.973333333333333,
+      "baseline_pass_rate": 0.3333333333333333,
+      "random_pass_rate": 0.3333333333333333,
+      "curated_pass_rate": 0.3333333333333333,
+      "self_debug_pass_rate": 0.3333333333333333,
+      "curated_skills": [
+        "G48",
+        "G263",
+        "G199",
+        "G228",
+        "G224"
+      ],
+      "random_skills": [
+        "G159",
+        "G71",
+        "G48",
+        "G76",
+        "G103"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of rectangles represented by their lengths and breadths, write a function to calculat",
+      "baseline_score": 7.306666666666667,
+      "random_score": 9.64,
+      "curated_score": 9.64,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 0.6666666666666666,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G48",
+        "G156",
+        "G293",
+        "G263",
+        "G351"
+      ],
+      "random_skills": [
+        "G74",
+        "G76",
+        "G17",
+        "G40",
+        "G59"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Write a Python function to find the sum of the next three perfect squares greater than a given lis",
+      "baseline_score": 1.41,
+      "random_score": 0.5399999999999999,
+      "curated_score": 0.0,
+      "self_debug_score": 7.0600000000000005,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G156",
+        "G263",
+        "G302",
+        "G351"
+      ],
+      "random_skills": [
+        "G37",
+        "G173",
+        "G346",
+        "G74",
+        "G280"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of strings, remove all lowercase substrings from each string and then concatenate the",
+      "baseline_score": 9.64,
+      "random_score": 9.64,
+      "curated_score": 9.64,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G44",
+        "G263",
+        "G272",
+        "G261"
+      ],
+      "random_skills": [
+        "G312",
+        "G28",
+        "G59",
+        "G386",
+        "G235"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Write a function that checks if a string contains the word 'lazy' in any of its words, except at t",
+      "baseline_score": 0.6,
+      "random_score": 2.34,
+      "curated_score": 1.14,
+      "self_debug_score": 1.5899999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G112",
+        "G351",
+        "G263",
+        "G199",
+        "G228"
+      ],
+      "random_skills": [
+        "G129",
+        "G179",
+        "G127",
+        "G267",
+        "G245"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of lists, write a Python function to check if all the sublists have unique elements. ",
+      "baseline_score": 9.1,
+      "random_score": 9.64,
+      "curated_score": 9.64,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G252",
+        "G263",
+        "G199",
+        "G228",
+        "G261"
+      ],
+      "random_skills": [
+        "G264",
+        "G290",
+        "G218",
+        "G363",
+        "G133"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of integers, find the number of pairs of integers in the list that differ at exactly ",
+      "baseline_score": 8.89,
+      "random_score": 8.8,
+      "curated_score": 9.04,
+      "self_debug_score": 8.8,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G351",
+        "G199",
+        "G385",
+        "G296",
+        "G112"
+      ],
+      "random_skills": [
+        "G249",
+        "G133",
+        "G357",
+        "G197",
+        "G268"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Write a Python function to check whether the given list of numbers can each be represented as the ",
+      "baseline_score": 8.59,
+      "random_score": 7.306666666666667,
+      "curated_score": 9.19,
+      "self_debug_score": 7.426666666666666,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 0.6666666666666666,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 0.6666666666666666,
+      "curated_skills": [
+        "G112",
+        "G156",
+        "G199",
+        "G79",
+        "G1"
+      ],
+      "random_skills": [
+        "G369",
+        "G136",
+        "G64",
+        "G181",
+        "G224"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of dictionaries, write a function to find the total sum of all items in all dictionar",
+      "baseline_score": 9.64,
+      "random_score": 9.4,
+      "curated_score": 8.8,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G351",
+        "G48",
+        "G311",
+        "G332"
+      ],
+      "random_skills": [
+        "G97",
+        "G44",
+        "G56",
+        "G167",
+        "G335"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Write a Python function to find the minimum value in a list of tuples where each tuple contains tw",
+      "baseline_score": 9.64,
+      "random_score": 9.64,
+      "curated_score": 8.05,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G263",
+        "G199",
+        "G302",
+        "G351"
+      ],
+      "random_skills": [
+        "G81",
+        "G15",
+        "G52",
+        "G8",
+        "G271"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Write a function to find all occurrences and positions of multiple substrings within a string. The",
+      "baseline_score": 9.64,
+      "random_score": 9.55,
+      "curated_score": 9.55,
+      "self_debug_score": 9.25,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G156",
+        "G48",
+        "G263",
+        "G267"
+      ],
+      "random_skills": [
+        "G398",
+        "G71",
+        "G190",
+        "G68",
+        "G214"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Write a function to find the sum of the first N hexagonal numbers.\ndef sum_of_hexagonal_numbers(N)",
+      "baseline_score": 9.85,
+      "random_score": 9.64,
+      "curated_score": 9.85,
+      "self_debug_score": 9.85,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G48",
+        "G311",
+        "G156",
+        "G4",
+        "G101"
+      ],
+      "random_skills": [
+        "G197",
+        "G336",
+        "G347",
+        "G115",
+        "G224"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists, where each sublist contains two lists, replace the last element of the firs",
+      "baseline_score": 1.9799999999999998,
+      "random_score": 2.25,
+      "curated_score": 9.64,
+      "self_debug_score": 0.81,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G68",
+        "G199",
+        "G263",
+        "G329",
+        "G183"
+      ],
+      "random_skills": [
+        "G22",
+        "G129",
+        "G75",
+        "G68",
+        "G391"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of integers, write a function to find the median of each triplet in the list and retu",
+      "baseline_score": 9.64,
+      "random_score": 9.25,
+      "curated_score": 9.64,
+      "self_debug_score": 9.55,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G263",
+        "G199",
+        "G302",
+        "G261"
+      ],
+      "random_skills": [
+        "G239",
+        "G401",
+        "G52",
+        "G110",
+        "G69"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of tuples, where each tuple contains three integers, write a Python function to count",
+      "baseline_score": 9.34,
+      "random_score": 9.64,
+      "curated_score": 9.64,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G156",
+        "G263",
+        "G302",
+        "G261"
+      ],
+      "random_skills": [
+        "G245",
+        "G354",
+        "G255",
+        "G316",
+        "G235"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Write a Python function to count the number of lists in a given list of lists of lists. The functi",
+      "baseline_score": 2.79,
+      "random_score": 2.64,
+      "curated_score": 2.64,
+      "self_debug_score": 2.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G351",
+        "G156",
+        "G311",
+        "G48",
+        "G252"
+      ],
+      "random_skills": [
+        "G184",
+        "G357",
+        "G127",
+        "G53",
+        "G267"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of parabolas represented by their coefficients (a, b, c), find the sum of the directr",
+      "baseline_score": 4.390000000000001,
+      "random_score": 3.6399999999999997,
+      "curated_score": 4.390000000000001,
+      "self_debug_score": 3.7,
+      "baseline_pass_rate": 0.25,
+      "random_pass_rate": 0.25,
+      "curated_pass_rate": 0.25,
+      "self_debug_pass_rate": 0.25,
+      "curated_skills": [
+        "G272",
+        "G199",
+        "G99",
+        "G263",
+        "G68"
+      ],
+      "random_skills": [
+        "G221",
+        "G346",
+        "G176",
+        "G359",
+        "G377"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Write a Python function to find the number of divisors for each integer in a given list of integer",
+      "baseline_score": 9.25,
+      "random_score": 9.55,
+      "curated_score": 9.55,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G156",
+        "G263",
+        "G302",
+        "G261"
+      ],
+      "random_skills": [
+        "G274",
+        "G61",
+        "G204",
+        "G6",
+        "G224"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists, write a Python function to find the list with the maximum total length of i",
+      "baseline_score": 8.86,
+      "random_score": 8.89,
+      "curated_score": 8.74,
+      "self_debug_score": 9.04,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G48",
+        "G263",
+        "G199",
+        "G261",
+        "G311"
+      ],
+      "random_skills": [
+        "G276",
+        "G94",
+        "G108",
+        "G148",
+        "G169"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Write a Python function to determine if the sum of the parities of a list of numbers is odd. The p",
+      "baseline_score": 9.64,
+      "random_score": 9.49,
+      "curated_score": 9.25,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G48",
+        "G156",
+        "G293",
+        "G263",
+        "G351"
+      ],
+      "random_skills": [
+        "G180",
+        "G91",
+        "G197",
+        "G250",
+        "G158"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Write a function that takes as input a list of tuples, where each tuple contains a sequence of num",
+      "baseline_score": 0.5399999999999999,
+      "random_score": 0.08999999999999994,
+      "curated_score": 0.5399999999999999,
+      "self_debug_score": 0.23999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G156",
+        "G112",
+        "G199",
+        "G385",
+        "G79"
+      ],
+      "random_skills": [
+        "G196",
+        "G234",
+        "G397",
+        "G273",
+        "G8"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Write a function that takes in a list of tuples and subtracts the elements of the first tuple by t",
+      "baseline_score": 9.34,
+      "random_score": 9.64,
+      "curated_score": 9.34,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G263",
+        "G199",
+        "G302",
+        "G261",
+        "G351"
+      ],
+      "random_skills": [
+        "G38",
+        "G194",
+        "G196",
+        "G110",
+        "G298"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of students' records, where each record is a list of tuples representing the student'",
+      "baseline_score": 2.25,
+      "random_score": 2.49,
+      "curated_score": 2.49,
+      "self_debug_score": 9.49,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G351",
+        "G48",
+        "G236",
+        "G293"
+      ],
+      "random_skills": [
+        "G78",
+        "G242",
+        "G145",
+        "G30",
+        "G196"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of tuples, where each tuple contains two integers, write a Python function to find th",
+      "baseline_score": 9.49,
+      "random_score": 0.08999999999999994,
+      "curated_score": 9.64,
+      "self_debug_score": 8.71,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G351",
+        "G183",
+        "G311",
+        "G199"
+      ],
+      "random_skills": [
+        "G80",
+        "G126",
+        "G295",
+        "G362",
+        "G308"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of angles in degrees, write a function to calculate the sum of their radian equivalen",
+      "baseline_score": 2.64,
+      "random_score": 2.64,
+      "curated_score": 2.64,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G263",
+        "G199",
+        "G302",
+        "G261"
+      ],
+      "random_skills": [
+        "G280",
+        "G86",
+        "G100",
+        "G271",
+        "G246"
+      ],
+      "self_debug_n_rounds": 2,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of strings, write a function to count how many of them represent integers. Additional",
+      "baseline_score": 8.95,
+      "random_score": 9.01,
+      "curated_score": 9.55,
+      "self_debug_score": 9.55,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G263",
+        "G199",
+        "G302",
+        "G351"
+      ],
+      "random_skills": [
+        "G198",
+        "G400",
+        "G234",
+        "G308",
+        "G225"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of tuples, extract the elementwise AND tuples for each pair of tuples in the list. Re",
+      "baseline_score": 0.23999999999999994,
+      "random_score": 0.9899999999999999,
+      "curated_score": 0.5399999999999999,
+      "self_debug_score": 0.69,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G199",
+        "G44",
+        "G263",
+        "G183",
+        "G302"
+      ],
+      "random_skills": [
+        "G348",
+        "G126",
+        "G177",
+        "G1",
+        "G287"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of dictionaries, write a function to merge all dictionaries in the list into a single",
+      "baseline_score": 6.140000000000001,
+      "random_score": 6.199999999999999,
+      "curated_score": 6.199999999999999,
+      "self_debug_score": 5.39,
+      "baseline_pass_rate": 0.5,
+      "random_pass_rate": 0.5,
+      "curated_pass_rate": 0.5,
+      "self_debug_pass_rate": 0.5,
+      "curated_skills": [
+        "G156",
+        "G332",
+        "G351",
+        "G48",
+        "G311"
+      ],
+      "random_skills": [
+        "G5",
+        "G202",
+        "G32",
+        "G388",
+        "G241"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Write a function which takes a list of tuples of the same length and performs the element wise mod",
+      "baseline_score": 1.5,
+      "random_score": 0.9899999999999999,
+      "curated_score": 0.23999999999999994,
+      "self_debug_score": 2.25,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G199",
+        "G263",
+        "G302",
+        "G261",
+        "G351"
+      ],
+      "random_skills": [
+        "G179",
+        "G156",
+        "G194",
+        "G240",
+        "G61"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of tuples, where each tuple contains two integers representing a division operation, ",
+      "baseline_score": 9.79,
+      "random_score": 9.64,
+      "curated_score": 9.4,
+      "self_debug_score": 9.7,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G351",
+        "G183",
+        "G311",
+        "G199"
+      ],
+      "random_skills": [
+        "G72",
+        "G264",
+        "G258",
+        "G15",
+        "G302"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of strings, write a function to determine if all strings in the list have the same ch",
+      "baseline_score": 9.34,
+      "random_score": 9.34,
+      "curated_score": 9.25,
+      "self_debug_score": 9.25,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G112",
+        "G156",
+        "G263",
+        "G302"
+      ],
+      "random_skills": [
+        "G326",
+        "G32",
+        "G266",
+        "G7",
+        "G111"
+      ],
+      "self_debug_n_rounds": 2,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of numbers, write a Python function to toggle the bits of each number except the firs",
+      "baseline_score": 6.556666666666666,
+      "random_score": 6.556666666666666,
+      "curated_score": 7.066666666666666,
+      "self_debug_score": 6.016666666666666,
+      "baseline_pass_rate": 0.6666666666666666,
+      "random_pass_rate": 0.6666666666666666,
+      "curated_pass_rate": 0.6666666666666666,
+      "self_debug_pass_rate": 0.6666666666666666,
+      "curated_skills": [
+        "G263",
+        "G199",
+        "G261",
+        "G252",
+        "G156"
+      ],
+      "random_skills": [
+        "G326",
+        "G39",
+        "G226",
+        "G323",
+        "G7"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Write a python function to find the sum of the cube sums of the first n even natural numbers for e",
+      "baseline_score": 0.5399999999999999,
+      "random_score": 2.64,
+      "curated_score": 2.6999999999999997,
+      "self_debug_score": 0.96,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G311",
+        "G111",
+        "G48",
+        "G156",
+        "G4"
+      ],
+      "random_skills": [
+        "G383",
+        "G267",
+        "G378",
+        "G61",
+        "G264"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of lists, where each sublist contains integers, write a Python function to find the s",
+      "baseline_score": 1.26,
+      "random_score": 0.8999999999999999,
+      "curated_score": 0.3,
+      "self_debug_score": 0.6,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G263",
+        "G199",
+        "G261",
+        "G311",
+        "G252"
+      ],
+      "random_skills": [
+        "G318",
+        "G362",
+        "G392",
+        "G340",
+        "G331"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of sorted arrays, each with its length, and a target element, determine if the target",
+      "baseline_score": 9.55,
+      "random_score": 9.64,
+      "curated_score": 9.64,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G48",
+        "G252",
+        "G175",
+        "G156",
+        "G263"
+      ],
+      "random_skills": [
+        "G30",
+        "G172",
+        "G51",
+        "G351",
+        "G303"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Write a function to find the sum of the first k tetrahedral numbers.\ndef sum_of_tetrahedral_number",
+      "baseline_score": 9.76,
+      "random_score": 9.85,
+      "curated_score": 9.94,
+      "self_debug_score": 9.85,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G48",
+        "G311",
+        "G156",
+        "G4",
+        "G101"
+      ],
+      "random_skills": [
+        "G262",
+        "G81",
+        "G93",
+        "G111",
+        "G257"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists, where each sublist contains either integers or nested sublists, write a fun",
+      "baseline_score": 9.64,
+      "random_score": 9.64,
+      "curated_score": 9.64,
+      "self_debug_score": 9.49,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G48",
+        "G4",
+        "G156",
+        "G293",
+        "G263"
+      ],
+      "random_skills": [
+        "G103",
+        "G302",
+        "G193",
+        "G137",
+        "G275"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a nested list where each sublist contains elements of the same type, write a function that i",
+      "baseline_score": 9.64,
+      "random_score": 9.64,
+      "curated_score": 9.49,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G302",
+        "G112",
+        "G263",
+        "G311",
+        "G199"
+      ],
+      "random_skills": [
+        "G61",
+        "G178",
+        "G187",
+        "G277",
+        "G103"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Write a Python function that takes in a list of integers, where each integer represents a number o",
+      "baseline_score": 9.64,
+      "random_score": 9.64,
+      "curated_score": 9.64,
+      "self_debug_score": 9.34,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G112",
+        "G156",
+        "G311",
+        "G199",
+        "G385"
+      ],
+      "random_skills": [
+        "G91",
+        "G313",
+        "G211",
+        "G0",
+        "G364"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of strings, write a function to process each string such that spaces are put between ",
+      "baseline_score": 9.55,
+      "random_score": 9.64,
+      "curated_score": 2.55,
+      "self_debug_score": 9.25,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G80",
+        "G199",
+        "G384",
+        "G144",
+        "G48"
+      ],
+      "random_skills": [
+        "G169",
+        "G192",
+        "G241",
+        "G337",
+        "G319"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists, write a Python function to check whether every even index of each sublist c",
+      "baseline_score": 9.64,
+      "random_score": 9.64,
+      "curated_score": 9.64,
+      "self_debug_score": 9.49,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G263",
+        "G101",
+        "G311",
+        "G200"
+      ],
+      "random_skills": [
+        "G61",
+        "G349",
+        "G195",
+        "G119",
+        "G149"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists, where each sublist contains numbers, write a function to multiply all the n",
+      "baseline_score": 9.64,
+      "random_score": 9.49,
+      "curated_score": 9.49,
+      "self_debug_score": 9.19,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G263",
+        "G199",
+        "G302",
+        "G261"
+      ],
+      "random_skills": [
+        "G255",
+        "G319",
+        "G224",
+        "G333",
+        "G13"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists, write a Python function to determine if each sublist contains only one dist",
+      "baseline_score": 9.19,
+      "random_score": 9.64,
+      "curated_score": 9.25,
+      "self_debug_score": 9.1,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G4",
+        "G168",
+        "G361",
+        "G263",
+        "G199"
+      ],
+      "random_skills": [
+        "G377",
+        "G289",
+        "G89",
+        "G237",
+        "G395"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists of numbers, find the total number of pairs across all sublists whose sum is ",
+      "baseline_score": 9.64,
+      "random_score": 9.64,
+      "curated_score": 7.96,
+      "self_debug_score": 9.49,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G18",
+        "G272",
+        "G156",
+        "G76",
+        "G39"
+      ],
+      "random_skills": [
+        "G343",
+        "G155",
+        "G121",
+        "G239",
+        "G43"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Write a Python function to find the sum of the differences between the sum of cubes and the sum of",
+      "baseline_score": 9.55,
+      "random_score": 9.04,
+      "curated_score": 9.49,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G112",
+        "G351",
+        "G199",
+        "G111"
+      ],
+      "random_skills": [
+        "G361",
+        "G296",
+        "G161",
+        "G111",
+        "G288"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of tuples, concatenate each element of each tuple by a delimiter and then concatenate",
+      "baseline_score": 2.34,
+      "random_score": 0.44999999999999996,
+      "curated_score": 2.64,
+      "self_debug_score": 2.34,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G80",
+        "G333",
+        "G68",
+        "G199",
+        "G296"
+      ],
+      "random_skills": [
+        "G391",
+        "G143",
+        "G238",
+        "G95",
+        "G102"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of lists of lists, write a function to flatten it into a single set of numbers. The f",
+      "baseline_score": 9.55,
+      "random_score": 9.25,
+      "curated_score": 9.34,
+      "self_debug_score": 9.55,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G111",
+        "G48",
+        "G311",
+        "G252",
+        "G332"
+      ],
+      "random_skills": [
+        "G340",
+        "G287",
+        "G43",
+        "G236",
+        "G64"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists, where each sublist contains integers, and a list of target elements, write ",
+      "baseline_score": 9.64,
+      "random_score": 8.95,
+      "curated_score": 9.04,
+      "self_debug_score": 9.49,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G48",
+        "G351",
+        "G156",
+        "G293",
+        "G263"
+      ],
+      "random_skills": [
+        "G63",
+        "G84",
+        "G282",
+        "G132",
+        "G225"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of sequences, write a Python function to determine if there are any overlapping value",
+      "baseline_score": 9.64,
+      "random_score": 9.64,
+      "curated_score": 9.55,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G252",
+        "G311",
+        "G263",
+        "G199",
+        "G228"
+      ],
+      "random_skills": [
+        "G254",
+        "G364",
+        "G360",
+        "G68",
+        "G257"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists of tuples, write a function that returns a dictionary mapping each unique tu",
+      "baseline_score": 2.19,
+      "random_score": 0.44999999999999996,
+      "curated_score": 0.5399999999999999,
+      "self_debug_score": 7.54,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G48",
+        "G144",
+        "G156",
+        "G311",
+        "G293"
+      ],
+      "random_skills": [
+        "G57",
+        "G181",
+        "G122",
+        "G357",
+        "G348"
+      ],
+      "self_debug_n_rounds": 2,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Write a Python function that takes in a list of positive integers and finds the sum of even index ",
+      "baseline_score": 9.64,
+      "random_score": 9.25,
+      "curated_score": 9.94,
+      "self_debug_score": 9.91,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G263",
+        "G302",
+        "G261",
+        "G351"
+      ],
+      "random_skills": [
+        "G168",
+        "G91",
+        "G235",
+        "G165",
+        "G385"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of sphere radii, write a function to calculate the total volume of all spheres and th",
+      "baseline_score": 2.55,
+      "random_score": 0.5399999999999999,
+      "curated_score": 1.74,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G48",
+        "G156",
+        "G293",
+        "G263",
+        "G351"
+      ],
+      "random_skills": [
+        "G317",
+        "G185",
+        "G73",
+        "G200",
+        "G289"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of tuples, where each tuple contains three integers (a, b, n), write a function that ",
+      "baseline_score": 2.64,
+      "random_score": 2.64,
+      "curated_score": 2.4,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G335",
+        "G351",
+        "G112",
+        "G385"
+      ],
+      "random_skills": [
+        "G97",
+        "G179",
+        "G397",
+        "G68",
+        "G117"
+      ],
+      "self_debug_n_rounds": 2,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Write a function to find the sum of all prime numbers in a given range [start, end].\nimport math\n\n",
+      "baseline_score": 2.49,
+      "random_score": 2.64,
+      "curated_score": 2.55,
+      "self_debug_score": 9.49,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G351",
+        "G48",
+        "G112",
+        "G311"
+      ],
+      "random_skills": [
+        "G311",
+        "G314",
+        "G190",
+        "G379",
+        "G131"
+      ],
+      "self_debug_n_rounds": 2,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of lists of lists, where each sub-list contains integers, write a function that retur",
+      "baseline_score": 2.64,
+      "random_score": 2.04,
+      "curated_score": 2.49,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G263",
+        "G199",
+        "G261",
+        "G144",
+        "G175"
+      ],
+      "random_skills": [
+        "G116",
+        "G174",
+        "G170",
+        "G330",
+        "G79"
+      ],
+      "self_debug_n_rounds": 2,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Write a function that takes a list of tuples, where each tuple contains a base and a power, and ca",
+      "baseline_score": 9.64,
+      "random_score": 9.55,
+      "curated_score": 9.7,
+      "self_debug_score": 8.95,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G111",
+        "G199",
+        "G156",
+        "G263",
+        "G302"
+      ],
+      "random_skills": [
+        "G162",
+        "G47",
+        "G213",
+        "G185",
+        "G136"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a 2D list (matrix) of integers, find the sum of the largest contiguous submatrix. A submatri",
+      "baseline_score": 7.799999999999999,
+      "random_score": 9.01,
+      "curated_score": 7.889999999999999,
+      "self_debug_score": 9.55,
+      "baseline_pass_rate": 0.75,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 0.75,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G272",
+        "G68",
+        "G196",
+        "G266",
+        "G343"
+      ],
+      "random_skills": [
+        "G214",
+        "G199",
+        "G26",
+        "G129",
+        "G362"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of lists, remove consecutive duplicates from each sublist and then return a new list ",
+      "baseline_score": 2.49,
+      "random_score": 2.64,
+      "curated_score": 2.85,
+      "self_debug_score": 9.79,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G263",
+        "G199",
+        "G261",
+        "G44",
+        "G144"
+      ],
+      "random_skills": [
+        "G129",
+        "G79",
+        "G134",
+        "G80",
+        "G199"
+      ],
+      "self_debug_n_rounds": 2,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of dictionaries, each containing the same keys but different values, and an integer n",
+      "baseline_score": 4.823333333333333,
+      "random_score": 9.64,
+      "curated_score": 9.4,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 0.3333333333333333,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G4",
+        "G263",
+        "G361",
+        "G199",
+        "G261"
+      ],
+      "random_skills": [
+        "G201",
+        "G336",
+        "G28",
+        "G247",
+        "G178"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists of numbers, find the size of the largest subset of each sublist such that ev",
+      "baseline_score": 9.49,
+      "random_score": 9.64,
+      "curated_score": 9.49,
+      "self_debug_score": 9.25,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G112",
+        "G272",
+        "G199",
+        "G263",
+        "G183"
+      ],
+      "random_skills": [
+        "G388",
+        "G73",
+        "G24",
+        "G61",
+        "G131"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists where each sublist contains consecutive duplicates, write a function to merg",
+      "baseline_score": 9.34,
+      "random_score": 9.64,
+      "curated_score": 8.5,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G48",
+        "G156",
+        "G332",
+        "G79",
+        "G351"
+      ],
+      "random_skills": [
+        "G190",
+        "G31",
+        "G9",
+        "G281",
+        "G56"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Write a function to find the sum of the first 'k' Lucas numbers starting from the 'start' position",
+      "baseline_score": 8.89,
+      "random_score": 9.31,
+      "curated_score": 9.49,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G111",
+        "G48",
+        "G156",
+        "G293",
+        "G263"
+      ],
+      "random_skills": [
+        "G194",
+        "G135",
+        "G342",
+        "G92",
+        "G178"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of tuples, write a function to find the maximum length of the tuples and return a lis",
+      "baseline_score": 7.889999999999999,
+      "random_score": 7.499999999999999,
+      "curated_score": 7.499999999999999,
+      "self_debug_score": 7.889999999999999,
+      "baseline_pass_rate": 0.75,
+      "random_pass_rate": 0.75,
+      "curated_pass_rate": 0.75,
+      "self_debug_pass_rate": 0.75,
+      "curated_skills": [
+        "G199",
+        "G263",
+        "G234",
+        "G261",
+        "G252"
+      ],
+      "random_skills": [
+        "G142",
+        "G363",
+        "G197",
+        "G160",
+        "G13"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of complex numbers, write a Python function to find the average distance from the ori",
+      "baseline_score": 9.64,
+      "random_score": 9.64,
+      "curated_score": 9.49,
+      "self_debug_score": 9.7,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G351",
+        "G311",
+        "G199",
+        "G39"
+      ],
+      "random_skills": [
+        "G37",
+        "G135",
+        "G217",
+        "G175",
+        "G383"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of strings, write a function that returns a list of strings that match the pattern 'a",
+      "baseline_score": 2.6999999999999997,
+      "random_score": 2.64,
+      "curated_score": 2.6999999999999997,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G112",
+        "G263",
+        "G302",
+        "G261"
+      ],
+      "random_skills": [
+        "G337",
+        "G20",
+        "G121",
+        "G200",
+        "G258"
+      ],
+      "self_debug_n_rounds": 2,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Write a Python function to find the maximum value in a list of tuples where each tuple contains tw",
+      "baseline_score": 9.64,
+      "random_score": 9.25,
+      "curated_score": 8.74,
+      "self_debug_score": 9.34,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G263",
+        "G199",
+        "G302",
+        "G351"
+      ],
+      "random_skills": [
+        "G85",
+        "G132",
+        "G64",
+        "G362",
+        "G216"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists, where each sublist contains integers, write a function to find the sum of c",
+      "baseline_score": 9.34,
+      "random_score": 9.34,
+      "curated_score": 9.49,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G263",
+        "G199",
+        "G302",
+        "G261"
+      ],
+      "random_skills": [
+        "G28",
+        "G107",
+        "G194",
+        "G193",
+        "G384"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of cylinders, each represented by a tuple (radius, height), write a function that ret",
+      "baseline_score": 2.64,
+      "random_score": 2.64,
+      "curated_score": 2.49,
+      "self_debug_score": 9.7,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G99",
+        "G263",
+        "G199",
+        "G261",
+        "G144"
+      ],
+      "random_skills": [
+        "G20",
+        "G302",
+        "G378",
+        "G366",
+        "G257"
+      ],
+      "self_debug_n_rounds": 2,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Write a Python function to determine if a list of numbers can be partitioned into two subsets such",
+      "baseline_score": 3.61,
+      "random_score": 1.54,
+      "curated_score": 6.149999999999999,
+      "self_debug_score": 2.65,
+      "baseline_pass_rate": 0.25,
+      "random_pass_rate": 0.25,
+      "curated_pass_rate": 0.75,
+      "self_debug_pass_rate": 0.25,
+      "curated_skills": [
+        "G48",
+        "G311",
+        "G144",
+        "G156",
+        "G18"
+      ],
+      "random_skills": [
+        "G88",
+        "G16",
+        "G271",
+        "G276",
+        "G250"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Write a Python function to count the number of non-empty substrings for each string in a list of s",
+      "baseline_score": 9.64,
+      "random_score": 9.64,
+      "curated_score": 9.79,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G156",
+        "G263",
+        "G302",
+        "G261"
+      ],
+      "random_skills": [
+        "G103",
+        "G63",
+        "G214",
+        "G223",
+        "G216"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Write a Python function that takes a list of strings and converts each string to uppercase, then r",
+      "baseline_score": 9.64,
+      "random_score": 9.64,
+      "curated_score": 9.49,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G112",
+        "G156",
+        "G263",
+        "G302"
+      ],
+      "random_skills": [
+        "G359",
+        "G90",
+        "G168",
+        "G381",
+        "G306"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of strings, write a function to move all the numbers to the end of each string in the",
+      "baseline_score": 9.64,
+      "random_score": 9.64,
+      "curated_score": 9.64,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G351",
+        "G112",
+        "G199",
+        "G48"
+      ],
+      "random_skills": [
+        "G198",
+        "G303",
+        "G338",
+        "G272",
+        "G217"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of datasets, each containing items with a 'price' attribute, write a function to find",
+      "baseline_score": 9.64,
+      "random_score": 8.95,
+      "curated_score": 8.8,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G101",
+        "G48",
+        "G311",
+        "G68",
+        "G361"
+      ],
+      "random_skills": [
+        "G327",
+        "G6",
+        "G364",
+        "G64",
+        "G234"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of sizes representing different cubes, write a function to calculate the total surfac",
+      "baseline_score": 9.49,
+      "random_score": 9.55,
+      "curated_score": 9.34,
+      "self_debug_score": 9.49,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G48",
+        "G311",
+        "G156",
+        "G4",
+        "G101"
+      ],
+      "random_skills": [
+        "G342",
+        "G387",
+        "G58",
+        "G368",
+        "G239"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of strings, write a function to toggle the case of all characters in each string and ",
+      "baseline_score": 9.64,
+      "random_score": 9.64,
+      "curated_score": 9.19,
+      "self_debug_score": 9.1,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G156",
+        "G80",
+        "G351",
+        "G199",
+        "G93"
+      ],
+      "random_skills": [
+        "G239",
+        "G86",
+        "G267",
+        "G92",
+        "G133"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a string containing multiple sentences, each sentence separated by a period, write a functio",
+      "baseline_score": 3.94,
+      "random_score": 4.3,
+      "curated_score": 4.3,
+      "self_debug_score": 2.76,
+      "baseline_pass_rate": 0.25,
+      "random_pass_rate": 0.25,
+      "curated_pass_rate": 0.25,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G199",
+        "G351",
+        "G156",
+        "G263",
+        "G302"
+      ],
+      "random_skills": [
+        "G397",
+        "G210",
+        "G136",
+        "G222",
+        "G331"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    }
+  ]
+}

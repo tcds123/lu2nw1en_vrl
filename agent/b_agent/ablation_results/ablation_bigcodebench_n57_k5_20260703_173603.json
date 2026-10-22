@@ -1,0 +1,1557 @@
+{
+  "stats": {
+    "baseline_mean": 2.3164912280701757,
+    "random_mean": 2.546140350877193,
+    "curated_mean": 2.8633333333333333,
+    "self_debug_mean": 3.0498245614035087,
+    "selfdebug_vs_baseline_p": 0.012092158955617806,
+    "selfdebug_vs_curated_p": 0.38062555135406784,
+    "curated_vs_baseline_p": 0.011795079324136327,
+    "selfdebug_winrate_vs_baseline": 0.631578947368421,
+    "selfdebug_winrate_vs_curated": 0.42105263157894735,
+    "avg_self_debug_rounds": 2.789473684210526,
+    "tasks_with_fixes": 52,
+    "n_samples": 57
+  },
+  "results": [
+    {
+      "task": "# Given two lists of numeric values, l1 and l2, and a predefined threshold of 0.5, write a function ",
+      "baseline_score": 0.06000000000000005,
+      "random_score": 0.06000000000000005,
+      "curated_score": 0.69,
+      "self_debug_score": -2.16,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G351",
+        "G311",
+        "G254",
+        "G384",
+        "G302"
+      ],
+      "random_skills": [
+        "G399",
+        "G147",
+        "G105",
+        "G86",
+        "G225"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a dataset consisting of multiple 2D data matrices, apply PCA with n_components components to",
+      "baseline_score": 2.19,
+      "random_score": 2.19,
+      "curated_score": 2.64,
+      "self_debug_score": 2.55,
+      "baseline_pass_rate": -1.0,
+      "random_pass_rate": -3.0,
+      "curated_pass_rate": -1.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G44",
+        "G269",
+        "G261",
+        "G294",
+        "G203"
+      ],
+      "random_skills": [
+        "G210",
+        "G200",
+        "G160",
+        "G84",
+        "G142"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of dataframes, each containing numeric columns with potential NaN values, write a fun",
+      "baseline_score": 2.55,
+      "random_score": 0.5399999999999999,
+      "curated_score": 2.49,
+      "self_debug_score": 2.04,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G311",
+        "G351",
+        "G44",
+        "G249",
+        "G307"
+      ],
+      "random_skills": [
+        "G56",
+        "G86",
+        "G353",
+        "G135",
+        "G375"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of DataFrames, standardize the numeric columns in each DataFrame and return a combine",
+      "baseline_score": 0.38999999999999996,
+      "random_score": 0.5399999999999999,
+      "curated_score": 1.14,
+      "self_debug_score": 1.14,
+      "baseline_pass_rate": -3.0,
+      "random_pass_rate": -3.0,
+      "curated_pass_rate": -3.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G44",
+        "G80",
+        "G120",
+        "G307",
+        "G351"
+      ],
+      "random_skills": [
+        "G297",
+        "G109",
+        "G108",
+        "G138",
+        "G199"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of documents, each containing multiple sentences separated by periods, create a combi",
+      "baseline_score": 0.23999999999999994,
+      "random_score": 0.5399999999999999,
+      "curated_score": 0.9899999999999999,
+      "self_debug_score": 0.5399999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G80",
+        "G383",
+        "G24",
+        "G124",
+        "G307"
+      ],
+      "random_skills": [
+        "G205",
+        "G334",
+        "G381",
+        "G106",
+        "G360"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# You are given multiple datasets, each containing 'date' and 'value' columns. Your task is to perfo",
+      "baseline_score": 1.3499999999999999,
+      "random_score": 1.65,
+      "curated_score": 2.55,
+      "self_debug_score": 2.55,
+      "baseline_pass_rate": -3.0,
+      "random_pass_rate": -3.0,
+      "curated_pass_rate": -3.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G384",
+        "G351",
+        "G308",
+        "G244",
+        "G124"
+      ],
+      "random_skills": [
+        "G19",
+        "G74",
+        "G43",
+        "G68",
+        "G353"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# You are tasked with calculating the total number of business days across multiple date ranges for ",
+      "baseline_score": 2.64,
+      "random_score": 1.14,
+      "curated_score": 2.55,
+      "self_debug_score": 2.19,
+      "baseline_pass_rate": -3.0,
+      "random_pass_rate": -3.0,
+      "curated_pass_rate": -3.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G120",
+        "G351",
+        "G249",
+        "G44",
+        "G261"
+      ],
+      "random_skills": [
+        "G295",
+        "G2",
+        "G308",
+        "G373",
+        "G227"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# You are given a list of dictionaries, where each dictionary represents a dataset. Each dataset nee",
+      "baseline_score": 2.79,
+      "random_score": 2.55,
+      "curated_score": 1.2299999999999998,
+      "self_debug_score": 2.04,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G252",
+        "G249",
+        "G162",
+        "G351",
+        "G77"
+      ],
+      "random_skills": [
+        "G40",
+        "G94",
+        "G17",
+        "G66",
+        "G297"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of numerical data, identify values greater than the average for each sublist, count h",
+      "baseline_score": 2.34,
+      "random_score": 2.55,
+      "curated_score": 2.49,
+      "self_debug_score": 2.25,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G44",
+        "G120",
+        "G294",
+        "G302",
+        "G261"
+      ],
+      "random_skills": [
+        "G256",
+        "G227",
+        "G168",
+        "G198",
+        "G96"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of pandas DataFrames, analyze each DataFrame's specified column to find the values th",
+      "baseline_score": 0.8999999999999999,
+      "random_score": 2.64,
+      "curated_score": 2.34,
+      "self_debug_score": 2.76,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G194",
+        "G249",
+        "G252",
+        "G261",
+        "G387"
+      ],
+      "random_skills": [
+        "G254",
+        "G142",
+        "G138",
+        "G276",
+        "G14"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of datasets, each containing points with x and y coordinates, create a scatter plot f",
+      "baseline_score": 2.25,
+      "random_score": 2.64,
+      "curated_score": 2.64,
+      "self_debug_score": 2.34,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G44",
+        "G261",
+        "G351",
+        "G311",
+        "G249"
+      ],
+      "random_skills": [
+        "G266",
+        "G258",
+        "G382",
+        "G220",
+        "G115"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# You are tasked with analyzing the performance of a manufacturing process that produces parts with ",
+      "baseline_score": 2.55,
+      "random_score": 2.64,
+      "curated_score": 2.6999999999999997,
+      "self_debug_score": 2.79,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G238",
+        "G364",
+        "G334",
+        "G211",
+        "G77"
+      ],
+      "random_skills": [
+        "G80",
+        "G313",
+        "G349",
+        "G152",
+        "G275"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of dictionaries, each containing numerical data, perform the following operations on ",
+      "baseline_score": 0.66,
+      "random_score": 1.14,
+      "curated_score": 2.04,
+      "self_debug_score": 0.9299999999999998,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G201",
+        "G76",
+        "G341",
+        "G15",
+        "G311"
+      ],
+      "random_skills": [
+        "G131",
+        "G356",
+        "G234",
+        "G393",
+        "G389"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of dictionaries, each representing a transaction with keys 'date', 'amount', and 'cat",
+      "baseline_score": 2.64,
+      "random_score": 2.55,
+      "curated_score": 2.34,
+      "self_debug_score": 2.55,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G320",
+        "G44",
+        "G249",
+        "G261",
+        "G351"
+      ],
+      "random_skills": [
+        "G268",
+        "G368",
+        "G187",
+        "G69",
+        "G127"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a dictionary where each key maps to a list of integers, calculate the mean, median, and mode",
+      "baseline_score": 2.55,
+      "random_score": 1.89,
+      "curated_score": 2.55,
+      "self_debug_score": 1.14,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G320",
+        "G80",
+        "G44",
+        "G299",
+        "G351"
+      ],
+      "random_skills": [
+        "G116",
+        "G49",
+        "G202",
+        "G232",
+        "G131"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# You are tasked with generating a detailed category distribution report for multiple datasets. Each",
+      "baseline_score": 0.23999999999999994,
+      "random_score": 0.5399999999999999,
+      "curated_score": 0.23999999999999994,
+      "self_debug_score": 0.5399999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G156",
+        "G162",
+        "G351",
+        "G44",
+        "G307"
+      ],
+      "random_skills": [
+        "G15",
+        "G33",
+        "G95",
+        "G309",
+        "G319"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Create a function that generates a complex wave with multiple harmonics, each with its own amplitu",
+      "baseline_score": 2.79,
+      "random_score": 2.64,
+      "curated_score": 2.55,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G351",
+        "G261",
+        "G44",
+        "G228",
+        "G194"
+      ],
+      "random_skills": [
+        "G44",
+        "G276",
+        "G195",
+        "G139",
+        "G326"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of dictionaries, each representing a group of people and their favorite animals, reve",
+      "baseline_score": 0.5399999999999999,
+      "random_score": 0.9899999999999999,
+      "curated_score": 0.84,
+      "self_debug_score": 2.1566666666666663,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.16666666666666666,
+      "curated_skills": [
+        "G44",
+        "G201",
+        "G156",
+        "G189",
+        "G387"
+      ],
+      "random_skills": [
+        "G107",
+        "G280",
+        "G300",
+        "G384",
+        "G96"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# You are tasked with generating multiple random strings of varying lengths and calculating the comb",
+      "baseline_score": 2.55,
+      "random_score": 2.64,
+      "curated_score": 2.64,
+      "self_debug_score": 2.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G351",
+        "G80",
+        "G307",
+        "G299",
+        "G325"
+      ],
+      "random_skills": [
+        "G98",
+        "G377",
+        "G65",
+        "G307",
+        "G221"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of file paths, read each file into a Pandas DataFrame, decode the 'UnicodeString' col",
+      "baseline_score": 2.55,
+      "random_score": 2.19,
+      "curated_score": 1.89,
+      "self_debug_score": 2.04,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G7",
+        "G194",
+        "G294",
+        "G79",
+        "G244"
+      ],
+      "random_skills": [
+        "G80",
+        "G129",
+        "G6",
+        "G251",
+        "G319"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a set of points in 2D space, calculate and plot the Voronoi diagram for each subset of point",
+      "baseline_score": 1.14,
+      "random_score": 9.19,
+      "curated_score": 9.04,
+      "self_debug_score": 9.19,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G347",
+        "G314",
+        "G188",
+        "G24",
+        "G45"
+      ],
+      "random_skills": [
+        "G36",
+        "G141",
+        "G264",
+        "G301",
+        "G244"
+      ],
+      "self_debug_n_rounds": 2,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Create a function that generates a grid of scatter plots, where each scatter plot represents a dif",
+      "baseline_score": 1.14,
+      "random_score": 2.64,
+      "curated_score": 2.19,
+      "self_debug_score": 2.76,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G249",
+        "G44",
+        "G252",
+        "G351",
+        "G307"
+      ],
+      "random_skills": [
+        "G385",
+        "G399",
+        "G192",
+        "G356",
+        "G321"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# You are given multiple 2D lists representing different datasets. Each dataset needs to be processe",
+      "baseline_score": 2.55,
+      "random_score": 2.55,
+      "curated_score": 2.76,
+      "self_debug_score": 2.64,
+      "baseline_pass_rate": -3.0,
+      "random_pass_rate": -3.0,
+      "curated_pass_rate": -3.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G294",
+        "G1",
+        "G274",
+        "G351",
+        "G155"
+      ],
+      "random_skills": [
+        "G305",
+        "G341",
+        "G219",
+        "G123",
+        "G354"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given multiple pairs of lists, combine each pair into a single list and record the frequency of pr",
+      "baseline_score": 1.89,
+      "random_score": 1.65,
+      "curated_score": 2.04,
+      "self_debug_score": 0.9899999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G183",
+        "G309",
+        "G341",
+        "G68",
+        "G401"
+      ],
+      "random_skills": [
+        "G10",
+        "G138",
+        "G76",
+        "G285",
+        "G71"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# You are given a list of dictionaries, where each dictionary represents a dataset. Each dataset nee",
+      "baseline_score": 0.69,
+      "random_score": 2.55,
+      "curated_score": 8.65,
+      "self_debug_score": 9.55,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G201",
+        "G351",
+        "G311",
+        "G309",
+        "G261"
+      ],
+      "random_skills": [
+        "G52",
+        "G392",
+        "G217",
+        "G386",
+        "G329"
+      ],
+      "self_debug_n_rounds": 2,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of restaurant menus, where each menu is represented as a nested list of menu items, w",
+      "baseline_score": 2.19,
+      "random_score": 2.64,
+      "curated_score": 2.64,
+      "self_debug_score": 2.64,
+      "baseline_pass_rate": -3.0,
+      "random_pass_rate": -3.0,
+      "curated_pass_rate": -3.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G267",
+        "G249",
+        "G44",
+        "G311",
+        "G194"
+      ],
+      "random_skills": [
+        "G252",
+        "G21",
+        "G80",
+        "G249",
+        "G69"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of pairs of lists, compute the Euclidean distance for each pair, create a Pandas Data",
+      "baseline_score": 2.4,
+      "random_score": 2.34,
+      "curated_score": 2.64,
+      "self_debug_score": 2.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G44",
+        "G261",
+        "G249",
+        "G175",
+        "G387"
+      ],
+      "random_skills": [
+        "G124",
+        "G186",
+        "G363",
+        "G20",
+        "G208"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of dictionaries, each representing a document with 'Title', 'Content', and 'Category'",
+      "baseline_score": 2.25,
+      "random_score": 2.64,
+      "curated_score": 2.64,
+      "self_debug_score": 2.55,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G249",
+        "G44",
+        "G261",
+        "G311",
+        "G351"
+      ],
+      "random_skills": [
+        "G161",
+        "G352",
+        "G308",
+        "G137",
+        "G132"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Simulate multiple football matches for a league involving multiple teams, generating random goals ",
+      "baseline_score": 2.49,
+      "random_score": 1.14,
+      "curated_score": 2.6699999999999995,
+      "self_debug_score": 0.84,
+      "baseline_pass_rate": -3.0,
+      "random_pass_rate": -3.0,
+      "curated_pass_rate": -3.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G383",
+        "G348",
+        "G351",
+        "G320",
+        "G311"
+      ],
+      "random_skills": [
+        "G246",
+        "G336",
+        "G327",
+        "G145",
+        "G238"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of date strings and corresponding time zone strings, determine the total time in seco",
+      "baseline_score": 2.04,
+      "random_score": 2.55,
+      "curated_score": 2.55,
+      "self_debug_score": 2.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G44",
+        "G261",
+        "G307",
+        "G387",
+        "G120"
+      ],
+      "random_skills": [
+        "G356",
+        "G233",
+        "G7",
+        "G152",
+        "G354"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given multiple DataFrames, each containing a set of items in rows, calculate the overall frequency",
+      "baseline_score": 1.89,
+      "random_score": 2.19,
+      "curated_score": 1.89,
+      "self_debug_score": 0.96,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G351",
+        "G199",
+        "G236",
+        "G320",
+        "G44"
+      ],
+      "random_skills": [
+        "G252",
+        "G350",
+        "G192",
+        "G381",
+        "G354"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a dataset containing multiple sets of (x, y) coordinates, perform K-Means clustering on each",
+      "baseline_score": 0.9899999999999999,
+      "random_score": 0.5399999999999999,
+      "curated_score": 0.5399999999999999,
+      "self_debug_score": 0.5399999999999999,
+      "baseline_pass_rate": -3.0,
+      "random_pass_rate": -3.0,
+      "curated_pass_rate": -3.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G383",
+        "G24",
+        "G384",
+        "G351",
+        "G84"
+      ],
+      "random_skills": [
+        "G372",
+        "G231",
+        "G306",
+        "G137",
+        "G379"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of hexadecimal strings, generate a list of rounded float numbers by converting each h",
+      "baseline_score": 2.64,
+      "random_score": 2.55,
+      "curated_score": 2.64,
+      "self_debug_score": 2.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G80",
+        "G76",
+        "G311",
+        "G299",
+        "G325"
+      ],
+      "random_skills": [
+        "G279",
+        "G245",
+        "G367",
+        "G209",
+        "G232"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of lists, where each sublist contains multiple pairs of categories and their correspo",
+      "baseline_score": 2.34,
+      "random_score": 2.64,
+      "curated_score": 2.55,
+      "self_debug_score": 2.64,
+      "baseline_pass_rate": -3.0,
+      "random_pass_rate": -3.0,
+      "curated_pass_rate": -3.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G294",
+        "G199",
+        "G285",
+        "G35",
+        "G79"
+      ],
+      "random_skills": [
+        "G182",
+        "G185",
+        "G184",
+        "G109",
+        "G386"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a DataFrame containing multiple datasets, each identified by a unique 'DatasetID', perform a",
+      "baseline_score": 2.55,
+      "random_score": 2.6999999999999997,
+      "curated_score": 2.79,
+      "self_debug_score": 2.6999999999999997,
+      "baseline_pass_rate": -3.0,
+      "random_pass_rate": -3.0,
+      "curated_pass_rate": -3.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G287",
+        "G294",
+        "G274",
+        "G228",
+        "G292"
+      ],
+      "random_skills": [
+        "G47",
+        "G219",
+        "G320",
+        "G127",
+        "G136"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Write a function that simulates a game of poker with 4 players. Each player is dealt 5 cards. The ",
+      "baseline_score": 0.84,
+      "random_score": 3.79,
+      "curated_score": 3.6399999999999997,
+      "self_debug_score": 2.71,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.25,
+      "curated_pass_rate": 0.25,
+      "self_debug_pass_rate": 0.25,
+      "curated_skills": [
+        "G44",
+        "G244",
+        "G252",
+        "G311",
+        "G351"
+      ],
+      "random_skills": [
+        "G57",
+        "G93",
+        "G156",
+        "G165",
+        "G112"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a dataset containing multiple groups of data, each represented as a 1D numpy array, identify",
+      "baseline_score": 2.25,
+      "random_score": 2.6999999999999997,
+      "curated_score": 2.6999999999999997,
+      "self_debug_score": 2.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G79",
+        "G294",
+        "G44",
+        "G199",
+        "G267"
+      ],
+      "random_skills": [
+        "G346",
+        "G333",
+        "G11",
+        "G366",
+        "G137"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of dictionaries containing test results for multiple students, create a function that",
+      "baseline_score": 2.49,
+      "random_score": 2.55,
+      "curated_score": 2.4,
+      "self_debug_score": 2.55,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G44",
+        "G194",
+        "G162",
+        "G217",
+        "G261"
+      ],
+      "random_skills": [
+        "G57",
+        "G340",
+        "G94",
+        "G380",
+        "G130"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of seeds, generate a dictionary for each seed using the `task_func` function. Then, f",
+      "baseline_score": 0.5399999999999999,
+      "random_score": 0.23999999999999994,
+      "curated_score": 0.38999999999999996,
+      "self_debug_score": 0.5399999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G249",
+        "G44",
+        "G201",
+        "G257",
+        "G156"
+      ],
+      "random_skills": [
+        "G89",
+        "G299",
+        "G92",
+        "G193",
+        "G232"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Create a function that generates a color pattern for a given number of rows and columns, where eac",
+      "baseline_score": 1.89,
+      "random_score": 2.6699999999999995,
+      "curated_score": 2.49,
+      "self_debug_score": 4.883333333333333,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.3333333333333333,
+      "curated_skills": [
+        "G249",
+        "G44",
+        "G307",
+        "G351",
+        "G120"
+      ],
+      "random_skills": [
+        "G345",
+        "G280",
+        "G232",
+        "G153",
+        "G57"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of 2D coordinates, calculate the total travel distance for a path that starts at the ",
+      "baseline_score": 9.34,
+      "random_score": 6.75,
+      "curated_score": 9.25,
+      "self_debug_score": 9.55,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 0.6,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G351",
+        "G194",
+        "G267",
+        "G234",
+        "G44"
+      ],
+      "random_skills": [
+        "G86",
+        "G225",
+        "G210",
+        "G200",
+        "G160"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# You are given a dataset containing multiple features for a set of items. Your task is to reduce th",
+      "baseline_score": 2.19,
+      "random_score": 2.55,
+      "curated_score": 0.9599999999999997,
+      "self_debug_score": 2.55,
+      "baseline_pass_rate": -3.0,
+      "random_pass_rate": -3.0,
+      "curated_pass_rate": -3.0,
+      "self_debug_pass_rate": -3.0,
+      "curated_skills": [
+        "G308",
+        "G77",
+        "G384",
+        "G367",
+        "G186"
+      ],
+      "random_skills": [
+        "G84",
+        "G142",
+        "G56",
+        "G86",
+        "G353"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of random strings generated from a fixed set of letters ('a', 'b', 'c', 'd', 'e'), ea",
+      "baseline_score": 2.64,
+      "random_score": 0.5399999999999999,
+      "curated_score": 2.49,
+      "self_debug_score": 2.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G341",
+        "G249",
+        "G85",
+        "G114",
+        "G240"
+      ],
+      "random_skills": [
+        "G135",
+        "G375",
+        "G297",
+        "G109",
+        "G108"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Simulate multiple sets of dice rolls, calculate the frequency of each result for each set, and ret",
+      "baseline_score": 2.34,
+      "random_score": 2.4,
+      "curated_score": 2.31,
+      "self_debug_score": 2.49,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G44",
+        "G307",
+        "G351",
+        "G335",
+        "G383"
+      ],
+      "random_skills": [
+        "G222",
+        "G110",
+        "G107",
+        "G269",
+        "G316"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of words, create a dictionary where each key is a two-letter combination of the lower",
+      "baseline_score": 9.34,
+      "random_score": 9.64,
+      "curated_score": 9.64,
+      "self_debug_score": 9.25,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G201",
+        "G112",
+        "G15",
+        "G35",
+        "G276"
+      ],
+      "random_skills": [
+        "G246",
+        "G276",
+        "G297",
+        "G344",
+        "G172"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of words, find the occurrences of each two-letter combination across all words, where",
+      "baseline_score": 9.4,
+      "random_score": 9.64,
+      "curated_score": 9.25,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G299",
+        "G80",
+        "G348",
+        "G194",
+        "G307"
+      ],
+      "random_skills": [
+        "G36",
+        "G178",
+        "G206",
+        "G204",
+        "G105"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# You are given a list of target_words, a positive integer n_sentences, and a vocabulary. Your task ",
+      "baseline_score": 0.84,
+      "random_score": 0.23999999999999994,
+      "curated_score": 2.25,
+      "self_debug_score": 0.23999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G351",
+        "G384",
+        "G308",
+        "G238",
+        "G169"
+      ],
+      "random_skills": [
+        "G178",
+        "G249",
+        "G176",
+        "G159",
+        "G337"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of texts, each containing multiple sentences, scramble the letters in each word of ev",
+      "baseline_score": 2.55,
+      "random_score": 1.2299999999999998,
+      "curated_score": 2.64,
+      "self_debug_score": 2.55,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G383",
+        "G351",
+        "G325",
+        "G299",
+        "G122"
+      ],
+      "random_skills": [
+        "G337",
+        "G267",
+        "G339",
+        "G55",
+        "G36"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# You are given a list of DataFrames, each potentially containing numeric data. Your task is to gene",
+      "baseline_score": 2.55,
+      "random_score": 2.55,
+      "curated_score": 2.55,
+      "self_debug_score": 2.55,
+      "baseline_pass_rate": -3.0,
+      "random_pass_rate": -3.0,
+      "curated_pass_rate": -3.0,
+      "self_debug_pass_rate": -3.0,
+      "curated_skills": [
+        "G384",
+        "G308",
+        "G351",
+        "G194",
+        "G79"
+      ],
+      "random_skills": [
+        "G77",
+        "G239",
+        "G266",
+        "G237",
+        "G240"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Create a function that generates multiple Pandas DataFrames, each with random alphabets in each ce",
+      "baseline_score": 2.79,
+      "random_score": 2.19,
+      "curated_score": 2.64,
+      "self_debug_score": 9.85,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G351",
+        "G109",
+        "G24",
+        "G108",
+        "G384"
+      ],
+      "random_skills": [
+        "G268",
+        "G401",
+        "G188",
+        "G221",
+        "G357"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of date strings, calculate the total number of seconds elapsed from each date until t",
+      "baseline_score": 0.5399999999999999,
+      "random_score": 1.89,
+      "curated_score": 0.9899999999999999,
+      "self_debug_score": 0.66,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": -3.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G44",
+        "G261",
+        "G120",
+        "G294",
+        "G7"
+      ],
+      "random_skills": [
+        "G2",
+        "G274",
+        "G313",
+        "G391",
+        "G195"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given multiple pairs of pandas Series, perform K-Means clustering on each pair and visualize the c",
+      "baseline_score": 0.84,
+      "random_score": 2.64,
+      "curated_score": 2.64,
+      "self_debug_score": 1.44,
+      "baseline_pass_rate": -3.0,
+      "random_pass_rate": -3.0,
+      "curated_pass_rate": -3.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G124",
+        "G77",
+        "G13",
+        "G308",
+        "G401"
+      ],
+      "random_skills": [
+        "G266",
+        "G339",
+        "G86",
+        "G177",
+        "G50"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of 2D numpy arrays, plot a histogram of the normalized data from each array alongside",
+      "baseline_score": 2.64,
+      "random_score": 2.64,
+      "curated_score": 2.64,
+      "self_debug_score": 2.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G24",
+        "G351",
+        "G261",
+        "G44",
+        "G384"
+      ],
+      "random_skills": [
+        "G77",
+        "G296",
+        "G133",
+        "G376",
+        "G34"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of 2D numpy arrays, perform Principal Component Analysis (PCA) on the sum of rows of ",
+      "baseline_score": 1.14,
+      "random_score": 0.9899999999999999,
+      "curated_score": 0.9899999999999999,
+      "self_debug_score": 0.9899999999999999,
+      "baseline_pass_rate": -3.0,
+      "random_pass_rate": -3.0,
+      "curated_pass_rate": -3.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G44",
+        "G261",
+        "G351",
+        "G194",
+        "G249"
+      ],
+      "random_skills": [
+        "G82",
+        "G309",
+        "G136",
+        "G195",
+        "G303"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of lists of time strings in UTC, where each sublist represents a different timezone, ",
+      "baseline_score": 0.84,
+      "random_score": 0.84,
+      "curated_score": 2.79,
+      "self_debug_score": 2.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G44",
+        "G307",
+        "G240",
+        "G257",
+        "G120"
+      ],
+      "random_skills": [
+        "G302",
+        "G202",
+        "G207",
+        "G187",
+        "G148"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of department codes and their respective employee counts, generate a JSON object that",
+      "baseline_score": 0.5399999999999999,
+      "random_score": 2.04,
+      "curated_score": 0.23999999999999994,
+      "self_debug_score": 2.55,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G309",
+        "G76",
+        "G78",
+        "G249",
+        "G252"
+      ],
+      "random_skills": [
+        "G259",
+        "G383",
+        "G141",
+        "G316",
+        "G376"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of strings, remove all special characters, punctuation marks, and spaces from each st",
+      "baseline_score": 9.55,
+      "random_score": 9.64,
+      "curated_score": 9.55,
+      "self_debug_score": 9.7,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G100",
+        "G80",
+        "G314",
+        "G108",
+        "G184"
+      ],
+      "random_skills": [
+        "G341",
+        "G392",
+        "G54",
+        "G86",
+        "G5"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    }
+  ]
+}

@@ -10,7 +10,7 @@ from evalplus.data import get_mbpp_plus, write_jsonl
 
 # ================= 配置区域 =================
 # API 配置 (Qwen3-Code-480B)
-API_KEY = "msk-4b8773bf749c892f2c9803aa69ef94b8b96e7cf807da78cbfdf8606ed919adef"
+API_KEY = os.environ.get("QWEN480B_API_KEY", "")
 BASE_URL = "https://aimpapi.midea.com/t-aigc/f-devops-qwen3-coder-480b-a35b-instruct/v1/chat/completions"
 MODEL_NAME = "f-devops-qwen3-coder-480b-a35b-instruct"
 

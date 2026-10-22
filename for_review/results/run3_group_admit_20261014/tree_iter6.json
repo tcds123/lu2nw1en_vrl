@@ -1,0 +1,26 @@
+[
+  {
+    "facet": "Quantity Parsing",
+    "parent": "root",
+    "hash": "c11d7dc0c8",
+    "val_delta": 0.0,
+    "val_ci": -0.1222,
+    "skill": "# Competition Mathematics Reasoning Skill\n\nYou are solving AIME-style problems. Final answer: integer 0-999 in `<answer>\\boxed{N}</answer>`.\n\n## Quantity Parsing\n\n- Restate what is asked (count / sum / max / min / value / remainder) before computing.\n\n## Case Enumeration\n\n- List cases in a fixed order; verify they are disjoint and exhaustive.\n\n## Computation & Verification\n\n- Write intermediate values; sanity-check magnitude and parity.\n\n## Final Answer\n\n- Report the final integer (0-999) inside `<answer>\\boxed{N}</answer>`.\n- Is the magnitude plausible? Reduce / take mod / round as required."
+  },
+  {
+    "facet": "Case Enumeration",
+    "parent": "root",
+    "hash": "c11d7dc0c8",
+    "val_delta": 0.0,
+    "val_ci": -0.1222,
+    "skill": "# Competition Mathematics Reasoning Skill\n\nYou are solving AIME-style problems. Final answer: integer 0-999 in `<answer>\\boxed{N}</answer>`.\n\n## Quantity Parsing\n\n- Restate what is asked (count / sum / max / min / value / remainder) before computing.\n\n## Case Enumeration\n\n- List cases in a fixed order; verify they are disjoint and exhaustive.\n\n## Computation & Verification\n\n- Write intermediate values; sanity-check magnitude and parity.\n\n## Final Answer\n\n- Report the final integer (0-999) inside `<answer>\\boxed{N}</answer>`.\n- Is the magnitude plausible? Reduce / take mod / round as required."
+  },
+  {
+    "facet": "Computation & Verification",
+    "parent": "root",
+    "hash": "c11d7dc0c8",
+    "val_delta": 0.0,
+    "val_ci": -0.1222,
+    "skill": "# Competition Mathematics Reasoning Skill\n\nYou are solving AIME-style problems. Final answer: integer 0-999 in `<answer>\\boxed{N}</answer>`.\n\n## Quantity Parsing\n\n- Restate what is asked (count / sum / max / min / value / remainder) before computing.\n\n## Case Enumeration\n\n- List cases in a fixed order; verify they are disjoint and exhaustive.\n\n## Computation & Verification\n\n- Write intermediate values; sanity-check magnitude and parity.\n\n## Final Answer\n\n- Report the final integer (0-999) inside `<answer>\\boxed{N}</answer>`.\n- Is the magnitude plausible? Reduce / take mod / round as required."
+  }
+]

@@ -21,7 +21,7 @@ logging.basicConfig(
 # Qwen API配置
 # --------------------------
 API_URL = "https://aimpapi.midea.com/t-aigc/f-devops-qwen3-coder-480b-a35b-instruct/v1/chat/completions"
-AUTH_TOKEN = "msk-4b8773bf749c892f2c9803aa69ef94b8b96e7cf807da78cbfdf8606ed919adef"  
+AUTH_TOKEN = os.environ.get("QWEN480B_API_KEY", "")  
 TIMEOUT = 300  # 延长超时（代码生成可能较慢）
 RETRY_TIMES = 3
 

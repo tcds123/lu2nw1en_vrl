@@ -1,0 +1,169 @@
+{
+  "config": {
+    "dataset": "bigcodebench",
+    "n_tasks": 5,
+    "top_skills": 10,
+    "seed": 42,
+    "all_skills": true
+  },
+  "summary": {
+    "dataset": "bigcodebench",
+    "n_tasks": 5,
+    "n_skills_evaluated": 10,
+    "n_beneficial": 2,
+    "n_harmful": 6,
+    "n_neutral": 2,
+    "prune_candidates": [
+      "G10",
+      "G100",
+      "G40",
+      "G1",
+      "G0",
+      "G111"
+    ],
+    "top_beneficial": [
+      "G217",
+      "G18",
+      "G183",
+      "G377",
+      "G10",
+      "G100",
+      "G40",
+      "G1",
+      "G0",
+      "G111"
+    ]
+  },
+  "skill_details": [
+    {
+      "skill_id": "G217",
+      "mean_delta": 0.36599999999999994,
+      "std_delta": 0.3857771377362841,
+      "max_delta": 0.9599999999999997,
+      "min_delta": 0.0,
+      "n_positive": 4,
+      "n_negative": 0,
+      "n_tie": 1,
+      "n_tasks": 5,
+      "mean_pass_rate_with": 0.25,
+      "mean_pass_rate_without": 0.3333333333333333
+    },
+    {
+      "skill_id": "G18",
+      "mean_delta": 0.18600000000000003,
+      "std_delta": 0.4507593593038308,
+      "max_delta": 0.9000000000000001,
+      "min_delta": -0.41999999999999993,
+      "n_positive": 2,
+      "n_negative": 1,
+      "n_tie": 2,
+      "n_tasks": 5,
+      "mean_pass_rate_with": 0.25,
+      "mean_pass_rate_without": 0.3333333333333333
+    },
+    {
+      "skill_id": "G183",
+      "mean_delta": 0.0959999999999999,
+      "std_delta": 0.4733539901595847,
+      "max_delta": 0.9000000000000001,
+      "min_delta": -0.41999999999999993,
+      "n_positive": 2,
+      "n_negative": 2,
+      "n_tie": 1,
+      "n_tasks": 5,
+      "mean_pass_rate_with": 0.25,
+      "mean_pass_rate_without": 0.3333333333333333
+    },
+    {
+      "skill_id": "G377",
+      "mean_delta": 0.006000000000000005,
+      "std_delta": 0.8216714671935493,
+      "max_delta": 1.05,
+      "min_delta": -1.47,
+      "n_positive": 3,
+      "n_negative": 1,
+      "n_tie": 1,
+      "n_tasks": 5,
+      "mean_pass_rate_with": 0.25,
+      "mean_pass_rate_without": 0.3333333333333333
+    },
+    {
+      "skill_id": "G10",
+      "mean_delta": -0.16199999999999987,
+      "std_delta": 0.5643190586893199,
+      "max_delta": 0.7500000000000002,
+      "min_delta": -1.02,
+      "n_positive": 1,
+      "n_negative": 4,
+      "n_tie": 0,
+      "n_tasks": 5,
+      "mean_pass_rate_with": 0.25,
+      "mean_pass_rate_without": 0.3333333333333333
+    },
+    {
+      "skill_id": "G100",
+      "mean_delta": -0.3380000000000002,
+      "std_delta": 1.6208565636724308,
+      "max_delta": 1.65,
+      "min_delta": -2.8900000000000006,
+      "n_positive": 2,
+      "n_negative": 2,
+      "n_tie": 1,
+      "n_tasks": 5,
+      "mean_pass_rate_with": 0.15,
+      "mean_pass_rate_without": 0.3333333333333333
+    },
+    {
+      "skill_id": "G40",
+      "mean_delta": -0.42600000000000005,
+      "std_delta": 0.7545223654736817,
+      "max_delta": 0.7500000000000002,
+      "min_delta": -1.62,
+      "n_positive": 1,
+      "n_negative": 4,
+      "n_tie": 0,
+      "n_tasks": 5,
+      "mean_pass_rate_with": 0.25,
+      "mean_pass_rate_without": 0.3333333333333333
+    },
+    {
+      "skill_id": "G1",
+      "mean_delta": -0.4620000000000001,
+      "std_delta": 0.869192728915745,
+      "max_delta": 0.8099999999999998,
+      "min_delta": -1.92,
+      "n_positive": 1,
+      "n_negative": 4,
+      "n_tie": 0,
+      "n_tasks": 5,
+      "mean_pass_rate_with": 0.25,
+      "mean_pass_rate_without": 0.3333333333333333
+    },
+    {
+      "skill_id": "G0",
+      "mean_delta": -1.3519999999999999,
+      "std_delta": 3.0676205762773203,
+      "max_delta": 1.5,
+      "min_delta": -7.0,
+      "n_positive": 2,
+      "n_negative": 2,
+      "n_tie": 1,
+      "n_tasks": 5,
+      "mean_pass_rate_with": 0.0,
+      "mean_pass_rate_without": 0.3333333333333333
+    },
+    {
+      "skill_id": "G111",
+      "mean_delta": -2.054,
+      "std_delta": 2.724060204914715,
+      "max_delta": 0.8099999999999998,
+      "min_delta": -7.0,
+      "n_positive": 1,
+      "n_negative": 3,
+      "n_tie": 1,
+      "n_tasks": 5,
+      "mean_pass_rate_with": 0.0,
+      "mean_pass_rate_without": 0.3333333333333333
+    }
+  ]
+}

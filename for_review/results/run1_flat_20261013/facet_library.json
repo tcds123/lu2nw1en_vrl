@@ -1,0 +1,229 @@
+{
+  "F0": {
+    "id": "F0",
+    "name": "Misreading the asked quantity (count vs value vs sum vs max vs min vs remainder)",
+    "description": "Misreading the asked quantity (count vs value vs sum vs max vs min vs remainder)",
+    "keyword_signature": [
+      "quantity parsing",
+      "what is asked",
+      "count vs",
+      "restat"
+    ],
+    "is_meta": false,
+    "example_failures": [
+      "Each vertex of a regular octagon is independently colored either red or blue with equal probability. The probability that the octagon can then be rotated so tha",
+      "Each vertex of a regular octagon is independently colored either red or blue with equal probability. The probability that the octagon can then be rotated so tha"
+    ],
+    "failure_count": 2,
+    "problems_seen": [
+      "aime24:62"
+    ],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791872474.683313,
+    "promoted_at": null
+  },
+  "F1": {
+    "id": "F1",
+    "name": "Off-by-one / boundary (inclusive vs exclusive counting, endpoint inclusion)",
+    "description": "Off-by-one / boundary (inclusive vs exclusive counting, endpoint inclusion)",
+    "keyword_signature": [
+      "off by one",
+      "off-by-one",
+      "boundary",
+      "inclusive",
+      "exclusive",
+      "endpoint"
+    ],
+    "is_meta": false,
+    "example_failures": [],
+    "failure_count": 0,
+    "problems_seen": [],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791872474.683313,
+    "promoted_at": null
+  },
+  "F2": {
+    "id": "F2",
+    "name": "Case enumeration completeness (missing or overlapping cases in combinatorics)",
+    "description": "Case enumeration completeness (missing or overlapping cases in combinatorics)",
+    "keyword_signature": [
+      "case enumeration",
+      "mutually exclusive",
+      "exhaustive",
+      "casework",
+      "cases systematically"
+    ],
+    "is_meta": false,
+    "example_failures": [
+      "Find the number of rectangles that can be formed inside a fixed regular dodecagon ($12$-gon) where each side of the rectangle lies on either a side or a diagona",
+      "There is a collection of $25$ indistinguishable white chips and $25$ indistinguishable black chips. Find the number of ways to place some of these chips in the ",
+      "Each vertex of a regular octagon is independently colored either red or blue with equal probability. The probability that the octagon can then be rotated so tha"
+    ],
+    "failure_count": 9,
+    "problems_seen": [
+      "aime24:81",
+      "aime24:89",
+      "aime24:62"
+    ],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791872474.683313,
+    "promoted_at": null
+  },
+  "F3": {
+    "id": "F3",
+    "name": "Inclusion-exclusion / overcounting (double-counting, unaccounted symmetry)",
+    "description": "Inclusion-exclusion / overcounting (double-counting, unaccounted symmetry)",
+    "keyword_signature": [
+      "inclusion-exclusion",
+      "inclusion",
+      "overcount",
+      "complementary counting"
+    ],
+    "is_meta": false,
+    "example_failures": [],
+    "failure_count": 0,
+    "problems_seen": [],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791872474.683313,
+    "promoted_at": null
+  },
+  "F4": {
+    "id": "F4",
+    "name": "Arithmetic / sign / computational slips in multi-step calculation",
+    "description": "Arithmetic / sign / computational slips in multi-step calculation",
+    "keyword_signature": [
+      "computation",
+      "arithmetic",
+      "sanity check",
+      "parity",
+      "magnitude"
+    ],
+    "is_meta": false,
+    "example_failures": [
+      "Define $f(x)=|| x|-\\tfrac{1}{2}|$ and $g(x)=|| x|-\\tfrac{1}{4}|$. Find the number of intersections of the graphs of \\[y=4 g(f(\\sin (2 \\pi x))) \\quad\\text{ and }",
+      "There is a collection of $25$ indistinguishable white chips and $25$ indistinguishable black chips. Find the number of ways to place some of these chips in the "
+    ],
+    "failure_count": 2,
+    "problems_seen": [
+      "aime24:63",
+      "aime24:89"
+    ],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791872474.683313,
+    "promoted_at": null
+  },
+  "F5": {
+    "id": "F5",
+    "name": "Answer-form conversion (unreduced fraction, missing mod 0-999, wrong rounding)",
+    "description": "Answer-form conversion (unreduced fraction, missing mod 0-999, wrong rounding)",
+    "keyword_signature": [
+      "final answer",
+      "boxed",
+      "mod 1000",
+      "0-999",
+      "reduce"
+    ],
+    "is_meta": true,
+    "example_failures": [],
+    "failure_count": 0,
+    "problems_seen": [],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791872474.683313,
+    "promoted_at": null
+  },
+  "F6": {
+    "id": "F6",
+    "name": "Number-theoretic case analysis (missing residue classes, unbounded solution range)",
+    "description": "Number-theoretic case analysis (missing residue classes, unbounded solution range)",
+    "keyword_signature": [
+      "divisor",
+      "congruence",
+      "residue",
+      "number theory",
+      "modular"
+    ],
+    "is_meta": false,
+    "example_failures": [
+      "Let $p$ be the least prime number for which there exists a positive integer $n$ such that $n^{4}+1$ is divisible by $p^{2}$. Find the least positive integer $m$"
+    ],
+    "failure_count": 1,
+    "problems_seen": [
+      "aime24:64"
+    ],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791872474.683313,
+    "promoted_at": null
+  },
+  "F7": {
+    "id": "F7",
+    "name": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+    "description": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+    "keyword_signature": [
+      "equation setup",
+      "equation",
+      "variable",
+      "unknown",
+      "introduce variables",
+      "hexagon",
+      "extensions",
+      "parallel sides",
+      "triangle",
+      "side length",
+      "torus",
+      "sphere",
+      "tangent",
+      "radius",
+      "revolving",
+      "tangent circles",
+      "chain",
+      "angle",
+      "inradius",
+      "sequentially tangent",
+      "dodecagon",
+      "diagonal",
+      "rectangle",
+      "regular polygon",
+      "vertices",
+      "secant",
+      "circle",
+      "power of a point",
+      "intersect",
+      "absolute value",
+      "trigonometric",
+      "period",
+      "piecewise",
+      "range"
+    ],
+    "is_meta": false,
+    "example_failures": [
+      "Let $ABC$ be a triangle inscribed in circle $\\omega$. Let the tangents to $\\omega$ at $B$ and $C$ intersect at point $D$, and let $\\overline{AD}$ intersect $\\om",
+      "Let \\(b\\ge 2\\) be an integer. Call a positive integer \\(n\\) \\(b\\text-\\textit{eautiful}\\) if it has exactly two digits when expressed in base \\(b\\)  and these tw",
+      "Let ABCDEF be a convex equilateral hexagon in which all pairs of opposite sides are parallel. The triangle whose sides are extensions of segments AB, CD, and EF"
+    ],
+    "failure_count": 41,
+    "problems_seen": [
+      "aime24:61",
+      "aime24:80",
+      "aime24:85",
+      "aime24:88",
+      "aime24:73",
+      "aime24:63",
+      "aime24:65",
+      "aime24:81",
+      "aime24:78",
+      "aime24:62",
+      "aime24:77"
+    ],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791872474.683313,
+    "promoted_at": null
+  }
+}

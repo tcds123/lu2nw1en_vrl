@@ -1,0 +1,625 @@
+{
+  "ts": "20261013_142114",
+  "init_skill": "/data/zhuldz/lunwen/data/skill_aime_initial_v2.md",
+  "init_skill_hash": "c11d7dc0c8",
+  "ablation": "FULL",
+  "baseline_val": {
+    "pass": 0.5444444444444444,
+    "delta": -0.06666666666666667,
+    "ci": -0.16666666666666663
+  },
+  "iters": [
+    {
+      "t": 1,
+      "secs": 3006.7,
+      "focus": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+      "n_val_failures": 9,
+      "n_candidates": 4,
+      "n_novel_candidates": 4,
+      "current_hash": "c11d7dc0c8",
+      "winner_hash": "5bcc392f6d",
+      "winner_kind": "patch",
+      "mutation_kinds": [
+        "patch",
+        "patch",
+        "patch",
+        "patch"
+      ],
+      "n_structure_candidates": 0,
+      "n_novel_structure": 0,
+      "reject_reason": "no novel candidate with CI>0 (best novel delta=+0.011 CI=-0.113)",
+      "best_val_delta": -0.0667,
+      "best_val_ci": -0.1667,
+      "improved": false,
+      "no_improve": 1,
+      "consolidated": false,
+      "stagnation_fb": {
+        "stage1": false,
+        "stage2": false,
+        "pool_ci_gate": 0.0,
+        "best_ci_gate": 0.0,
+        "best_delta_floor": 0.0
+      },
+      "skill_len": 599,
+      "skill_hash": "c11d7dc0c8",
+      "failure_distribution": {
+        "Misreading the asked quantity (count vs value vs sum vs max vs min vs remainder)": 1,
+        "Geometry Setup": 1,
+        "Arithmetic / sign / computational slips in multi-step calculation": 1,
+        "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 2,
+        "Geometry Chain Configuration": 1,
+        "Geometry Extension Misinterpretation": 1,
+        "Case enumeration completeness (missing or overlapping cases in combinatorics)": 2
+      },
+      "uncovered_type": "Equation / setup errors (wrong variable, wrong formula, misread constraint)"
+    },
+    {
+      "t": 2,
+      "secs": 2785.2,
+      "focus": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+      "n_val_failures": 11,
+      "n_candidates": 4,
+      "n_novel_candidates": 4,
+      "current_hash": "c11d7dc0c8",
+      "winner_hash": "695d7003fc",
+      "winner_kind": "patch",
+      "mutation_kinds": [
+        "patch",
+        "patch",
+        "patch",
+        "patch"
+      ],
+      "n_structure_candidates": 0,
+      "n_novel_structure": 0,
+      "reject_reason": "no novel candidate with CI>0 (best novel delta=+0.011 CI=-0.122)",
+      "best_val_delta": -0.0667,
+      "best_val_ci": -0.1667,
+      "improved": false,
+      "no_improve": 2,
+      "consolidated": false,
+      "stagnation_fb": {
+        "stage1": false,
+        "stage2": false,
+        "pool_ci_gate": 0.0,
+        "best_ci_gate": 0.0,
+        "best_delta_floor": 0.0
+      },
+      "skill_len": 599,
+      "skill_hash": "c11d7dc0c8",
+      "failure_distribution": {
+        "Geometry Structure Misidentification": 1,
+        "Case enumeration completeness (missing or overlapping cases in combinatorics)": 2,
+        "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 6,
+        "Geometry Power of a Point": 1,
+        "Number-theoretic case analysis (missing residue classes, unbounded solution range)": 1
+      },
+      "uncovered_type": "Equation / setup errors (wrong variable, wrong formula, misread constraint)"
+    },
+    {
+      "t": 3,
+      "secs": 2921.5,
+      "focus": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+      "n_val_failures": 9,
+      "n_candidates": 4,
+      "n_novel_candidates": 4,
+      "current_hash": "c11d7dc0c8",
+      "winner_hash": "cbf45e69be",
+      "winner_kind": "patch",
+      "mutation_kinds": [
+        "patch",
+        "patch",
+        "patch",
+        "patch"
+      ],
+      "n_structure_candidates": 0,
+      "n_novel_structure": 0,
+      "reject_reason": "no novel candidate with CI>0 (best novel delta=+0.011 CI=-0.127)",
+      "best_val_delta": -0.0667,
+      "best_val_ci": -0.1667,
+      "improved": false,
+      "no_improve": 3,
+      "consolidated": false,
+      "stagnation_fb": {
+        "stage1": false,
+        "stage2": false,
+        "pool_ci_gate": 0.0,
+        "best_ci_gate": 0.0,
+        "best_delta_floor": 0.0
+      },
+      "skill_len": 599,
+      "skill_hash": "c11d7dc0c8",
+      "failure_distribution": {
+        "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 7,
+        "Misreading the asked quantity (count vs value vs sum vs max vs min vs remainder)": 1,
+        "Case enumeration completeness (missing or overlapping cases in combinatorics)": 1
+      },
+      "uncovered_type": "Equation / setup errors (wrong variable, wrong formula, misread constraint)"
+    },
+    {
+      "t": 4,
+      "secs": 3235.7,
+      "focus": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+      "n_val_failures": 10,
+      "n_candidates": 4,
+      "n_novel_candidates": 4,
+      "current_hash": "c11d7dc0c8",
+      "winner_hash": "db9a8574f2",
+      "winner_kind": "patch",
+      "mutation_kinds": [
+        "patch",
+        "patch",
+        "patch",
+        "patch"
+      ],
+      "n_structure_candidates": 0,
+      "n_novel_structure": 0,
+      "reject_reason": "no novel candidate with CI>0 (best novel delta=+0.033 CI=-0.101)",
+      "best_val_delta": -0.0667,
+      "best_val_ci": -0.1667,
+      "improved": false,
+      "no_improve": 4,
+      "consolidated": false,
+      "stagnation_fb": {
+        "stage1": false,
+        "stage2": false,
+        "pool_ci_gate": 0.0,
+        "best_ci_gate": 0.0,
+        "best_delta_floor": 0.0
+      },
+      "skill_len": 599,
+      "skill_hash": "c11d7dc0c8",
+      "failure_distribution": {
+        "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 7,
+        "Case enumeration completeness (missing or overlapping cases in combinatorics)": 2,
+        "Nested Function Analysis": 1
+      },
+      "uncovered_type": "Equation / setup errors (wrong variable, wrong formula, misread constraint)"
+    },
+    {
+      "t": 5,
+      "secs": 2726.9,
+      "focus": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+      "n_val_failures": 8,
+      "n_candidates": 4,
+      "n_novel_candidates": 4,
+      "current_hash": "c11d7dc0c8",
+      "winner_hash": "1761422e0e",
+      "winner_kind": "patch",
+      "mutation_kinds": [
+        "patch",
+        "patch",
+        "patch",
+        "patch"
+      ],
+      "n_structure_candidates": 0,
+      "n_novel_structure": 0,
+      "reject_reason": "no novel candidate with CI>0 (best novel delta=+0.000 CI=-0.122)",
+      "best_val_delta": -0.0667,
+      "best_val_ci": -0.1667,
+      "improved": false,
+      "no_improve": 5,
+      "consolidated": false,
+      "stagnation_fb": {
+        "stage1": false,
+        "stage2": false,
+        "pool_ci_gate": 0.0,
+        "best_ci_gate": 0.0,
+        "best_delta_floor": 0.0
+      },
+      "skill_len": 599,
+      "skill_hash": "c11d7dc0c8",
+      "failure_distribution": {
+        "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 7,
+        "Case enumeration completeness (missing or overlapping cases in combinatorics)": 1
+      },
+      "uncovered_type": "Equation / setup errors (wrong variable, wrong formula, misread constraint)"
+    },
+    {
+      "t": 6,
+      "secs": 2665.5,
+      "focus": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+      "n_val_failures": 8,
+      "n_candidates": 4,
+      "n_novel_candidates": 4,
+      "current_hash": "c11d7dc0c8",
+      "winner_hash": "4777c10111",
+      "winner_kind": "patch",
+      "mutation_kinds": [
+        "patch",
+        "patch",
+        "patch",
+        "patch"
+      ],
+      "n_structure_candidates": 0,
+      "n_novel_structure": 0,
+      "reject_reason": "no novel candidate with CI>0 (best novel delta=+0.044 CI=-0.092)",
+      "best_val_delta": -0.0667,
+      "best_val_ci": -0.1667,
+      "improved": false,
+      "no_improve": 6,
+      "consolidated": false,
+      "stagnation_fb": {
+        "stage1": false,
+        "stage2": false,
+        "pool_ci_gate": 0.0,
+        "best_ci_gate": 0.0,
+        "best_delta_floor": 0.0
+      },
+      "skill_len": 599,
+      "skill_hash": "c11d7dc0c8",
+      "failure_distribution": {
+        "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 6,
+        "Case enumeration completeness (missing or overlapping cases in combinatorics)": 1,
+        "Arithmetic / sign / computational slips in multi-step calculation": 1
+      },
+      "uncovered_type": "Equation / setup errors (wrong variable, wrong formula, misread constraint)"
+    }
+  ],
+  "args": {
+    "init_skill": "/data/zhuldz/lunwen/data/skill_aime_initial_v2.md",
+    "s0": "/data/zhuldz/lunwen/data/skill_aime_initial_v2.md",
+    "split_dir": "/data/zhuldz/lunwen/data/aime24.jsonl",
+    "s0_cache": "/data/zhuldz/lunwen/rl/train/verl1/outputs/tf_skill_aime_v2/s0_cache_aime_k3.json",
+    "shuffle_seed": 0,
+    "iters": 10,
+    "K": 4,
+    "eval_k": 3,
+    "n_parallel": 1,
+    "parallel_diversity": "auto",
+    "n_diag": 8,
+    "train_n": 35,
+    "consolidate_every": 3,
+    "patience": 3,
+    "out_dir": "/data/zhuldz/lunwen/rl/train/verl1/outputs/skill_evolver_aime_v2/efl_flat_run",
+    "ablate_gepa": false,
+    "ablate_failure": false,
+    "ablate_consolidate": false,
+    "ablate_antideg": false,
+    "select_by_ci": false,
+    "fix_exploration": false,
+    "cache_failures": false,
+    "allow_modify": false,
+    "learn_positive": false,
+    "meta_contrast": false,
+    "gate_consolidate": false,
+    "data_driven_focus": false,
+    "coverage_diagnosis": true,
+    "structure_evolution": false,
+    "Kc": 4,
+    "struct_temp": 1.0,
+    "resume": null,
+    "probe_split": false,
+    "probe_ratio": 0.5,
+    "probe_seed": 42,
+    "select_exclude_train": false,
+    "select_lcb": true,
+    "self_test_facet": false,
+    "facet_tree": false,
+    "facet_axes": "Quantity Parsing,Case Enumeration,Computation & Verification,Final Answer",
+    "freeze_facet": "Final Answer",
+    "failure_modes": "",
+    "no_emergence": false,
+    "bootstrap": true,
+    "crossover": true,
+    "overlay": true,
+    "preserve_extend": false,
+    "probe_replay": false,
+    "pop_mutation": false,
+    "pop_eps": 0.3,
+    "expand": false,
+    "expand_every": 1,
+    "expand_candidates": 1,
+    "strengthen": false,
+    "strengthen_per_type": false,
+    "emergent_facets": true,
+    "efl_min_failures": 2,
+    "efl_min_problems": 2,
+    "self_test_efl": false,
+    "donor_topk": 1,
+    "xo_pair_retries": 0,
+    "xo_cohere_retries": 0,
+    "xo_allow_merge": false,
+    "xo_multiparent": 0,
+    "xo_donor_directed": false,
+    "subset_admit": true,
+    "pool_filter": false,
+    "pool_eps": 0.02,
+    "stagnation_fallback": false,
+    "pool_tol": 0.05,
+    "best_tol": 0.03
+  },
+  "probe_split": false,
+  "probe_n": 30,
+  "diag_n": 30,
+  "n_select": 30,
+  "param_warnings": [
+    "--train_n 35 > 实际 train 题数 18; slice 无效 (已用全部 train)"
+  ],
+  "rejected_patches": [
+    "iter1 focus=Equation / setup errors (wrong variable, wrong formula, misread constraint): no novel candidate with CI>0 (best novel delta=+0.011 CI=-0.113)",
+    "iter2 focus=Equation / setup errors (wrong variable, wrong formula, misread constraint): no novel candidate with CI>0 (best novel delta=+0.011 CI=-0.122)",
+    "iter3 focus=Equation / setup errors (wrong variable, wrong formula, misread constraint): no novel candidate with CI>0 (best novel delta=+0.011 CI=-0.127)",
+    "iter4 focus=Equation / setup errors (wrong variable, wrong formula, misread constraint): no novel candidate with CI>0 (best novel delta=+0.033 CI=-0.101)",
+    "iter5 focus=Equation / setup errors (wrong variable, wrong formula, misread constraint): no novel candidate with CI>0 (best novel delta=+0.000 CI=-0.122)",
+    "iter6 focus=Equation / setup errors (wrong variable, wrong formula, misread constraint): no novel candidate with CI>0 (best novel delta=+0.044 CI=-0.092)"
+  ],
+  "failure_cache": {
+    "c11d7dc0c8": [
+      [
+        {
+          "id": "aime24:73",
+          "item": {
+            "id": "aime24:73",
+            "problem": "Eight circles of radius $34$ are sequentially tangent, and two of the circles are tangent to $AB$ and $BC$ of triangle $ABC$, respectively. $2024$ circles of radius $1$ can be arranged in the same manner. The inradius of triangle $ABC$ can be expressed as $\\frac{m}{n}$, where $m$ and $n$ are relatively prime positive integers. Find $m+n$.",
+            "answer": "197",
+            "year": "2024"
+          },
+          "pred": "1",
+          "correct": "197",
+          "response_excerpt": "Alright, let’s break this down.\n\n---\n\n## **Step 1: Understanding the setup**\n\nWe have triangle \\( ABC \\) with two sides \\( AB \\) and \\( BC \\) tangent to some circles arranged in a chain.\n\nThe problem says:\n\n> Eight circles of radius \\( 34 \\) are sequentially tangent, and two of the circles are tangent to \\( AB \\) and \\( BC \\) of triangle \\( ABC \\), respectively.\n\nThat means:  \nThere’s a chain of 8 circles, each of radius \\( 34 \\), each tangent to the next.  \nThe first circle in the chain is tangent to side \\( AB \\) of triangle \\( ABC \\).  \nThe last circle in the chain is tangent to side \\( BC  …[truncated]",
+          "s0_pass": 0.0
+        },
+        {
+          "id": "aime24:61",
+          "item": {
+            "id": "aime24:61",
+            "problem": "Let $ABC$ be a triangle inscribed in circle $\\omega$. Let the tangents to $\\omega$ at $B$ and $C$ intersect at point $D$, and let $\\overline{AD}$ intersect $\\omega$ at $P$. If $AB=5$, $BC=9$, and $AC=10$, $AP$ can be written as the form $\\frac{m}{n}$, where $m$ and $n$ are relatively prime integers. Find $m + n$.",
+            "answer": "113",
+            "year": "2024"
+          },
+          "pred": "36",
+          "correct": "113",
+          "response_excerpt": "Alright, let’s go step-by-step.\n\n---\n\n## **Step 1: Understanding the setup**\n\nWe have triangle \\( ABC \\) inscribed in circle \\( \\omega \\).  \nTangents to \\( \\omega \\) at \\( B \\) and \\( C \\) meet at \\( D \\).  \nLine \\( AD \\) meets \\( \\omega \\) again at \\( P \\).  \nGiven \\( AB = 5, BC = 9, AC = 10 \\).\n\nWe want \\( AP \\) in simplest form \\( \\frac{m}{n} \\), then \\( m+n \\).\n\n---\n\n## **Step 2: Interpret geometry**\n\n\\( D \\) is the intersection of tangents at \\( B \\) and \\( C \\), so \\( D \\) lies outside the circle, \\( DB = DC \\) in length (tangent segments from \\( D \\) to \\( B \\) and \\( C \\) equal).  \nAls …[truncated]",
+          "s0_pass": 0.0
+        },
+        {
+          "id": "aime24:81",
+          "item": {
+            "id": "aime24:81",
+            "problem": "Find the number of rectangles that can be formed inside a fixed regular dodecagon ($12$-gon) where each side of the rectangle lies on either a side or a diagonal of the dodecagon. The diagram below shows three of those rectangles.\n[asy] unitsize(0.6 inch); for(int i=0; i<360; i+=30) { dot(dir(i), 4+black); draw(dir(i)--dir(i+30)); } draw(dir(120)--dir(330)); filldraw(dir(210)--dir(240)--dir(30)--dir(60)--cycle, mediumgray, linewidth(1.5)); draw((0,0.366)--(0.366,0), linewidth(1.5)); [/asy]",
+            "answer": "315",
+            "year": "2024"
+          },
+          "pred": "8",
+          "correct": "315",
+          "response_excerpt": "Alright, let's break this down.\n\n---\n\n## **Step 1: Understanding the setup**\n\nWe have a regular dodecagon (12 vertices labeled \\( A_1, A_2, \\dots, A_{12} \\) in order).  \nEach side of the rectangle must lie on a **side or a diagonal** of the dodecagon.  \nThat means each side of the rectangle is along a chord determined by two vertices of the dodecagon.\n\nIn a regular 12-gon, chords come in different lengths depending on the number of steps between vertices along the circle.\n\n---\n\n## **Step 2: Possible chord lengths**\n\nLet the vertices be \\( A_0, A_1, \\dots, A_{11} \\) (mod 12).  \nChord \\( A_i A_j …[truncated]",
+          "s0_pass": 0.0
+        },
+        {
+          "id": "aime24:85",
+          "item": {
+            "id": "aime24:85",
+            "problem": "Let ABCDEF be a convex equilateral hexagon in which all pairs of opposite sides are parallel. The triangle whose sides are extensions of segments AB, CD, and EF has side lengths 200, 240, and 300. Find the side length of the hexagon.",
+            "answer": "080",
+            "year": "2024"
+          },
+          "pred": "0",
+          "correct": "80",
+          "response_excerpt": "Alright, let's go step-by-step.\n\n---\n\n## **Step 1: Understanding the setup**\n\nWe have a convex equilateral hexagon \\( ABCDEF \\) with all sides equal (say side length \\( s \\)), and **opposite sides are parallel**.\n\nSo:\n\\[\nAB \\parallel DE, \\quad BC \\parallel EF, \\quad CD \\parallel FA.\n\\]\nAlso \\( AB = BC = CD = DE = EF = FA = s \\).\n\nBecause opposite sides are parallel and equal, the hexagon is centrally symmetric (it is a \"parallelo-hexagon\" or affine image of a regular hexagon, but here equilateral means all sides equal, not necessarily regular — but with opposite sides parallel and equal, it is …[truncated]",
+          "s0_pass": 0.0
+        },
+        {
+          "id": "aime24:63",
+          "item": {
+            "id": "aime24:63",
+            "problem": "Define $f(x)=|| x|-\\tfrac{1}{2}|$ and $g(x)=|| x|-\\tfrac{1}{4}|$. Find the number of intersections of the graphs of \\[y=4 g(f(\\sin (2 \\pi x))) \\quad\\text{ and }\\quad x=4 g(f(\\cos (3 \\pi y))).\\]",
+            "answer": "385",
+            "year": "2024"
+          },
+          "pred": "1",
+          "correct": "385",
+          "response_excerpt": "Alright, let's break this down step by step.\n\n---\n\n## **Step 1: Understanding the functions**\n\nWe have  \n\\[\nf(t) = \\big| |t| - \\tfrac12 \\big|, \\quad g(t) = \\big| |t| - \\tfrac14 \\big|.\n\\]\n\nAlso given:\n\n\\[\ny = 4 \\, g\\big( f(\\sin(2\\pi x)) \\big),\n\\]\n\\[\nx = 4 \\, g\\big( f(\\cos(3\\pi y)) \\big).\n\\]\n\nWe want the number of intersections of these two graphs (i.e., number of \\((x,y)\\) satisfying both equations).\n\n---\n\n## **Step 2: Symmetry considerations**\n\nLet’s first analyze \\(f(\\sin(2\\pi x))\\).\n\nSince \\(|\\sin(2\\pi x)|\\) is periodic with period \\(1/2\\) in \\(x\\), and \\(f\\) is applied to \\(\\sin(2\\pi x)\\),  …[truncated]",
+          "s0_pass": 0.0
+        },
+        {
+          "id": "aime24:62",
+          "item": {
+            "id": "aime24:62",
+            "problem": "Each vertex of a regular octagon is independently colored either red or blue with equal probability. The probability that the octagon can then be rotated so that all of the blue vertices end up at positions where there were originally red vertices is $\\tfrac{m}{n}$, where $m$ and $n$ are relatively prime positive integers. What is $m+n$?",
+            "answer": "371",
+            "year": "2024"
+          },
+          "pred": "3",
+          "correct": "371",
+          "response_excerpt": "Alright, let's break this down carefully.\n\n---\n\n## **Step 1: Understanding the problem**\n\nWe have a regular octagon (8 vertices).  \nEach vertex independently red or blue with probability \\( \\frac12 \\) each.\n\nWe want the probability that **there exists a rotation** of the octagon (by some multiple of \\( 45^\\circ \\)) such that after rotation, **every blue vertex ends up at a position that originally was red**.\n\nEquivalently:  \nLet \\( R \\) = set of red vertices initially, \\( B \\) = set of blue vertices initially.  \nWe want: There exists a rotation \\( \\rho^k \\) (\\( k = 0,1,\\dots,7 \\)) such that \\( …[truncated]",
+          "s0_pass": 0.0
+        },
+        {
+          "id": "aime24:89",
+          "item": {
+            "id": "aime24:89",
+            "problem": "There is a collection of $25$ indistinguishable white chips and $25$ indistinguishable black chips. Find the number of ways to place some of these chips in the $25$ unit cells of a $5\\times5$ grid such that: \n\neach cell contains at most one chip\nall chips in the same row and all chips in the same column have the same colour\nany additional chip placed on the grid would violate one or more of the previous two conditions.",
+            "answer": "902",
+            "year": "2024"
+          },
+          "pred": "900",
+          "correct": "902",
+          "response_excerpt": "Alright, let's break this down carefully.\n\n---\n\n## **Step 1: Understanding the rules**\n\nWe have a \\( 5 \\times 5 \\) grid (25 cells).  \nWe place **some** chips (white or black) in cells, with:\n\n1. **At most one chip per cell**.\n2. **All chips in the same row have the same colour** (so each row with chips is monochromatic).\n3. **All chips in the same column have the same colour** (so each column with chips is monochromatic).\n4. **Maximality condition**: Adding any more chip would violate rule 1, 2, or 3.\n\n---\n\n### **Step 2: Interpreting rules 2 and 3 together**\n\nIf a row has chips, all chips in t …[truncated]",
+          "s0_pass": 0.3333333333333333
+        },
+        {
+          "id": "aime24:80",
+          "item": {
+            "id": "aime24:80",
+            "problem": "Let \\(b\\ge 2\\) be an integer. Call a positive integer \\(n\\) \\(b\\text-\\textit{eautiful}\\) if it has exactly two digits when expressed in base \\(b\\)  and these two digits sum to \\(\\sqrt n\\). For example, \\(81\\) is \\(13\\text-\\textit{eautiful}\\) because \\(81  = \\underline{6} \\ \\underline{3}_{13} \\) and \\(6 + 3 =  \\sqrt{81}\\). Find the least integer \\(b\\ge 2\\) for which there are more than ten \\(b\\text-\\textit{eautiful}\\) integers.",
+            "answer": "211",
+            "year": "2024"
+          },
+          "pred": "-1",
+          "correct": "211",
+          "response_excerpt": "Alright, let's break this down.\n\n---\n\n## **Step 1: Understanding the definition**\n\nA positive integer \\(n\\) is \\(b\\)-eautiful if:\n\n1. \\(n\\) has exactly two digits in base \\(b\\):  \n   That means \\(b \\le n \\le b^2 - 1\\)? Wait, careful:  \n   \"Exactly two digits in base \\(b\\)\" means \\(n\\) is written as \\(d_1 d_0\\) in base \\(b\\), with \\(d_1 \\ge 1\\) and \\(0 \\le d_0 \\le b-1\\).  \n   So \\(n = d_1 b + d_0\\), with \\(d_1 \\ge 1\\), \\(d_0 \\ge 0\\), and \\(d_1 \\le b-1\\)? No, for two digits \\(d_1\\) can be from 1 up to \\(b-1\\)? Actually, for exactly two digits, the most significant digit \\(d_1\\) satisfies \\(1 \\le …[truncated]",
+          "s0_pass": 0.3333333333333333
+        }
+      ],
+      8,
+      [
+        {
+          "id": "aime24:88",
+          "item": {
+            "id": "aime24:88",
+            "problem": "Torus $T$ is the surface produced by revolving a circle with radius $3$ around an axis in the plane of the circle that is a distance $6$ from the center of the circle (so like a donut). Let $S$ be a sphere with a radius $11$. When $T$ rests on the outside of $S$, it is externally tangent to $S$ along a circle with radius $r_i$, and when $T$ rests on the outside of $S$, it is externally tangent to $S$ along a circle with radius $r_o$. The difference $r_i-r_o$ can be written as $\\tfrac{m}{n}$, where $m$ and $n$ are relatively prime positive integers. Find $m+n$.\n[asy] unitsize(0.3 inch); draw(ellipse((0,0), 3, 1.75)); draw((-1.2,0.1)..(-0.8,-0.03)..(-0.4,-0.11)..(0,-0.15)..(0.4,-0.11)..(0.8,-0.03)..(1.2,0.1)); draw((-1,0.04)..(-0.5,0.12)..(0,0.16)..(0.5,0.12)..(1,0.04)); draw((0,2.4)--(0,-0.15)); draw((0,-0.15)--(0,-1.75), dashed); draw((0,-1.75)--(0,-2.25)); draw(ellipse((2,0), 1, 0.9)); draw((2.03,-0.02)--(2.9,-0.4)); [/asy]",
+            "answer": "127",
+            "year": "2024"
+          },
+          "pred": "127",
+          "correct": "127",
+          "response_excerpt": "Alright, let's break this down carefully.\n\n---\n\n## **Step 1: Understanding the torus \\( T \\)**\n\nWe are told:  \n- Circle radius \\( a = 3 \\) (the \"tube\" radius).  \n- Revolve this circle around an axis in the plane of the circle that is distance \\( R = 6 \\) from the center of the circle.  \n- That means: The circle's center is at distance \\( R = 6 \\) from the axis of revolution.  \n- So the torus has major radius \\( R = 6 \\) and minor radius \\( a = 3 \\).\n\nEquation of torus in 3D (axis along \\( z \\)-axis, center of tube circle in \\( xz \\)-plane before revolving):  \nActually, standard parametrization …[truncated]",
+          "s0_pass": 0.0,
+          "skill_pass": 0.6666666666666666,
+          "gain": 0.6666666666666666
+        },
+        {
+          "id": "aime24:87",
+          "item": {
+            "id": "aime24:87",
+            "problem": "Let $N$ be the greatest four-digit positive integer with the property that whenever one of its digits is changed to $1$, the resulting number is divisible by $7$. Let $Q$ and $R$ be the quotient and remainder, respectively, when $N$ is divided by $1000$. Find $Q+R$.",
+            "answer": "699",
+            "year": "2024"
+          },
+          "pred": "699",
+          "correct": "699",
+          "response_excerpt": "Alright, let’s break this down carefully.\n\n---\n\n## **Step 1 – Understanding the problem**\n\nWe have a **four-digit positive integer** \\( N \\) with digits \\( abcd \\) (where \\( a \\) is from 1 to 9, others 0–9).\n\nThe property:  \nIf we change **any one** of its digits to 1, the resulting number is divisible by 7.\n\nLet’s denote \\( N = 1000a + 100b + 10c + d \\).\n\nChanging a digit to 1 means:\n\n1. Change \\( a \\) to 1:  \n   \\( N_a = 1000\\cdot 1 + 100b + 10c + d \\) is divisible by 7.\n\n2. Change \\( b \\) to 1:  \n   \\( N_b = 1000a + 100\\cdot 1 + 10c + d \\) divisible by 7.\n\n3. Change \\( c \\) to 1:  \n   \\( N_ …[truncated]",
+          "s0_pass": 0.3333333333333333,
+          "skill_pass": 1.0,
+          "gain": 0.6666666666666667
+        },
+        {
+          "id": "aime24:77",
+          "item": {
+            "id": "aime24:77",
+            "problem": "Find the number of triples of nonnegative integers \\((a,b,c)\\) satisfying \\(a + b + c = 300\\) and\n\\begin{equation*}\na^2b + a^2c + b^2a + b^2c + c^2a + c^2b = 6,000,000.\n\\end{equation*}",
+            "answer": "601",
+            "year": "2024"
+          },
+          "pred": "676",
+          "correct": "601",
+          "response_excerpt": "Alright, let’s go step-by-step.\n\n---\n\n## **Step 1: Restating the problem**\n\nWe have nonnegative integers \\(a, b, c\\) such that:\n\n\\[\na + b + c = 300\n\\]\n\\[\na^2 b + a^2 c + b^2 a + b^2 c + c^2 a + c^2 b = 6{,}000{,}000\n\\]\n\nWe need the number of triples \\((a, b, c)\\) satisfying both.\n\n---\n\n## **Step 2: Symmetry and simplification**\n\nThe second expression is symmetric in \\(a, b, c\\). Let’s factor it.\n\n\\[\na^2 b + a^2 c + b^2 a + b^2 c + c^2 a + c^2 b\n\\]\nGroup terms:  \n\\(a^2 b + a^2 c = a^2(b + c)\\)  \nSimilarly \\(b^2 a + b^2 c = b^2(a + c)\\)  \n\\(c^2 a + c^2 b = c^2(a + b)\\)\n\nSo the expression equals: …[truncated]",
+          "s0_pass": 0.3333333333333333,
+          "skill_pass": 0.6666666666666666,
+          "gain": 0.3333333333333333
+        },
+        {
+          "id": "aime24:66",
+          "item": {
+            "id": "aime24:66",
+            "problem": "Let $\\mathcal{B}$ be the set of rectangular boxes with surface area $54$ and volume $23$. Let $r$ be the radius of the smallest sphere that can contain each of the rectangular boxes that are elements of $\\mathcal{B}$. The value of $r^2$ can be written as $\\frac{p}{q}$, where $p$ and $q$ are relatively prime positive integers. Find $p+q$.",
+            "answer": "721",
+            "year": "2024"
+          },
+          "pred": "721",
+          "correct": "721",
+          "response_excerpt": "Alright, let's go step-by-step.\n\n---\n\n## **Step 1: Understanding the problem**\n\nWe have rectangular boxes (rectangular parallelepipeds) with:\n\n- Surface area \\( S = 2(ab + bc + ca) = 54 \\)\n- Volume \\( V = abc = 23 \\)\n\nLet \\( a, b, c > 0 \\).\n\nWe want the smallest sphere that can contain **each** rectangular box in \\( \\mathcal{B} \\).  \nThat means: for a given box, the smallest sphere containing it has diameter equal to the space diagonal of the box, because the sphere must enclose the entire box, so its center is at the center of the box and radius \\( R_{\\text{box}} = \\frac{\\sqrt{a^2 + b^2 + c^2 …[truncated]",
+          "s0_pass": 0.6666666666666666,
+          "skill_pass": 1.0,
+          "gain": 0.33333333333333337
+        }
+      ],
+      [
+        {
+          "id": "aime24:73",
+          "item": {
+            "id": "aime24:73",
+            "problem": "Eight circles of radius $34$ are sequentially tangent, and two of the circles are tangent to $AB$ and $BC$ of triangle $ABC$, respectively. $2024$ circles of radius $1$ can be arranged in the same manner. The inradius of triangle $ABC$ can be expressed as $\\frac{m}{n}$, where $m$ and $n$ are relatively prime positive integers. Find $m+n$.",
+            "answer": "197",
+            "year": "2024"
+          },
+          "pred": "1",
+          "correct": "197",
+          "response_excerpt": "Alright, let’s break this down.\n\n---\n\n## **Step 1: Understanding the setup**\n\nWe have triangle \\( ABC \\) with two sides \\( AB \\) and \\( BC \\) tangent to some circles arranged in a chain.\n\nThe problem says:\n\n> Eight circles of radius \\( 34 \\) are sequentially tangent, and two of the circles are tangent to \\( AB \\) and \\( BC \\) of triangle \\( ABC \\), respectively.\n\nThat means:  \nThere’s a chain of 8 circles, each of radius \\( 34 \\), each tangent to the next.  \nThe first circle in the chain is tangent to side \\( AB \\) of triangle \\( ABC \\).  \nThe last circle in the chain is tangent to side \\( BC  …[truncated]",
+          "s0_pass": 0.0
+        },
+        {
+          "id": "aime24:61",
+          "item": {
+            "id": "aime24:61",
+            "problem": "Let $ABC$ be a triangle inscribed in circle $\\omega$. Let the tangents to $\\omega$ at $B$ and $C$ intersect at point $D$, and let $\\overline{AD}$ intersect $\\omega$ at $P$. If $AB=5$, $BC=9$, and $AC=10$, $AP$ can be written as the form $\\frac{m}{n}$, where $m$ and $n$ are relatively prime integers. Find $m + n$.",
+            "answer": "113",
+            "year": "2024"
+          },
+          "pred": "36",
+          "correct": "113",
+          "response_excerpt": "Alright, let’s go step-by-step.\n\n---\n\n## **Step 1: Understanding the setup**\n\nWe have triangle \\( ABC \\) inscribed in circle \\( \\omega \\).  \nTangents to \\( \\omega \\) at \\( B \\) and \\( C \\) meet at \\( D \\).  \nLine \\( AD \\) meets \\( \\omega \\) again at \\( P \\).  \nGiven \\( AB = 5, BC = 9, AC = 10 \\).\n\nWe want \\( AP \\) in simplest form \\( \\frac{m}{n} \\), then \\( m+n \\).\n\n---\n\n## **Step 2: Interpret geometry**\n\n\\( D \\) is the intersection of tangents at \\( B \\) and \\( C \\), so \\( D \\) lies outside the circle, \\( DB = DC \\) in length (tangent segments from \\( D \\) to \\( B \\) and \\( C \\) equal).  \nAls …[truncated]",
+          "s0_pass": 0.0
+        },
+        {
+          "id": "aime24:81",
+          "item": {
+            "id": "aime24:81",
+            "problem": "Find the number of rectangles that can be formed inside a fixed regular dodecagon ($12$-gon) where each side of the rectangle lies on either a side or a diagonal of the dodecagon. The diagram below shows three of those rectangles.\n[asy] unitsize(0.6 inch); for(int i=0; i<360; i+=30) { dot(dir(i), 4+black); draw(dir(i)--dir(i+30)); } draw(dir(120)--dir(330)); filldraw(dir(210)--dir(240)--dir(30)--dir(60)--cycle, mediumgray, linewidth(1.5)); draw((0,0.366)--(0.366,0), linewidth(1.5)); [/asy]",
+            "answer": "315",
+            "year": "2024"
+          },
+          "pred": "8",
+          "correct": "315",
+          "response_excerpt": "Alright, let's break this down.\n\n---\n\n## **Step 1: Understanding the setup**\n\nWe have a regular dodecagon (12 vertices labeled \\( A_1, A_2, \\dots, A_{12} \\) in order).  \nEach side of the rectangle must lie on a **side or a diagonal** of the dodecagon.  \nThat means each side of the rectangle is along a chord determined by two vertices of the dodecagon.\n\nIn a regular 12-gon, chords come in different lengths depending on the number of steps between vertices along the circle.\n\n---\n\n## **Step 2: Possible chord lengths**\n\nLet the vertices be \\( A_0, A_1, \\dots, A_{11} \\) (mod 12).  \nChord \\( A_i A_j …[truncated]",
+          "s0_pass": 0.0
+        },
+        {
+          "id": "aime24:85",
+          "item": {
+            "id": "aime24:85",
+            "problem": "Let ABCDEF be a convex equilateral hexagon in which all pairs of opposite sides are parallel. The triangle whose sides are extensions of segments AB, CD, and EF has side lengths 200, 240, and 300. Find the side length of the hexagon.",
+            "answer": "080",
+            "year": "2024"
+          },
+          "pred": "0",
+          "correct": "80",
+          "response_excerpt": "Alright, let's go step-by-step.\n\n---\n\n## **Step 1: Understanding the setup**\n\nWe have a convex equilateral hexagon \\( ABCDEF \\) with all sides equal (say side length \\( s \\)), and **opposite sides are parallel**.\n\nSo:\n\\[\nAB \\parallel DE, \\quad BC \\parallel EF, \\quad CD \\parallel FA.\n\\]\nAlso \\( AB = BC = CD = DE = EF = FA = s \\).\n\nBecause opposite sides are parallel and equal, the hexagon is centrally symmetric (it is a \"parallelo-hexagon\" or affine image of a regular hexagon, but here equilateral means all sides equal, not necessarily regular — but with opposite sides parallel and equal, it is …[truncated]",
+          "s0_pass": 0.0
+        },
+        {
+          "id": "aime24:63",
+          "item": {
+            "id": "aime24:63",
+            "problem": "Define $f(x)=|| x|-\\tfrac{1}{2}|$ and $g(x)=|| x|-\\tfrac{1}{4}|$. Find the number of intersections of the graphs of \\[y=4 g(f(\\sin (2 \\pi x))) \\quad\\text{ and }\\quad x=4 g(f(\\cos (3 \\pi y))).\\]",
+            "answer": "385",
+            "year": "2024"
+          },
+          "pred": "1",
+          "correct": "385",
+          "response_excerpt": "Alright, let's break this down step by step.\n\n---\n\n## **Step 1: Understanding the functions**\n\nWe have  \n\\[\nf(t) = \\big| |t| - \\tfrac12 \\big|, \\quad g(t) = \\big| |t| - \\tfrac14 \\big|.\n\\]\n\nAlso given:\n\n\\[\ny = 4 \\, g\\big( f(\\sin(2\\pi x)) \\big),\n\\]\n\\[\nx = 4 \\, g\\big( f(\\cos(3\\pi y)) \\big).\n\\]\n\nWe want the number of intersections of these two graphs (i.e., number of \\((x,y)\\) satisfying both equations).\n\n---\n\n## **Step 2: Symmetry considerations**\n\nLet’s first analyze \\(f(\\sin(2\\pi x))\\).\n\nSince \\(|\\sin(2\\pi x)|\\) is periodic with period \\(1/2\\) in \\(x\\), and \\(f\\) is applied to \\(\\sin(2\\pi x)\\),  …[truncated]",
+          "s0_pass": 0.0
+        },
+        {
+          "id": "aime24:62",
+          "item": {
+            "id": "aime24:62",
+            "problem": "Each vertex of a regular octagon is independently colored either red or blue with equal probability. The probability that the octagon can then be rotated so that all of the blue vertices end up at positions where there were originally red vertices is $\\tfrac{m}{n}$, where $m$ and $n$ are relatively prime positive integers. What is $m+n$?",
+            "answer": "371",
+            "year": "2024"
+          },
+          "pred": "3",
+          "correct": "371",
+          "response_excerpt": "Alright, let's break this down carefully.\n\n---\n\n## **Step 1: Understanding the problem**\n\nWe have a regular octagon (8 vertices).  \nEach vertex independently red or blue with probability \\( \\frac12 \\) each.\n\nWe want the probability that **there exists a rotation** of the octagon (by some multiple of \\( 45^\\circ \\)) such that after rotation, **every blue vertex ends up at a position that originally was red**.\n\nEquivalently:  \nLet \\( R \\) = set of red vertices initially, \\( B \\) = set of blue vertices initially.  \nWe want: There exists a rotation \\( \\rho^k \\) (\\( k = 0,1,\\dots,7 \\)) such that \\( …[truncated]",
+          "s0_pass": 0.0
+        },
+        {
+          "id": "aime24:89",
+          "item": {
+            "id": "aime24:89",
+            "problem": "There is a collection of $25$ indistinguishable white chips and $25$ indistinguishable black chips. Find the number of ways to place some of these chips in the $25$ unit cells of a $5\\times5$ grid such that: \n\neach cell contains at most one chip\nall chips in the same row and all chips in the same column have the same colour\nany additional chip placed on the grid would violate one or more of the previous two conditions.",
+            "answer": "902",
+            "year": "2024"
+          },
+          "pred": "900",
+          "correct": "902",
+          "response_excerpt": "Alright, let's break this down carefully.\n\n---\n\n## **Step 1: Understanding the rules**\n\nWe have a \\( 5 \\times 5 \\) grid (25 cells).  \nWe place **some** chips (white or black) in cells, with:\n\n1. **At most one chip per cell**.\n2. **All chips in the same row have the same colour** (so each row with chips is monochromatic).\n3. **All chips in the same column have the same colour** (so each column with chips is monochromatic).\n4. **Maximality condition**: Adding any more chip would violate rule 1, 2, or 3.\n\n---\n\n### **Step 2: Interpreting rules 2 and 3 together**\n\nIf a row has chips, all chips in t …[truncated]",
+          "s0_pass": 0.3333333333333333
+        },
+        {
+          "id": "aime24:80",
+          "item": {
+            "id": "aime24:80",
+            "problem": "Let \\(b\\ge 2\\) be an integer. Call a positive integer \\(n\\) \\(b\\text-\\textit{eautiful}\\) if it has exactly two digits when expressed in base \\(b\\)  and these two digits sum to \\(\\sqrt n\\). For example, \\(81\\) is \\(13\\text-\\textit{eautiful}\\) because \\(81  = \\underline{6} \\ \\underline{3}_{13} \\) and \\(6 + 3 =  \\sqrt{81}\\). Find the least integer \\(b\\ge 2\\) for which there are more than ten \\(b\\text-\\textit{eautiful}\\) integers.",
+            "answer": "211",
+            "year": "2024"
+          },
+          "pred": "-1",
+          "correct": "211",
+          "response_excerpt": "Alright, let's break this down.\n\n---\n\n## **Step 1: Understanding the definition**\n\nA positive integer \\(n\\) is \\(b\\)-eautiful if:\n\n1. \\(n\\) has exactly two digits in base \\(b\\):  \n   That means \\(b \\le n \\le b^2 - 1\\)? Wait, careful:  \n   \"Exactly two digits in base \\(b\\)\" means \\(n\\) is written as \\(d_1 d_0\\) in base \\(b\\), with \\(d_1 \\ge 1\\) and \\(0 \\le d_0 \\le b-1\\).  \n   So \\(n = d_1 b + d_0\\), with \\(d_1 \\ge 1\\), \\(d_0 \\ge 0\\), and \\(d_1 \\le b-1\\)? No, for two digits \\(d_1\\) can be from 1 up to \\(b-1\\)? Actually, for exactly two digits, the most significant digit \\(d_1\\) satisfies \\(1 \\le …[truncated]",
+          "s0_pass": 0.3333333333333333
+        }
+      ]
+    ]
+  }
+}

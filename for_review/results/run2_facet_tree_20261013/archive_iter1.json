@@ -1,0 +1,92 @@
+[
+  {
+    "facet": "Quantity Parsing",
+    "parent": "root",
+    "hash": "c11d7dc0c8",
+    "val_delta": -0.0667,
+    "val_ci": -0.1444,
+    "n_sec": 4,
+    "slots": {
+      "Quantity Parsing": "\n\n- Restate what is asked (count / sum / max / min / value / remainder) before computing.\n\n",
+      "Case Enumeration": "\n\n- List cases in a fixed order; verify they are disjoint and exhaustive.\n\n",
+      "Computation & Verification": "\n\n- Write intermediate values; sanity-check magnitude and parity.\n\n",
+      "Final Answer": "\n\n- Report the final integer (0-999) inside `<answer>\\boxed{N}</answer>`.\n- Is the magnitude plausible? Reduce / take mod / round as required."
+    },
+    "skill": "# Competition Mathematics Reasoning Skill\n\nYou are solving AIME-style problems. Final answer: integer 0-999 in `<answer>\\boxed{N}</answer>`.\n\n## Quantity Parsing\n\n- Restate what is asked (count / sum / max / min / value / remainder) before computing.\n\n## Case Enumeration\n\n- List cases in a fixed order; verify they are disjoint and exhaustive.\n\n## Computation & Verification\n\n- Write intermediate values; sanity-check magnitude and parity.\n\n## Final Answer\n\n- Report the final integer (0-999) inside `<answer>\\boxed{N}</answer>`.\n- Is the magnitude plausible? Reduce / take mod / round as required."
+  },
+  {
+    "facet": "Case Enumeration",
+    "parent": "root",
+    "hash": "c11d7dc0c8",
+    "val_delta": -0.0667,
+    "val_ci": -0.1444,
+    "n_sec": 4,
+    "slots": {
+      "Quantity Parsing": "\n\n- Restate what is asked (count / sum / max / min / value / remainder) before computing.\n\n",
+      "Case Enumeration": "\n\n- List cases in a fixed order; verify they are disjoint and exhaustive.\n\n",
+      "Computation & Verification": "\n\n- Write intermediate values; sanity-check magnitude and parity.\n\n",
+      "Final Answer": "\n\n- Report the final integer (0-999) inside `<answer>\\boxed{N}</answer>`.\n- Is the magnitude plausible? Reduce / take mod / round as required."
+    },
+    "skill": "# Competition Mathematics Reasoning Skill\n\nYou are solving AIME-style problems. Final answer: integer 0-999 in `<answer>\\boxed{N}</answer>`.\n\n## Quantity Parsing\n\n- Restate what is asked (count / sum / max / min / value / remainder) before computing.\n\n## Case Enumeration\n\n- List cases in a fixed order; verify they are disjoint and exhaustive.\n\n## Computation & Verification\n\n- Write intermediate values; sanity-check magnitude and parity.\n\n## Final Answer\n\n- Report the final integer (0-999) inside `<answer>\\boxed{N}</answer>`.\n- Is the magnitude plausible? Reduce / take mod / round as required."
+  },
+  {
+    "facet": "Computation & Verification",
+    "parent": "root",
+    "hash": "c11d7dc0c8",
+    "val_delta": -0.0667,
+    "val_ci": -0.1444,
+    "n_sec": 4,
+    "slots": {
+      "Quantity Parsing": "\n\n- Restate what is asked (count / sum / max / min / value / remainder) before computing.\n\n",
+      "Case Enumeration": "\n\n- List cases in a fixed order; verify they are disjoint and exhaustive.\n\n",
+      "Computation & Verification": "\n\n- Write intermediate values; sanity-check magnitude and parity.\n\n",
+      "Final Answer": "\n\n- Report the final integer (0-999) inside `<answer>\\boxed{N}</answer>`.\n- Is the magnitude plausible? Reduce / take mod / round as required."
+    },
+    "skill": "# Competition Mathematics Reasoning Skill\n\nYou are solving AIME-style problems. Final answer: integer 0-999 in `<answer>\\boxed{N}</answer>`.\n\n## Quantity Parsing\n\n- Restate what is asked (count / sum / max / min / value / remainder) before computing.\n\n## Case Enumeration\n\n- List cases in a fixed order; verify they are disjoint and exhaustive.\n\n## Computation & Verification\n\n- Write intermediate values; sanity-check magnitude and parity.\n\n## Final Answer\n\n- Report the final integer (0-999) inside `<answer>\\boxed{N}</answer>`.\n- Is the magnitude plausible? Reduce / take mod / round as required."
+  },
+  {
+    "facet": "Quantity Parsing",
+    "parent": "Quantity Parsing",
+    "hash": "52033fb75c",
+    "val_delta": -0.0444,
+    "val_ci": -0.1333,
+    "n_sec": 4,
+    "slots": {
+      "Quantity Parsing": "\n- Restate what is asked (count / sum / max / min / value / remainder) before computing.\n- When the problem asks for the number of intersections, solutions, or elements, verify that the final answer is a nonnegative integer count, not a coordinate, parameter, or expression.\n",
+      "Case Enumeration": "\n\n- List cases in a fixed order; verify they are disjoint and exhaustive.\n\n",
+      "Computation & Verification": "\n\n- Write intermediate values; sanity-check magnitude and parity.\n\n",
+      "Final Answer": "\n\n- Report the final integer (0-999) inside `<answer>\\boxed{N}</answer>`.\n- Is the magnitude plausible? Reduce / take mod / round as required."
+    },
+    "skill": "# Competition Mathematics Reasoning Skill\n\nYou are solving AIME-style problems. Final answer: integer 0-999 in `<answer>\\boxed{N}</answer>`.\n\n## Quantity Parsing\n- Restate what is asked (count / sum / max / min / value / remainder) before computing.\n- When the problem asks for the number of intersections, solutions, or elements, verify that the final answer is a nonnegative integer count, not a coordinate, parameter, or expression.\n## Case Enumeration\n\n- List cases in a fixed order; verify they are disjoint and exhaustive.\n\n## Computation & Verification\n\n- Write intermediate values; sanity-check magnitude and parity.\n\n## Final Answer\n\n- Report the final integer (0-999) inside `<answer>\\boxed{N}</answer>`.\n- Is the magnitude plausible? Reduce / take mod / round as required."
+  },
+  {
+    "facet": "Case Enumeration",
+    "parent": "Case Enumeration",
+    "hash": "34cc4928a6",
+    "val_delta": -0.0889,
+    "val_ci": -0.1667,
+    "n_sec": 4,
+    "slots": {
+      "Quantity Parsing": "\n\n- Restate what is asked (count / sum / max / min / value / remainder) before computing.\n\n",
+      "Case Enumeration": "\n- List cases in a fixed order; verify they are disjoint and exhaustive. For configurations defined by row/column counts, consider the possibility of independent row and column constraints (like monochromatic rows/columns) and systematically enumerate the distribution of colors across them.\n",
+      "Computation & Verification": "\n\n- Write intermediate values; sanity-check magnitude and parity.\n\n",
+      "Final Answer": "\n\n- Report the final integer (0-999) inside `<answer>\\boxed{N}</answer>`.\n- Is the magnitude plausible? Reduce / take mod / round as required."
+    },
+    "skill": "# Competition Mathematics Reasoning Skill\n\nYou are solving AIME-style problems. Final answer: integer 0-999 in `<answer>\\boxed{N}</answer>`.\n\n## Quantity Parsing\n\n- Restate what is asked (count / sum / max / min / value / remainder) before computing.\n\n## Case Enumeration\n- List cases in a fixed order; verify they are disjoint and exhaustive. For configurations defined by row/column counts, consider the possibility of independent row and column constraints (like monochromatic rows/columns) and systematically enumerate the distribution of colors across them.\n## Computation & Verification\n\n- Write intermediate values; sanity-check magnitude and parity.\n\n## Final Answer\n\n- Report the final integer (0-999) inside `<answer>\\boxed{N}</answer>`.\n- Is the magnitude plausible? Reduce / take mod / round as required."
+  },
+  {
+    "facet": "Computation & Verification",
+    "parent": "Computation & Verification",
+    "hash": "49e3081698",
+    "val_delta": -0.0778,
+    "val_ci": -0.1667,
+    "n_sec": 4,
+    "slots": {
+      "Quantity Parsing": "\n\n- Restate what is asked (count / sum / max / min / value / remainder) before computing.\n\n",
+      "Case Enumeration": "\n\n- List cases in a fixed order; verify they are disjoint and exhaustive.\n\n",
+      "Computation & Verification": "\n- Write intermediate values; sanity-check magnitude and parity.\n- **Before finalizing the answer, verify the numerical result by plugging back into a key constraint or performing a quick independent check (e.g., using a known formula, symmetry, or dimensional analysis).**\n",
+      "Final Answer": "\n\n- Report the final integer (0-999) inside `<answer>\\boxed{N}</answer>`.\n- Is the magnitude plausible? Reduce / take mod / round as required."
+    },
+    "skill": "# Competition Mathematics Reasoning Skill\n\nYou are solving AIME-style problems. Final answer: integer 0-999 in `<answer>\\boxed{N}</answer>`.\n\n## Quantity Parsing\n\n- Restate what is asked (count / sum / max / min / value / remainder) before computing.\n\n## Case Enumeration\n\n- List cases in a fixed order; verify they are disjoint and exhaustive.\n\n## Computation & Verification\n- Write intermediate values; sanity-check magnitude and parity.\n- **Before finalizing the answer, verify the numerical result by plugging back into a key constraint or performing a quick independent check (e.g., using a known formula, symmetry, or dimensional analysis).**\n## Final Answer\n\n- Report the final integer (0-999) inside `<answer>\\boxed{N}</answer>`.\n- Is the magnitude plausible? Reduce / take mod / round as required."
+  }
+]

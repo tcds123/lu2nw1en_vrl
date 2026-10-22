@@ -1,0 +1,153 @@
+{
+  "stats": {
+    "baseline_mean": 8.17,
+    "random_mean": 8.122,
+    "curated_mean": 8.284,
+    "self_debug_mean": 0.0,
+    "selfdebug_vs_baseline_p": 0.004255083512153072,
+    "selfdebug_vs_curated_p": 0.003613043612044301,
+    "curated_vs_baseline_p": 0.46832058717229313,
+    "selfdebug_winrate_vs_baseline": 0.0,
+    "selfdebug_winrate_vs_curated": 0.0,
+    "avg_self_debug_rounds": 0,
+    "tasks_with_fixes": 0,
+    "n_samples": 5
+  },
+  "results": [
+    {
+      "task": "# Given a list of lists of strings of numbers, write a function to sort each sublist numerically and",
+      "baseline_score": 9.64,
+      "random_score": 9.55,
+      "curated_score": 9.19,
+      "self_debug_score": 0.0,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": -1.0,
+      "curated_skills": [
+        "G351",
+        "G311",
+        "G252",
+        "G261",
+        "G156"
+      ],
+      "random_skills": [
+        "G200",
+        "G160",
+        "G84",
+        "G142",
+        "G56"
+      ],
+      "self_debug_n_rounds": 0,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of lists of strings, sort each sublist and then sort the entire list of lists by the ",
+      "baseline_score": 9.64,
+      "random_score": 9.64,
+      "curated_score": 9.85,
+      "self_debug_score": 0.0,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": -1.0,
+      "curated_skills": [
+        "G114",
+        "G216",
+        "G33",
+        "G311",
+        "G272"
+      ],
+      "random_skills": [
+        "G86",
+        "G353",
+        "G135",
+        "G375",
+        "G297"
+      ],
+      "self_debug_n_rounds": 0,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of strings, remove all characters from each string that are present in their correspo",
+      "baseline_score": 9.64,
+      "random_score": 9.34,
+      "curated_score": 9.85,
+      "self_debug_score": 0.0,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": -1.0,
+      "curated_skills": [
+        "G309",
+        "G314",
+        "G272",
+        "G258",
+        "G80"
+      ],
+      "random_skills": [
+        "G109",
+        "G108",
+        "G138",
+        "G199",
+        "G205"
+      ],
+      "self_debug_n_rounds": 0,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of integers, write a function to find the sum of the first 10 decagonal numbers for e",
+      "baseline_score": 2.59,
+      "random_score": 2.29,
+      "curated_score": 2.8899999999999997,
+      "self_debug_score": 0.0,
+      "baseline_pass_rate": 0.25,
+      "random_pass_rate": 0.25,
+      "curated_pass_rate": 0.25,
+      "self_debug_pass_rate": -1.0,
+      "curated_skills": [
+        "G44",
+        "G311",
+        "G351",
+        "G234",
+        "G112"
+      ],
+      "random_skills": [
+        "G334",
+        "G381",
+        "G106",
+        "G360",
+        "G19"
+      ],
+      "self_debug_n_rounds": 0,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Write a function that takes in a list and a list of integers representing the lengths of parts to ",
+      "baseline_score": 9.34,
+      "random_score": 9.79,
+      "curated_score": 9.64,
+      "self_debug_score": 0.0,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": -1.0,
+      "curated_skills": [
+        "G79",
+        "G294",
+        "G234",
+        "G162",
+        "G199"
+      ],
+      "random_skills": [
+        "G74",
+        "G43",
+        "G68",
+        "G353",
+        "G295"
+      ],
+      "self_debug_n_rounds": 0,
+      "self_debug_had_fix": false
+    }
+  ]
+}

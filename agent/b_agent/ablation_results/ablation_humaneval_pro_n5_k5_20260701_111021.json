@@ -1,0 +1,153 @@
+{
+  "stats": {
+    "baseline_mean": 6.115333333333334,
+    "random_mean": 6.678,
+    "curated_mean": 6.7620000000000005,
+    "self_debug_mean": 9.346666666666668,
+    "selfdebug_vs_baseline_p": 0.09677396314784974,
+    "selfdebug_vs_curated_p": 0.2152219727800972,
+    "curated_vs_baseline_p": 0.23751397246143977,
+    "selfdebug_winrate_vs_baseline": 0.8,
+    "selfdebug_winrate_vs_curated": 0.6,
+    "avg_self_debug_rounds": 1.6,
+    "tasks_with_fixes": 3,
+    "n_samples": 5
+  },
+  "results": [
+    {
+      "task": "# Given a list of integers, find the greatest common divisor (GCD) of all the integers in the list. ",
+      "baseline_score": 7.156666666666666,
+      "random_score": 9.76,
+      "curated_score": 9.55,
+      "self_debug_score": 8.473333333333334,
+      "baseline_pass_rate": 0.6666666666666666,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 0.8333333333333334,
+      "curated_skills": [
+        "G156",
+        "G385",
+        "G351",
+        "G112",
+        "G48"
+      ],
+      "random_skills": [
+        "G16",
+        "G184",
+        "G179",
+        "G160",
+        "G232"
+      ],
+      "self_debug_n_rounds": 2,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of branches from a tree, where each branch is represented as an array of non-negative",
+      "baseline_score": 2.64,
+      "random_score": 2.25,
+      "curated_score": 2.64,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G79",
+        "G199",
+        "G272",
+        "G351",
+        "G43"
+      ],
+      "random_skills": [
+        "G13",
+        "G103",
+        "G66",
+        "G109",
+        "G33"
+      ],
+      "self_debug_n_rounds": 2,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of lists containing any Python values, filter out all non-integer values from each su",
+      "baseline_score": 2.64,
+      "random_score": 2.34,
+      "curated_score": 2.64,
+      "self_debug_score": 9.34,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G335",
+        "G39",
+        "G12",
+        "G263"
+      ],
+      "random_skills": [
+        "G160",
+        "G232",
+        "G39",
+        "G47",
+        "G334"
+      ],
+      "self_debug_n_rounds": 2,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "# Given a list of lists of positive integers, return a sorted list of all elements that do not have ",
+      "baseline_score": 8.5,
+      "random_score": 9.55,
+      "curated_score": 9.34,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G112",
+        "G335",
+        "G12",
+        "G43",
+        "G199"
+      ],
+      "random_skills": [
+        "G217",
+        "G164",
+        "G53",
+        "G390",
+        "G117"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "# Given a list of strings, flip the case of each character in each string and then concatenate all t",
+      "baseline_score": 9.64,
+      "random_score": 9.49,
+      "curated_score": 9.64,
+      "self_debug_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G199",
+        "G44",
+        "G12",
+        "G263",
+        "G302"
+      ],
+      "random_skills": [
+        "G84",
+        "G40",
+        "G182",
+        "G277",
+        "G392"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    }
+  ]
+}

@@ -129,7 +129,7 @@ class ClaudeChat:
 
 def main():
     # 配置API密钥（替换为有效密钥）
-    API_KEY = "msk-b6d97dcc6c2213ebd83ca3e9292f25a02b6cf5af3be7ec42e1b20b2630defcc5"
+    API_KEY = os.environ.get("CLAUDE_API_KEY", "")
     
     # 初始化客户端
     claude = ClaudeChat(api_key=API_KEY)

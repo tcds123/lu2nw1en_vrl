@@ -1,0 +1,1208 @@
+{
+  "n": 100,
+  "top_k": 5,
+  "seed": 42,
+  "completed": 80,
+  "results": [
+    {
+      "idx": 0,
+      "task": "You are tasked with implementing an efficient algorithm to compute the nth Fibonacci number. To opti",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G111",
+        "G48",
+        "G154",
+        "G361",
+        "G4"
+      ]
+    },
+    {
+      "idx": 1,
+      "task": "You are given a list of dictionaries representing sales data for various products. Each dictionary c",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G111",
+        "G199",
+        "G48",
+        "G351"
+      ]
+    },
+    {
+      "idx": 2,
+      "task": "You are given a list of integers and a target integer. Your task is to implement a function that rem",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G48",
+        "G263",
+        "G272",
+        "G199",
+        "G261"
+      ]
+    },
+    {
+      "idx": 3,
+      "task": "You are given a list of integers. Your task is to implement a function `filter_odd_numbers` that pro",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G48",
+        "G351",
+        "G193",
+        "G236"
+      ]
+    },
+    {
+      "idx": 4,
+      "task": "You are given a string `s`. Your task is to determine if it is a palindrome, considering only alphan",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G374",
+        "G2",
+        "G147",
+        "G340"
+      ]
+    },
+    {
+      "idx": 5,
+      "task": "You are given a dictionary `data` where each key is an integer and each value is a list of integers.",
+      "baseline_pass_rate": 0.1,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.1,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G48",
+        "G286",
+        "G307",
+        "G351"
+      ]
+    },
+    {
+      "idx": 6,
+      "task": "You are given a list of strings. Your task is to write a Python function that returns a list of tupl",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G112",
+        "G236",
+        "G351",
+        "G156",
+        "G272"
+      ]
+    },
+    {
+      "idx": 7,
+      "task": "You are given a list of integers `numbers`. Your task is to implement a function `calculate_average(",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G112",
+        "G351",
+        "G236",
+        "G272",
+        "G156"
+      ]
+    },
+    {
+      "idx": 8,
+      "task": "You are given a list of integers. Your task is to write a function that returns a new list containin",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G4",
+        "G272",
+        "G374",
+        "G48",
+        "G101"
+      ]
+    },
+    {
+      "idx": 9,
+      "task": "You are given a valid IPv4 address as a string. Your task is to determine the range of IPv4 addresse",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G112",
+        "G18",
+        "G272",
+        "G80",
+        "G335"
+      ]
+    },
+    {
+      "idx": 10,
+      "task": "Implement a class `Car` with the following specifications:\n\n- **Attributes:**\n  - `make`: A string r",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G80",
+        "G40",
+        "G101",
+        "G365",
+        "G377"
+      ]
+    },
+    {
+      "idx": 11,
+      "task": "You are given a list of integers. Your task is to write a Python function `filter_non_prime` that pr",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G48",
+        "G252",
+        "G351",
+        "G193"
+      ]
+    },
+    {
+      "idx": 12,
+      "task": "You are given two lists of integers. Your task is to implement a function `find_intersection` that c",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.9,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G48",
+        "G311",
+        "G351",
+        "G1"
+      ]
+    },
+    {
+      "idx": 13,
+      "task": "You are given a string `text`. Your task is to implement a function `word_count(text)` that returns ",
+      "baseline_pass_rate": 0.2,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.2,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G112",
+        "G236",
+        "G351",
+        "G156",
+        "G398"
+      ]
+    },
+    {
+      "idx": 14,
+      "task": "You are tasked with implementing a function `filter_vowels(sentence)` that processes a given string ",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G112",
+        "G93",
+        "G144",
+        "G263",
+        "G209"
+      ]
+    },
+    {
+      "idx": 15,
+      "task": "You are given a list of intervals, where each interval is represented as a list of two integers `[st",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G310",
+        "G196",
+        "G2",
+        "G374"
+      ]
+    },
+    {
+      "idx": 16,
+      "task": "You are given a binary tree. Your task is to perform a level order traversal of the tree and return ",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G351",
+        "G193",
+        "G196",
+        "G263"
+      ]
+    },
+    {
+      "idx": 17,
+      "task": "You are given a positive integer `n`. Your task is to write a function `find_largest_prime_factor(n)",
+      "baseline_pass_rate": 0.9,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.9,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G48",
+        "G351",
+        "G193",
+        "G236"
+      ]
+    },
+    {
+      "idx": 18,
+      "task": "You are given a list of file names representing patient medical records. Each file name follows the ",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G48",
+        "G68",
+        "G266",
+        "G351"
+      ]
+    },
+    {
+      "idx": 19,
+      "task": "You are given an array of integers `nums` and an integer `k`. Your task is to find the maximum value",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G351",
+        "G398",
+        "G236",
+        "G156"
+      ]
+    },
+    {
+      "idx": 20,
+      "task": "You are given a list of integers. Your task is to implement a function `find_max_difference(numbers)",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G83",
+        "G351",
+        "G236",
+        "G272",
+        "G156"
+      ]
+    },
+    {
+      "idx": 21,
+      "task": "You are tasked with implementing a Python class `Employee` that models an employee's details and sal",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G40",
+        "G93",
+        "G112",
+        "G166",
+        "G342"
+      ]
+    },
+    {
+      "idx": 22,
+      "task": "You are tasked with implementing a function `generate_fibonacci_sequence(n)` that returns a list of ",
+      "baseline_pass_rate": 0.9,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G112",
+        "G351",
+        "G68",
+        "G144",
+        "G175"
+      ]
+    },
+    {
+      "idx": 23,
+      "task": "You are tasked with implementing a queue-based game management system using a linked list. The syste",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G391",
+        "G166",
+        "G154",
+        "G272",
+        "G18"
+      ]
+    },
+    {
+      "idx": 24,
+      "task": "You are given a dictionary `data_dict` representing various attributes of a location. The dictionary",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G197",
+        "G286",
+        "G351",
+        "G193"
+      ]
+    },
+    {
+      "idx": 25,
+      "task": "You are given a list of integers `numbers` and a target integer `target`. Your task is to implement ",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G48",
+        "G236",
+        "G351",
+        "G156",
+        "G272"
+      ]
+    },
+    {
+      "idx": 26,
+      "task": "You are given a list of integers. Your task is to identify and return a set of integers that appear ",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G236",
+        "G351",
+        "G156",
+        "G263",
+        "G272"
+      ]
+    },
+    {
+      "idx": 27,
+      "task": "You are given a string `text` which may contain alphabetic characters from any language, numbers, pu",
+      "baseline_pass_rate": 0.1,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.2,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G29",
+        "G252",
+        "G307",
+        "G351",
+        "G144"
+      ]
+    },
+    {
+      "idx": 28,
+      "task": "You are given a list of integers `nums` of length `n` containing all the numbers from `0` to `n` exc",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G199",
+        "G263",
+        "G111",
+        "G261"
+      ]
+    },
+    {
+      "idx": 29,
+      "task": "You are tasked with implementing a simple banking system. Your program should support the following ",
+      "baseline_pass_rate": 0.5,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G93",
+        "G378",
+        "G166",
+        "G230",
+        "G263"
+      ]
+    },
+    {
+      "idx": 30,
+      "task": "You are given a binary search tree (BST) with unique node values and two distinct integers `val1` an",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G351",
+        "G193",
+        "G236",
+        "G93",
+        "G144"
+      ]
+    },
+    {
+      "idx": 31,
+      "task": "You are given a string `input_string` consisting of lowercase English letters. Your task is to imple",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G384",
+        "G272",
+        "G80",
+        "G101",
+        "G311"
+      ]
+    },
+    {
+      "idx": 32,
+      "task": "You are given two sets of integers, `set_a` and `set_b`. Your task is to implement a function `find_",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G48",
+        "G351",
+        "G193",
+        "G236"
+      ]
+    },
+    {
+      "idx": 33,
+      "task": "You are given two strings, `main_string` and `substring`. Your task is to implement a function `find",
+      "baseline_pass_rate": 0.9,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G48",
+        "G351",
+        "G193",
+        "G236"
+      ]
+    },
+    {
+      "idx": 34,
+      "task": "You are given a string `sentence` consisting of words separated by spaces. Your task is to write a f",
+      "baseline_pass_rate": 0.4,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G112",
+        "G351",
+        "G236",
+        "G272",
+        "G384"
+      ]
+    },
+    {
+      "idx": 35,
+      "task": "Given a list of integers, your task is to write a Python function that returns a new list containing",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G311",
+        "G272",
+        "G1",
+        "G48",
+        "G112"
+      ]
+    },
+    {
+      "idx": 36,
+      "task": "You are given a nested dictionary where each value can either be an integer or another dictionary. Y",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.2,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G311",
+        "G18",
+        "G4",
+        "G138",
+        "G86"
+      ]
+    },
+    {
+      "idx": 37,
+      "task": "You are tasked with refactoring a set of arithmetic operations into a more object-oriented design. I",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G40",
+        "G93",
+        "G286",
+        "G144",
+        "G154"
+      ]
+    },
+    {
+      "idx": 38,
+      "task": "You are given a string `s`. Your task is to implement a function `find_longest_palindrome_substring`",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G112",
+        "G351",
+        "G236",
+        "G156",
+        "G311"
+      ]
+    },
+    {
+      "idx": 39,
+      "task": "You are given a string `s`. Your task is to write a function that processes this string by removing ",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G351",
+        "G193",
+        "G236",
+        "G144",
+        "G272"
+      ]
+    },
+    {
+      "idx": 40,
+      "task": "You are given a string `text` representing a list of items separated by commas. Each item may have o",
+      "baseline_pass_rate": 0.9,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G199",
+        "G263",
+        "G333",
+        "G261"
+      ]
+    },
+    {
+      "idx": 41,
+      "task": "You are given a string `s` consisting of uppercase and lowercase English letters, digits, and punctu",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G48",
+        "G351",
+        "G193",
+        "G236"
+      ]
+    },
+    {
+      "idx": 42,
+      "task": "You are tasked with implementing the merge sort algorithm. Write a function `merge_sort` that takes ",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G299",
+        "G191",
+        "G93",
+        "G144",
+        "G263"
+      ]
+    },
+    {
+      "idx": 43,
+      "task": "You are tasked with implementing a simple inventory management system using a Python class named `In",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G166",
+        "G93",
+        "G13",
+        "G40",
+        "G378"
+      ]
+    },
+    {
+      "idx": 44,
+      "task": "You are given a binary tree and a target integer value. Your task is to determine if the target valu",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G93",
+        "G272",
+        "G48",
+        "G340",
+        "G40"
+      ]
+    },
+    {
+      "idx": 45,
+      "task": "You are given a list of integers. Your task is to implement a function `find_duplicates` that identi",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G236",
+        "G351",
+        "G156",
+        "G272",
+        "G48"
+      ]
+    },
+    {
+      "idx": 46,
+      "task": "You are tasked with implementing a function to generate the Fibonacci series. Given a positive integ",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G391",
+        "G263",
+        "G199",
+        "G261",
+        "G48"
+      ]
+    },
+    {
+      "idx": 47,
+      "task": "You are given a list of file paths and a dictionary mapping these paths to their expected SHA-256 ha",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G193",
+        "G236",
+        "G293",
+        "G385"
+      ]
+    },
+    {
+      "idx": 48,
+      "task": "You are given a list containing three distinct integers. Your task is to determine and return the in",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G40",
+        "G351",
+        "G398",
+        "G18",
+        "G193"
+      ]
+    },
+    {
+      "idx": 49,
+      "task": "You are tasked with implementing a `Calculator` class in Python that supports basic arithmetic opera",
+      "baseline_pass_rate": 0.9,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.9,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G112",
+        "G40",
+        "G93",
+        "G217",
+        "G351"
+      ]
+    },
+    {
+      "idx": 50,
+      "task": "You are given a dictionary `person_info` where each key is a string representing a person's name and",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G48",
+        "G286",
+        "G351",
+        "G193"
+      ]
+    },
+    {
+      "idx": 51,
+      "task": "You are given a list of strings `strings` and a target string `target`. Your task is to implement a ",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G48",
+        "G236",
+        "G351",
+        "G156",
+        "G272"
+      ]
+    },
+    {
+      "idx": 52,
+      "task": "You are given a list of integers. Your task is to write a Python function that processes this list a",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G4",
+        "G272",
+        "G184",
+        "G286",
+        "G367"
+      ]
+    },
+    {
+      "idx": 53,
+      "task": "You are given a list of integers. Your task is to write a function `get_even_indices` that extracts ",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G351",
+        "G272",
+        "G48",
+        "G193",
+        "G236"
+      ]
+    },
+    {
+      "idx": 54,
+      "task": "You are given a list of integers. Your task is to implement a function `find_max` that returns the m",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G112",
+        "G199",
+        "G79",
+        "G351",
+        "G236"
+      ]
+    },
+    {
+      "idx": 55,
+      "task": "You are given a task to enhance a Python function by adding a feature to check if a number is a prim",
+      "baseline_pass_rate": 0.9,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G351",
+        "G193",
+        "G236",
+        "G311",
+        "G144"
+      ]
+    },
+    {
+      "idx": 56,
+      "task": "You are given a list of integers `nums`. Your task is to implement a function `sum_of_squares` that ",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G112",
+        "G351",
+        "G236",
+        "G272",
+        "G156"
+      ]
+    },
+    {
+      "idx": 57,
+      "task": "You are tasked with implementing a `Calculator` class that supports basic arithmetic operations: add",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.9,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G40",
+        "G93",
+        "G217",
+        "G112",
+        "G377"
+      ]
+    },
+    {
+      "idx": 58,
+      "task": "Implement a class `LinkedList` that represents a singly linked list. The class should support the fo",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.6,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G112",
+        "G40",
+        "G183",
+        "G144",
+        "G138"
+      ]
+    },
+    {
+      "idx": 59,
+      "task": "You are given a string `s`. Your task is to find the length of the longest palindromic substring in ",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G112",
+        "G351",
+        "G398",
+        "G193"
+      ]
+    },
+    {
+      "idx": 60,
+      "task": "You are given a string `text` consisting of multiple lines separated by the newline character `\\n`. ",
+      "baseline_pass_rate": 0.3,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.8,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G48",
+        "G351",
+        "G193",
+        "G236"
+      ]
+    },
+    {
+      "idx": 61,
+      "task": "You are tasked with developing a RESTful API using the Flask framework. The API should compute the s",
+      "baseline_pass_rate": -3.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": -3.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G93",
+        "G263",
+        "G200",
+        "G228",
+        "G261"
+      ]
+    },
+    {
+      "idx": 62,
+      "task": "You are tasked with implementing a function to determine if a given string is a valid IPv4 address. ",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G80",
+        "G48",
+        "G101",
+        "G391",
+        "G1"
+      ]
+    },
+    {
+      "idx": 63,
+      "task": "You are given a string `text`. Your task is to implement a function `word_frequencies(text)` that re",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.2,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G112",
+        "G80",
+        "G351",
+        "G236",
+        "G272"
+      ]
+    },
+    {
+      "idx": 64,
+      "task": "You are given a dictionary `subject_scores` where each key is a string representing a subject and ea",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G199",
+        "G48",
+        "G286",
+        "G307"
+      ]
+    },
+    {
+      "idx": 65,
+      "task": "You are given a list of dictionaries where each dictionary may contain nested dictionaries of arbitr",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G351",
+        "G236",
+        "G311",
+        "G272",
+        "G156"
+      ]
+    },
+    {
+      "idx": 66,
+      "task": "You are given a list of integers, `nums`, and two integers, `k` and `x`. Your task is to write a Pyt",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G351",
+        "G398",
+        "G193",
+        "G236"
+      ]
+    },
+    {
+      "idx": 67,
+      "task": "You are given a string `expression` consisting of characters '(', ')', '{', '}', '[' and ']'. Your t",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G351",
+        "G398",
+        "G236",
+        "G93"
+      ]
+    },
+    {
+      "idx": 68,
+      "task": "You are given two lists of integers, `list1` and `list2`. Your task is to write a Python function th",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G48",
+        "G351",
+        "G193",
+        "G236"
+      ]
+    },
+    {
+      "idx": 69,
+      "task": "You are given a binary search tree (BST) where each node contains a unique integer value. Your task ",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G374",
+        "G83",
+        "G348",
+        "G35",
+        "G351"
+      ]
+    },
+    {
+      "idx": 70,
+      "task": "You are given a list of integers. Your task is to implement the bubble sort algorithm to sort the li",
+      "baseline_pass_rate": 0.4,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.4,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G112",
+        "G351",
+        "G398",
+        "G68"
+      ]
+    },
+    {
+      "idx": 71,
+      "task": "You are given a list of `n` strings `words`. Your task is to implement a function `group_anagrams(wo",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G48",
+        "G311",
+        "G351",
+        "G1"
+      ]
+    },
+    {
+      "idx": 72,
+      "task": "You are given a string `s`. Your task is to determine if it is a palindrome, disregarding spaces, pu",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G93",
+        "G272",
+        "G340",
+        "G310",
+        "G351"
+      ]
+    },
+    {
+      "idx": 73,
+      "task": "You are given a nested dictionary `data_dict` in Python. Your task is to write a function that flatt",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G112",
+        "G351",
+        "G236",
+        "G156",
+        "G311"
+      ]
+    },
+    {
+      "idx": 74,
+      "task": "You are given a list of tuples, where each tuple consists of a movie title (a string) and its rating",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G48",
+        "G272",
+        "G286",
+        "G307",
+        "G351"
+      ]
+    },
+    {
+      "idx": 75,
+      "task": "You are tasked with implementing a `BankAccount` class in Python that simulates basic banking operat",
+      "baseline_pass_rate": 0.1,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.3,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G112",
+        "G40",
+        "G93",
+        "G217",
+        "G183"
+      ]
+    },
+    {
+      "idx": 76,
+      "task": "You are given two strings `str1` and `str2`. Your task is to determine the length of the longest com",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G193",
+        "G272",
+        "G196",
+        "G367",
+        "G48"
+      ]
+    },
+    {
+      "idx": 77,
+      "task": "You are tasked with creating a function `generate_multiplication_table` that constructs a multiplica",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G112",
+        "G18",
+        "G80",
+        "G111",
+        "G40"
+      ]
+    },
+    {
+      "idx": 78,
+      "task": "Implement the `merge_sort` function to sort an array of integers in ascending order. The function sh",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G156",
+        "G48",
+        "G236",
+        "G293",
+        "G209"
+      ]
+    },
+    {
+      "idx": 79,
+      "task": "You are given two integers, `start` and `end`. Your task is to write a Python function that returns ",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G48",
+        "G351",
+        "G193",
+        "G236"
+      ]
+    }
+  ]
+}

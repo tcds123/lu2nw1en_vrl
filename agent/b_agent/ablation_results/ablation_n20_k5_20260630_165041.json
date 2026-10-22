@@ -1,0 +1,474 @@
+{
+  "stats": {
+    "baseline_mean": 5.574999999999999,
+    "random_mean": 5.141,
+    "curated_mean": 5.2675,
+    "curated_vs_baseline_p": 0.38538197271628494,
+    "curated_vs_random_p": 0.4958823449479449,
+    "curated_winrate_vs_baseline": 0.35,
+    "curated_winrate_vs_random": 0.45,
+    "n_samples": 20
+  },
+  "results": [
+    {
+      "task": "You are tasked with implementing an efficient algorithm to compute the nth Fibonacci number. To opti",
+      "baseline_score": 9.49,
+      "random_score": 9.64,
+      "curated_score": 9.25,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "curated_skills": [
+        "G48",
+        "G111",
+        "G4",
+        "G101",
+        "G361"
+      ],
+      "random_skills": [
+        "G106",
+        "G360",
+        "G19",
+        "G74",
+        "G43"
+      ]
+    },
+    {
+      "task": "You are given a list of dictionaries representing sales data for various products. Each dictionary c",
+      "baseline_score": 0.9899999999999999,
+      "random_score": 2.55,
+      "curated_score": 0.66,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_skills": [
+        "G272",
+        "G351",
+        "G48",
+        "G199",
+        "G111"
+      ],
+      "random_skills": [
+        "G68",
+        "G353",
+        "G295",
+        "G2",
+        "G308"
+      ]
+    },
+    {
+      "task": "You are given a list of integers and a target integer. Your task is to implement a function that rem",
+      "baseline_score": 2.49,
+      "random_score": 2.4,
+      "curated_score": 2.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_skills": [
+        "G48",
+        "G263",
+        "G272",
+        "G351",
+        "G199"
+      ],
+      "random_skills": [
+        "G373",
+        "G227",
+        "G40",
+        "G94",
+        "G17"
+      ]
+    },
+    {
+      "task": "You are given a list of integers. Your task is to implement a function `filter_odd_numbers` that pro",
+      "baseline_score": 9.64,
+      "random_score": 9.25,
+      "curated_score": 9.34,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "curated_skills": [
+        "G272",
+        "G351",
+        "G48",
+        "G101",
+        "G4"
+      ],
+      "random_skills": [
+        "G66",
+        "G297",
+        "G256",
+        "G227",
+        "G168"
+      ]
+    },
+    {
+      "task": "You are given a string `s`. Your task is to determine if it is a palindrome, considering only alphan",
+      "baseline_score": 9.34,
+      "random_score": 9.25,
+      "curated_score": 9.34,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "curated_skills": [
+        "G272",
+        "G314",
+        "G374",
+        "G2",
+        "G168"
+      ],
+      "random_skills": [
+        "G198",
+        "G96",
+        "G254",
+        "G142",
+        "G138"
+      ]
+    },
+    {
+      "task": "You are given a dictionary `data` where each key is an integer and each value is a list of integers.",
+      "baseline_score": 0.94,
+      "random_score": 1.15,
+      "curated_score": 0.94,
+      "baseline_pass_rate": 0.1,
+      "random_pass_rate": 0.1,
+      "curated_pass_rate": 0.1,
+      "curated_skills": [
+        "G272",
+        "G351",
+        "G48",
+        "G311",
+        "G144"
+      ],
+      "random_skills": [
+        "G276",
+        "G14",
+        "G266",
+        "G258",
+        "G382"
+      ]
+    },
+    {
+      "task": "You are given a list of strings. Your task is to write a Python function that returns a list of tupl",
+      "baseline_score": 2.61,
+      "random_score": 1.14,
+      "curated_score": 1.95,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_skills": [
+        "G112",
+        "G351",
+        "G236",
+        "G156",
+        "G272"
+      ],
+      "random_skills": [
+        "G220",
+        "G115",
+        "G80",
+        "G313",
+        "G349"
+      ]
+    },
+    {
+      "task": "You are given a list of integers `numbers`. Your task is to implement a function `calculate_average(",
+      "baseline_score": 9.64,
+      "random_score": 7.35,
+      "curated_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 0.9,
+      "curated_pass_rate": 1.0,
+      "curated_skills": [
+        "G351",
+        "G112",
+        "G272",
+        "G236",
+        "G156"
+      ],
+      "random_skills": [
+        "G152",
+        "G275",
+        "G131",
+        "G356",
+        "G234"
+      ]
+    },
+    {
+      "task": "You are given a list of integers. Your task is to write a function that returns a new list containin",
+      "baseline_score": 9.49,
+      "random_score": 2.25,
+      "curated_score": 2.79,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_skills": [
+        "G4",
+        "G311",
+        "G272",
+        "G351",
+        "G129"
+      ],
+      "random_skills": [
+        "G393",
+        "G389",
+        "G268",
+        "G368",
+        "G187"
+      ]
+    },
+    {
+      "task": "You are given a valid IPv4 address as a string. Your task is to determine the range of IPv4 addresse",
+      "baseline_score": 2.34,
+      "random_score": 2.49,
+      "curated_score": 2.34,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_skills": [
+        "G112",
+        "G272",
+        "G80",
+        "G18",
+        "G308"
+      ],
+      "random_skills": [
+        "G69",
+        "G127",
+        "G116",
+        "G49",
+        "G202"
+      ]
+    },
+    {
+      "task": "Implement a class `Car` with the following specifications:\n\n- **Attributes:**\n  - `make`: A string r",
+      "baseline_score": 0.0,
+      "random_score": 0.69,
+      "curated_score": 0.15,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_skills": [
+        "G80",
+        "G40",
+        "G13",
+        "G377",
+        "G101"
+      ],
+      "random_skills": [
+        "G232",
+        "G131",
+        "G205",
+        "G141",
+        "G276"
+      ]
+    },
+    {
+      "task": "You are given a list of integers. Your task is to write a Python function `filter_non_prime` that pr",
+      "baseline_score": 9.94,
+      "random_score": 9.25,
+      "curated_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "curated_skills": [
+        "G272",
+        "G351",
+        "G48",
+        "G311",
+        "G101"
+      ],
+      "random_skills": [
+        "G227",
+        "G310",
+        "G397",
+        "G269",
+        "G171"
+      ]
+    },
+    {
+      "task": "You are given two lists of integers. Your task is to implement a function `find_intersection` that c",
+      "baseline_score": 9.09,
+      "random_score": 9.64,
+      "curated_score": 9.64,
+      "baseline_pass_rate": 0.9,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "curated_skills": [
+        "G272",
+        "G351",
+        "G311",
+        "G48",
+        "G4"
+      ],
+      "random_skills": [
+        "G271",
+        "G264",
+        "G195",
+        "G53",
+        "G221"
+      ]
+    },
+    {
+      "task": "You are given a string `text`. Your task is to implement a function `word_count(text)` that returns ",
+      "baseline_score": 2.9899999999999998,
+      "random_score": 2.06,
+      "curated_score": 3.59,
+      "baseline_pass_rate": 0.2,
+      "random_pass_rate": 0.2,
+      "curated_pass_rate": 0.2,
+      "curated_skills": [
+        "G112",
+        "G351",
+        "G236",
+        "G156",
+        "G4"
+      ],
+      "random_skills": [
+        "G68",
+        "G59",
+        "G42",
+        "G128",
+        "G384"
+      ]
+    },
+    {
+      "task": "You are tasked with implementing a function `filter_vowels(sentence)` that processes a given string ",
+      "baseline_score": 9.49,
+      "random_score": 9.79,
+      "curated_score": 9.64,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "curated_skills": [
+        "G112",
+        "G144",
+        "G93",
+        "G263",
+        "G351"
+      ],
+      "random_skills": [
+        "G397",
+        "G175",
+        "G348",
+        "G80",
+        "G210"
+      ]
+    },
+    {
+      "task": "You are given a list of intervals, where each interval is represented as a list of two integers `[st",
+      "baseline_score": 8.44,
+      "random_score": 9.4,
+      "curated_score": 9.34,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "curated_skills": [
+        "G272",
+        "G310",
+        "G2",
+        "G196",
+        "G374"
+      ],
+      "random_skills": [
+        "G171",
+        "G314",
+        "G276",
+        "G223",
+        "G399"
+      ]
+    },
+    {
+      "task": "You are given a binary tree. Your task is to perform a level order traversal of the tree and return ",
+      "baseline_score": 2.64,
+      "random_score": 2.34,
+      "curated_score": 2.34,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_skills": [
+        "G272",
+        "G351",
+        "G193",
+        "G79",
+        "G263"
+      ],
+      "random_skills": [
+        "G61",
+        "G359",
+        "G2",
+        "G6",
+        "G249"
+      ]
+    },
+    {
+      "task": "You are given a positive integer `n`. Your task is to write a function `find_largest_prime_factor(n)",
+      "baseline_score": 9.059999999999999,
+      "random_score": 8.94,
+      "curated_score": 8.94,
+      "baseline_pass_rate": 0.9,
+      "random_pass_rate": 0.9,
+      "curated_pass_rate": 0.9,
+      "curated_skills": [
+        "G272",
+        "G351",
+        "G48",
+        "G311",
+        "G144"
+      ],
+      "random_skills": [
+        "G99",
+        "G120",
+        "G203",
+        "G109",
+        "G244"
+      ]
+    },
+    {
+      "task": "You are given a list of file names representing patient medical records. Each file name follows the ",
+      "baseline_score": 0.23999999999999994,
+      "random_score": 0.38999999999999996,
+      "curated_score": 0.5399999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_skills": [
+        "G272",
+        "G12",
+        "G48",
+        "G68",
+        "G351"
+      ],
+      "random_skills": [
+        "G287",
+        "G222",
+        "G125",
+        "G196",
+        "G363"
+      ]
+    },
+    {
+      "task": "You are given an array of integers `nums` and an integer `k`. Your task is to find the maximum value",
+      "baseline_score": 2.64,
+      "random_score": 2.85,
+      "curated_score": 2.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_skills": [
+        "G272",
+        "G351",
+        "G236",
+        "G398",
+        "G156"
+      ],
+      "random_skills": [
+        "G75",
+        "G244",
+        "G196",
+        "G46",
+        "G331"
+      ]
+    }
+  ]
+}

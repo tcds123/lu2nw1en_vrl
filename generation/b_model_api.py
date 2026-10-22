@@ -1,3 +1,4 @@
+import os
 import requests
 import json
 import logging
@@ -12,13 +13,13 @@ logging.basicConfig(
 )
 
 class BModelAPI:
-    """基于API调用的B模型替代方案"""
-    
+    """基于 API 调用的 B 模型 — Qwen2.5-72B-Instruct"""
+
     def __init__(self, api_key: str = None, base_url: str = None):
-        self.api_key = api_key or "msk-1aeb9a660245cc33b21ee04e67fb88da012808b548b794e07aba1cde1591f8c6"
-        self.base_url = base_url or "https://aimpapi.midea.com/t-aigc/aimp-qwen2-5-72b-ascend/v1/chat/completions"
-        self.model_name = "Qwen25-72B-Instruct"
-        
+        self.api_key = api_key or os.environ.get("DEEPSEEK_API_KEY", "")
+        self.base_url = base_url or "https://aimpapi.midea.com/t-aigc/aimp-deepseek/v1/chat/completions"
+        self.model_name = "/model/DeepSeek-V3.2"
+
         self.headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
@@ -26,7 +27,7 @@ class BModelAPI:
         }
         
         self.generation_params = {
-            "temperature": 0.3,
+            "temperature": 0.05,
             "top_p": 0.9,
             "max_tokens": 2048,
             "n": 1,
@@ -35,37 +36,35 @@ class BModelAPI:
         
         logging.info("B模型API客户端初始化完成")
 
-    # [修改] 重构生成函数，支持传入 system_prompt
     def generate_code(self, user_query: str, system_prompt: str = None) -> str:
         """
-        调用API生成代码
+        调用 API 生成代码。
+
         Args:
             user_query: 用户的原始问题
-            system_prompt: A模型生成的系统提示词 (如果为None，则使用默认)
+            system_prompt: A 模型生成的 system prompt (None 则使用默认)
         """
         max_retries = 5
         base_wait_time = 5
-        
-        # 如果没有提供A模型的prompt，使用默认兜底，但在RL训练中通常都有
-        final_system_prompt = system_prompt if system_prompt else "You are a professional code generation assistant. Generate correct and efficient code."
+
+        messages = []
+
+        if system_prompt is None:
+            messages.append({
+                "role": "system",
+                "content": "You are a professional code generation assistant. Generate correct and efficient code."
+            })
+        elif system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+
+        messages.append({"role": "user", "content": user_query})
 
         for attempt in range(max_retries):
             try:
-                # [核心修正] 正确构建消息结构
-                messages = [
-                    {
-                        "role": "system", 
-                        "content": final_system_prompt  # <--- 这里填入 A 模型的输出
-                    },
-                    {
-                        "role": "user",
-                        "content": user_query           # <--- 这里填入 原始问题
-                    }
-                ]
-                
+                # 构造请求数据
                 data = {
                     "model": self.model_name,
-                    "messages": messages,
+                    "messages": messages, # <--- 直接使用上面构造好的列表
                     **self.generation_params
                 }
                 
@@ -105,36 +104,27 @@ class BModelAPI:
         logging.error("达到最大重试次数，生成失败")
         return ""
 
-    # [修改] 接口适配：不再进行 smart_combine_prompts 这种带标签的拼接
-    def generate_code_from_prompt(self, generated_prompt: str, original_prompt: str = None, k: int = 1, max_tokens: int = 4000) -> List[str]:
-        """
-        调用B模型生成k个代码样本
-        Args:
-            generated_prompt: A模型生成的 System Prompt
-            original_prompt: 原始 User Query
-        """
+    def generate_code_from_prompt(
+        self, generated_prompt: str, original_prompt: str = None, k: int = 1, max_tokens: int = 4000
+    ) -> List[str]:
+        """调用 B 模型生成 k 个代码样本"""
         codes = []
-        
-        # 确保 user_query 存在
-        user_query = original_prompt if original_prompt else "Write code based on instructions."
-        
+        user_query = original_prompt or "Write code based on instructions."
+
         for i in range(k):
-            # 直接将 generated_prompt 作为 system_prompt 传入
             code = self.generate_code(user_query=user_query, system_prompt=generated_prompt)
             codes.append(code.strip())
-            
             if i < k - 1:
                 time.sleep(1)
-        
+
         return codes
 
     def load_b_model(self, *args, **kwargs):
+        """兼容性接口：返回自身作为 'model'，tokenizer 为 None"""
         return self, None
 
-    # [保留但弃用] 为了兼容性保留空实现，或者直接返回
     def smart_combine_prompts(self, generated_prompt: str, original_prompt: str, max_tokens: int = 4000) -> str:
-        # 仅仅为了兼容 b_interface.py 的调用而不报错
-        # 实际上我们现在的逻辑已经在 generate_code_from_prompt 里解耦了
+        """简单拼接 system prompt 和 user query"""
         return f"{generated_prompt}\n{original_prompt}"
 
 # 创建全局实例

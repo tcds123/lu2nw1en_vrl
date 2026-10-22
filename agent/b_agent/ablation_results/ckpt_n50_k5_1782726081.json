@@ -1,0 +1,308 @@
+{
+  "n": 50,
+  "top_k": 5,
+  "seed": 123,
+  "completed": 20,
+  "results": [
+    {
+      "idx": 0,
+      "task": "You are tasked with implementing a function `parse_json` that processes a JSON string and converts i",
+      "baseline_pass_rate": 0.5,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.5,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G112",
+        "G299",
+        "G40",
+        "G93",
+        "G335"
+      ]
+    },
+    {
+      "idx": 1,
+      "task": "You are tasked with implementing a function `convert_to_uppercase` that transforms a given string in",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G112",
+        "G209",
+        "G144",
+        "G18",
+        "G191"
+      ]
+    },
+    {
+      "idx": 2,
+      "task": "You are given a sorted list of integers `nums` in non-decreasing order and an integer `target`. Your",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G351",
+        "G398",
+        "G236",
+        "G156"
+      ]
+    },
+    {
+      "idx": 3,
+      "task": "You are tasked with implementing a function to compute the nth Fibonacci number using dynamic progra",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G93",
+        "G156",
+        "G263",
+        "G80",
+        "G127"
+      ]
+    },
+    {
+      "idx": 4,
+      "task": "You are tasked with writing a Python program to process a CSV file named \"data.csv\". Your program sh",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G112",
+        "G18",
+        "G166",
+        "G80",
+        "G60"
+      ]
+    },
+    {
+      "idx": 5,
+      "task": "You are given a string `s`. Your task is to implement a function `count_vowels(s)` that returns the ",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G236",
+        "G351",
+        "G156",
+        "G272",
+        "G112"
+      ]
+    },
+    {
+      "idx": 6,
+      "task": "You are tasked with implementing a Python generator function named `generate_fibonacci`. This functi",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G101",
+        "G296",
+        "G171",
+        "G184",
+        "G284"
+      ]
+    },
+    {
+      "idx": 7,
+      "task": "You are given a list of integers. Your task is to implement a function `max_min_diff` that computes ",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G236",
+        "G351",
+        "G156",
+        "G272",
+        "G111"
+      ]
+    },
+    {
+      "idx": 8,
+      "task": "You are tasked with implementing a function `create_team_season_summary` that processes two lists: `",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G93",
+        "G144",
+        "G293",
+        "G263",
+        "G209"
+      ]
+    },
+    {
+      "idx": 9,
+      "task": "You are given a list of sentences. Your task is to implement a function that returns a dictionary. E",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G236",
+        "G351",
+        "G156",
+        "G272",
+        "G112"
+      ]
+    },
+    {
+      "idx": 10,
+      "task": "You are given a list `numbers` consisting of `n` integers. Your task is to implement a function `fin",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G4",
+        "G272",
+        "G374",
+        "G48",
+        "G129"
+      ]
+    },
+    {
+      "idx": 11,
+      "task": "You are given the root of a binary search tree (BST) with `n` nodes. Each node has a `value` attribu",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G286",
+        "G93",
+        "G272",
+        "G154",
+        "G367"
+      ]
+    },
+    {
+      "idx": 12,
+      "task": "You are given a nested list of integers, which may contain other nested lists. Your task is to write",
+      "baseline_pass_rate": 0.8,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G48",
+        "G171",
+        "G307",
+        "G351"
+      ]
+    },
+    {
+      "idx": 13,
+      "task": "You are given a string `input_string` consisting of lowercase English letters. Your task is to imple",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G384",
+        "G272",
+        "G80",
+        "G101",
+        "G377"
+      ]
+    },
+    {
+      "idx": 14,
+      "task": "In a programming competition, you are tasked with creating a decorator named `timer_decorator` that ",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G351",
+        "G236",
+        "G93",
+        "G144",
+        "G156"
+      ]
+    },
+    {
+      "idx": 15,
+      "task": "You are tasked with implementing a function to process a series of bank transactions. Each transacti",
+      "baseline_pass_rate": 0.4,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.4,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G156",
+        "G80",
+        "G48",
+        "G112",
+        "G351"
+      ]
+    },
+    {
+      "idx": 16,
+      "task": "You are given a binary tree with `n` nodes, where each node has an integer value. The tree is define",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G93",
+        "G272",
+        "G80",
+        "G48",
+        "G340"
+      ]
+    },
+    {
+      "idx": 17,
+      "task": "You are given a string `s` consisting of characters, including parentheses `(` and `)`. Your task is",
+      "baseline_pass_rate": 0.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G351",
+        "G398",
+        "G236",
+        "G156"
+      ]
+    },
+    {
+      "idx": 18,
+      "task": "You are given a list of integers. Your task is to sort this list in descending order using the bubbl",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G351",
+        "G236",
+        "G272",
+        "G156",
+        "G48"
+      ]
+    },
+    {
+      "idx": 19,
+      "task": "You are given a series of dictionaries. Your task is to write a function `merge_dictionaries` that a",
+      "baseline_pass_rate": 1.0,
+      "baseline_c_score": 0.0,
+      "curated_pass_rate": 1.0,
+      "curated_c_score": 0.0,
+      "curated_skills": [
+        "G272",
+        "G48",
+        "G307",
+        "G351",
+        "G286"
+      ]
+    }
+  ]
+}

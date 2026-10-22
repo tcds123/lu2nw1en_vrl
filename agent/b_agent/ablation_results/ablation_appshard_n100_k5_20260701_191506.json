@@ -1,0 +1,2718 @@
+{
+  "stats": {
+    "baseline_mean": 0.5910000000000001,
+    "random_mean": 0.6858,
+    "curated_mean": 0.5799,
+    "self_debug_mean": 0.4750000000000001,
+    "selfdebug_vs_baseline_p": 0.38786496767204715,
+    "selfdebug_vs_curated_p": 0.4135485001658401,
+    "curated_vs_baseline_p": 0.9201362506776202,
+    "selfdebug_winrate_vs_baseline": 0.37,
+    "selfdebug_winrate_vs_curated": 0.33,
+    "avg_self_debug_rounds": 2.91,
+    "tasks_with_fixes": 96,
+    "n_samples": 100
+  },
+  "results": [
+    {
+      "task": "def next_bigger(n):\n\t    \"\"\"Create a function that takes a positive integer and returns the next big",
+      "baseline_score": 2.64,
+      "random_score": 2.64,
+      "curated_score": 2.64,
+      "self_debug_score": 2.49,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G156",
+        "G263",
+        "G199",
+        "G302",
+        "G261"
+      ],
+      "random_skills": [
+        "G212",
+        "G15",
+        "G43",
+        "G200",
+        "G285"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def nrEOW():\n    \"\"\"Little Mishka is a great traveller and she visited many countries. After thinkin",
+      "baseline_score": 0.0,
+      "random_score": -0.8999999999999999,
+      "curated_score": 0.23999999999999994,
+      "self_debug_score": -0.06000000000000005,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G48",
+        "G398",
+        "G272",
+        "G156",
+        "G167"
+      ],
+      "random_skills": [
+        "G379",
+        "G233",
+        "G175",
+        "G293",
+        "G133"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def POlQN():\n    \"\"\"Jzzhu has invented a kind of sequences, they meet the following property:$f_{1} ",
+      "baseline_score": 1.3499999999999999,
+      "random_score": 2.64,
+      "curated_score": 1.89,
+      "self_debug_score": 0.23999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G80",
+        "G227",
+        "G307",
+        "G166",
+        "G144"
+      ],
+      "random_skills": [
+        "G233",
+        "G36",
+        "G340",
+        "G124",
+        "G238"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def bhSTF():\n    \"\"\"Vova is again playing some computer game, now an RPG. In the game Vova's charact",
+      "baseline_score": 0.06000000000000005,
+      "random_score": 0.51,
+      "curated_score": 0.3,
+      "self_debug_score": 0.5399999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G48",
+        "G272",
+        "G156",
+        "G111",
+        "G398"
+      ],
+      "random_skills": [
+        "G18",
+        "G285",
+        "G138",
+        "G240",
+        "G356"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def dhjAk():\n    \"\"\"Sonya decided that having her own hotel business is the best way of earning mone",
+      "baseline_score": 0.23999999999999994,
+      "random_score": -0.06000000000000005,
+      "curated_score": -0.08999999999999994,
+      "self_debug_score": -0.23999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G342",
+        "G101",
+        "G40",
+        "G60",
+        "G167"
+      ],
+      "random_skills": [
+        "G225",
+        "G309",
+        "G362",
+        "G143",
+        "G194"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def GSkUm():\n    \"\"\"You have a bag of size $n$. Also you have $m$ boxes. The size of $i$-th box is $",
+      "baseline_score": 0.44999999999999996,
+      "random_score": 0.84,
+      "curated_score": 1.14,
+      "self_debug_score": -0.06000000000000005,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G296",
+        "G175",
+        "G272",
+        "G154",
+        "G111"
+      ],
+      "random_skills": [
+        "G66",
+        "G213",
+        "G396",
+        "G314",
+        "G196"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def WkYAK():\n    \"\"\"Everybody is worried about Rakesh as the boy does not have much knowledge about ",
+      "baseline_score": -0.44999999999999996,
+      "random_score": 0.3,
+      "curated_score": 0.06000000000000005,
+      "self_debug_score": -1.3499999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G101",
+        "G196",
+        "G272",
+        "G18",
+        "G343"
+      ],
+      "random_skills": [
+        "G65",
+        "G377",
+        "G138",
+        "G137",
+        "G289"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def zXBcj():\n    \"\"\"Vova plays a computer game known as Mages and Monsters. Vova's character is a ma",
+      "baseline_score": -0.96,
+      "random_score": 0.23999999999999994,
+      "curated_score": 0.0,
+      "self_debug_score": -0.15,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G227",
+        "G132",
+        "G90",
+        "G296",
+        "G166"
+      ],
+      "random_skills": [
+        "G232",
+        "G280",
+        "G59",
+        "G380",
+        "G54"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def ioVNG():\n    \"\"\"Hooray! Polycarp turned $n$ years old! The Technocup Team sincerely congratulate",
+      "baseline_score": 0.3,
+      "random_score": 0.15,
+      "curated_score": -0.06000000000000005,
+      "self_debug_score": 0.3,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G4",
+        "G286",
+        "G168",
+        "G167",
+        "G266"
+      ],
+      "random_skills": [
+        "G386",
+        "G29",
+        "G19",
+        "G380",
+        "G105"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def uovwD():\n    \"\"\"On one quiet day all of sudden Mister B decided to draw angle a on his field. Al",
+      "baseline_score": 1.41,
+      "random_score": -1.05,
+      "curated_score": 0.0,
+      "self_debug_score": 0.5399999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": -3.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G48",
+        "G40",
+        "G175",
+        "G144",
+        "G272"
+      ],
+      "random_skills": [
+        "G322",
+        "G15",
+        "G298",
+        "G280",
+        "G208"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def eMqga():\n    \"\"\"Alice and Bob are playing yet another card game. This time the rules are the fol",
+      "baseline_score": 0.5399999999999999,
+      "random_score": 0.06000000000000005,
+      "curated_score": -0.15,
+      "self_debug_score": 0.44999999999999996,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": -3.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G310",
+        "G272",
+        "G342",
+        "G238",
+        "G385"
+      ],
+      "random_skills": [
+        "G265",
+        "G125",
+        "G217",
+        "G244",
+        "G319"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def Wawpl():\n    \"\"\"The chef has a recipe he wishes to use for his guests,\nbut the recipe will make ",
+      "baseline_score": 0.3,
+      "random_score": 0.5399999999999999,
+      "curated_score": 0.06000000000000005,
+      "self_debug_score": 0.5399999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G383",
+        "G101",
+        "G122",
+        "G35",
+        "G63"
+      ],
+      "random_skills": [
+        "G85",
+        "G294",
+        "G213",
+        "G363",
+        "G165"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def pFtVR():\n    \"\"\"The chef is having one array of N natural numbers(numbers may be repeated). i.e.",
+      "baseline_score": 0.3,
+      "random_score": 2.19,
+      "curated_score": 2.49,
+      "self_debug_score": 0.44999999999999996,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G112",
+        "G48",
+        "G238",
+        "G398",
+        "G40"
+      ],
+      "random_skills": [
+        "G150",
+        "G335",
+        "G171",
+        "G295",
+        "G32"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "class Solution:\n    def checkIfCanBreak(self, s1: str, s2: str) -> bool:\n            \"\"\"Given two st",
+      "baseline_score": 2.16,
+      "random_score": 2.25,
+      "curated_score": 2.19,
+      "self_debug_score": 1.71,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G266",
+        "G390",
+        "G272",
+        "G296",
+        "G93"
+      ],
+      "random_skills": [
+        "G126",
+        "G271",
+        "G56",
+        "G367",
+        "G269"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def UGCek():\n    \"\"\"Do you like summer? Residents of Berland do. They especially love eating ice cre",
+      "baseline_score": 1.2899999999999998,
+      "random_score": 0.23999999999999994,
+      "curated_score": 0.0,
+      "self_debug_score": 0.0,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G398",
+        "G385",
+        "G296",
+        "G377",
+        "G50"
+      ],
+      "random_skills": [
+        "G140",
+        "G337",
+        "G164",
+        "G197",
+        "G182"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def dzwWH():\n    \"\"\"You are given a string $s$. Each character is either 0 or 1.\n\nYou want all 1's i",
+      "baseline_score": 0.3,
+      "random_score": 0.23999999999999994,
+      "curated_score": 0.23999999999999994,
+      "self_debug_score": 2.19,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G112",
+        "G45",
+        "G286",
+        "G398",
+        "G167"
+      ],
+      "random_skills": [
+        "G64",
+        "G161",
+        "G344",
+        "G349",
+        "G340"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def GUCFW():\n    \"\"\"Given a string s. Can you make it a palindrome by deleting exactly one character",
+      "baseline_score": 1.41,
+      "random_score": 2.64,
+      "curated_score": 2.64,
+      "self_debug_score": 2.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G80",
+        "G148",
+        "G83",
+        "G86",
+        "G202"
+      ],
+      "random_skills": [
+        "G325",
+        "G379",
+        "G57",
+        "G265",
+        "G166"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def stNRP():\n    \"\"\"Little penguin Polo likes permutations. But most of all he likes permutations of",
+      "baseline_score": -0.15,
+      "random_score": 0.5399999999999999,
+      "curated_score": 0.38999999999999996,
+      "self_debug_score": 0.0,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G28",
+        "G48",
+        "G236",
+        "G196",
+        "G156"
+      ],
+      "random_skills": [
+        "G192",
+        "G106",
+        "G99",
+        "G400",
+        "G78"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def RSKAP():\n    \"\"\"A girl named Xenia has a cupboard that looks like an arc from ahead. The arc is ",
+      "baseline_score": -1.14,
+      "random_score": 0.15,
+      "curated_score": 0.3,
+      "self_debug_score": 0.06000000000000005,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G111",
+        "G296",
+        "G175",
+        "G272",
+        "G238"
+      ],
+      "random_skills": [
+        "G375",
+        "G395",
+        "G360",
+        "G298",
+        "G134"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def qjPEr():\n    \"\"\"Chef is now a corporate person. He has to attend office regularly. But chef does",
+      "baseline_score": -1.3499999999999999,
+      "random_score": -0.75,
+      "curated_score": -1.3499999999999999,
+      "self_debug_score": 0.06000000000000005,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G383",
+        "G272",
+        "G101",
+        "G156",
+        "G48"
+      ],
+      "random_skills": [
+        "G135",
+        "G389",
+        "G297",
+        "G71",
+        "G9"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def PeJbS():\n    \"\"\"Alice has a cute cat. To keep her cat fit, Alice wants to design an exercising w",
+      "baseline_score": -0.3,
+      "random_score": -0.06000000000000005,
+      "curated_score": 0.06000000000000005,
+      "self_debug_score": 0.3,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G18",
+        "G385",
+        "G284",
+        "G112",
+        "G25"
+      ],
+      "random_skills": [
+        "G175",
+        "G63",
+        "G327",
+        "G97",
+        "G238"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def wEysr():\n    \"\"\"You are given an integer $x$ of $n$ digits $a_1, a_2, \\ldots, a_n$, which make u",
+      "baseline_score": 0.38999999999999996,
+      "random_score": 1.89,
+      "curated_score": 0.51,
+      "self_debug_score": -0.38999999999999996,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": -3.0,
+      "curated_skills": [
+        "G385",
+        "G79",
+        "G27",
+        "G1",
+        "G48"
+      ],
+      "random_skills": [
+        "G141",
+        "G97",
+        "G259",
+        "G40",
+        "G7"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "def mYrct():\n    \"\"\"Polycarp is a frequent user of the very popular messenger. He's chatting with hi",
+      "baseline_score": 0.23999999999999994,
+      "random_score": 0.08999999999999994,
+      "curated_score": 0.23999999999999994,
+      "self_debug_score": 0.23999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G39",
+        "G40",
+        "G18",
+        "G79",
+        "G385"
+      ],
+      "random_skills": [
+        "G210",
+        "G69",
+        "G339",
+        "G141",
+        "G34"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def Nekpa():\n    \"\"\"Chef likes strings a lot but he likes palindromic strings more. Today, Chef has ",
+      "baseline_score": 0.9899999999999999,
+      "random_score": 0.3,
+      "curated_score": 0.36000000000000004,
+      "self_debug_score": -0.36000000000000004,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G80",
+        "G18",
+        "G272",
+        "G196",
+        "G71"
+      ],
+      "random_skills": [
+        "G202",
+        "G3",
+        "G7",
+        "G113",
+        "G330"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def KLkQe():\n    \"\"\"You are given n points on a line with their coordinates x_{i}. Find the point x ",
+      "baseline_score": 2.64,
+      "random_score": 2.4599999999999995,
+      "curated_score": 2.04,
+      "self_debug_score": 1.3499999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G205",
+        "G154",
+        "G148",
+        "G101",
+        "G184"
+      ],
+      "random_skills": [
+        "G251",
+        "G39",
+        "G56",
+        "G136",
+        "G265"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def gaXHj():\n    \"\"\"You are given positive integers $L$ and $R$. You have to find the sum\nS=∑i=LR(L∧",
+      "baseline_score": 0.81,
+      "random_score": 0.84,
+      "curated_score": 0.6,
+      "self_debug_score": 0.75,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G361",
+        "G18",
+        "G101",
+        "G80",
+        "G58"
+      ],
+      "random_skills": [
+        "G255",
+        "G155",
+        "G167",
+        "G279",
+        "G299"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def JklrG():\n    \"\"\"You are given an integer m as a product of integers a_1, a_2, ... a_{n} $(m = \\p",
+      "baseline_score": 1.3499999999999999,
+      "random_score": 2.55,
+      "curated_score": 2.64,
+      "self_debug_score": 1.8599999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G272",
+        "G18",
+        "G351",
+        "G398",
+        "G196"
+      ],
+      "random_skills": [
+        "G26",
+        "G299",
+        "G120",
+        "G93",
+        "G201"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def tEWRc():\n    \"\"\"There is unrest in the Galactic Senate. Several thousand solar systems have decl",
+      "baseline_score": -0.36000000000000004,
+      "random_score": -1.05,
+      "curated_score": -0.36000000000000004,
+      "self_debug_score": -0.75,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G112",
+        "G385",
+        "G377",
+        "G50",
+        "G391"
+      ],
+      "random_skills": [
+        "G248",
+        "G182",
+        "G52",
+        "G17",
+        "G379"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def OihIS():\n    \"\"\"Greatest common divisor GCD(a, b) of two positive integers a and b is equal to t",
+      "baseline_score": -0.23999999999999994,
+      "random_score": 0.5399999999999999,
+      "curated_score": 0.5399999999999999,
+      "self_debug_score": -0.36000000000000004,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G93",
+        "G18",
+        "G106",
+        "G272",
+        "G32"
+      ],
+      "random_skills": [
+        "G287",
+        "G36",
+        "G192",
+        "G226",
+        "G103"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def zEyqS():\n    \"\"\"Chefland has all the cities on a straight line. There are $N$ cities in Chefland",
+      "baseline_score": 0.8999999999999999,
+      "random_score": 2.16,
+      "curated_score": 1.8599999999999999,
+      "self_debug_score": 0.23999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G398",
+        "G351",
+        "G166",
+        "G348",
+        "G45"
+      ],
+      "random_skills": [
+        "G372",
+        "G221",
+        "G31",
+        "G108",
+        "G397"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def DbzoL():\n    \"\"\"The preferred way to generate user login in Polygon is to concatenate a prefix o",
+      "baseline_score": 0.3,
+      "random_score": 1.89,
+      "curated_score": 0.38999999999999996,
+      "self_debug_score": 0.5399999999999999,
+      "baseline_pass_rate": -3.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G228",
+        "G156",
+        "G48",
+        "G40",
+        "G112"
+      ],
+      "random_skills": [
+        "G187",
+        "G63",
+        "G14",
+        "G88",
+        "G1"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def fqAGN():\n    \"\"\"You are given a string $s$ of length $n$ consisting of lowercase Latin letters. ",
+      "baseline_score": 1.2899999999999998,
+      "random_score": -0.66,
+      "curated_score": 0.51,
+      "self_debug_score": 0.23999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G45",
+        "G112",
+        "G398",
+        "G80",
+        "G18"
+      ],
+      "random_skills": [
+        "G93",
+        "G225",
+        "G260",
+        "G50",
+        "G379"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def fOlVF():\n    \"\"\"Vitya has just started learning Berlanese language. It is known that Berlanese u",
+      "baseline_score": 2.04,
+      "random_score": 2.49,
+      "curated_score": 2.01,
+      "self_debug_score": 0.23999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G348",
+        "G83",
+        "G129",
+        "G4",
+        "G104"
+      ],
+      "random_skills": [
+        "G215",
+        "G251",
+        "G214",
+        "G88",
+        "G22"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def DlhAa():\n    \"\"\"Vanya walks late at night along a straight street of length l, lit by n lanterns",
+      "baseline_score": 1.65,
+      "random_score": 2.04,
+      "curated_score": 2.64,
+      "self_debug_score": 2.25,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G272",
+        "G154",
+        "G48",
+        "G40",
+        "G59"
+      ],
+      "random_skills": [
+        "G173",
+        "G161",
+        "G31",
+        "G393",
+        "G76"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def tZGAU():\n    \"\"\"Recently, Anton has found a set. The set consists of small English letters. Anto",
+      "baseline_score": 2.55,
+      "random_score": 2.49,
+      "curated_score": 1.89,
+      "self_debug_score": 2.25,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G351",
+        "G156",
+        "G28",
+        "G48",
+        "G398"
+      ],
+      "random_skills": [
+        "G265",
+        "G235",
+        "G323",
+        "G130",
+        "G330"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def wFKIy():\n    \"\"\"In poker, you have 5 cards. There are 10 kinds of poker hands (from highest to l",
+      "baseline_score": 2.64,
+      "random_score": 2.64,
+      "curated_score": 0.5399999999999999,
+      "self_debug_score": 0.5399999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": -3.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G196",
+        "G286",
+        "G150",
+        "G398",
+        "G197"
+      ],
+      "random_skills": [
+        "G118",
+        "G120",
+        "G56",
+        "G264",
+        "G136"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def WlHfr():\n    \"\"\"Vova and Marina love offering puzzles to each other. Today Marina offered Vova t",
+      "baseline_score": -0.06000000000000005,
+      "random_score": -0.3,
+      "curated_score": 0.08999999999999994,
+      "self_debug_score": 0.08999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G209",
+        "G154",
+        "G48",
+        "G132",
+        "G59"
+      ],
+      "random_skills": [
+        "G394",
+        "G339",
+        "G344",
+        "G68",
+        "G377"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def seDjk():\n    \"\"\"Alice and Bob play 5-in-a-row game. They have a playing field of size 10 × 10. I",
+      "baseline_score": 2.64,
+      "random_score": 0.36000000000000004,
+      "curated_score": 2.31,
+      "self_debug_score": 0.5399999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G351",
+        "G86",
+        "G367",
+        "G350",
+        "G43"
+      ],
+      "random_skills": [
+        "G384",
+        "G349",
+        "G65",
+        "G180",
+        "G379"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def HbNjJ():\n    \"\"\"There were $N$ students (numbered $1$ through $N$) participating in the Indian P",
+      "baseline_score": 0.0,
+      "random_score": -2.1,
+      "curated_score": 0.23999999999999994,
+      "self_debug_score": 0.06000000000000005,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": -3.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G272",
+        "G385",
+        "G296",
+        "G266",
+        "G378"
+      ],
+      "random_skills": [
+        "G148",
+        "G271",
+        "G284",
+        "G216",
+        "G30"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def cWLkp():\n    \"\"\"Polycarp has built his own web service. Being a modern web service it includes l",
+      "baseline_score": -1.3499999999999999,
+      "random_score": 0.06000000000000005,
+      "curated_score": 0.23999999999999994,
+      "self_debug_score": 1.71,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G385",
+        "G48",
+        "G391",
+        "G40",
+        "G18"
+      ],
+      "random_skills": [
+        "G83",
+        "G191",
+        "G93",
+        "G256",
+        "G144"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def sGyZp():\n    \"\"\"The Patisserie AtCoder sells cakes with number-shaped candles.\nThere are X, Y an",
+      "baseline_score": -0.8999999999999999,
+      "random_score": 0.5399999999999999,
+      "curated_score": 0.3,
+      "self_debug_score": 0.9899999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G93",
+        "G286",
+        "G175",
+        "G154",
+        "G230"
+      ],
+      "random_skills": [
+        "G335",
+        "G364",
+        "G385",
+        "G321",
+        "G108"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def adKeu():\n    \"\"\"Okabe needs to renovate the Future Gadget Laboratory after he tried doing some c",
+      "baseline_score": -0.84,
+      "random_score": 0.36000000000000004,
+      "curated_score": 2.19,
+      "self_debug_score": 0.06000000000000005,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G112",
+        "G18",
+        "G385",
+        "G272",
+        "G196"
+      ],
+      "random_skills": [
+        "G399",
+        "G90",
+        "G335",
+        "G393",
+        "G307"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def WmOqZ():\n    \"\"\"Fox Ciel starts to learn programming. The first task is drawing a fox! However, ",
+      "baseline_score": -0.06000000000000005,
+      "random_score": 0.23999999999999994,
+      "curated_score": -0.08999999999999994,
+      "self_debug_score": 0.23999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G272",
+        "G351",
+        "G193",
+        "G18",
+        "G367"
+      ],
+      "random_skills": [
+        "G245",
+        "G320",
+        "G125",
+        "G196",
+        "G335"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def HIUiV():\n    \"\"\"You are given a string S consisting of 0 and 1.\nFind the maximum integer K not g",
+      "baseline_score": 0.36000000000000004,
+      "random_score": 0.38999999999999996,
+      "curated_score": 0.38999999999999996,
+      "self_debug_score": 0.08999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": -3.0,
+      "curated_skills": [
+        "G40",
+        "G112",
+        "G351",
+        "G80",
+        "G296"
+      ],
+      "random_skills": [
+        "G44",
+        "G359",
+        "G378",
+        "G367",
+        "G2"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "def krHCA():\n    \"\"\"As you must know, the maximum clique problem in an arbitrary graph is NP-hard. N",
+      "baseline_score": 0.08999999999999994,
+      "random_score": 0.5399999999999999,
+      "curated_score": 0.36000000000000004,
+      "self_debug_score": 0.0,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G144",
+        "G199",
+        "G398",
+        "G93",
+        "G40"
+      ],
+      "random_skills": [
+        "G34",
+        "G209",
+        "G222",
+        "G397",
+        "G297"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def nfjGV():\n    \"\"\"Permutation p is an ordered set of integers p_1,  p_2,  ...,  p_{n}, consisting ",
+      "baseline_score": 2.1,
+      "random_score": 2.64,
+      "curated_score": 2.25,
+      "self_debug_score": 2.01,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G90",
+        "G45",
+        "G196",
+        "G333",
+        "G260"
+      ],
+      "random_skills": [
+        "G316",
+        "G71",
+        "G364",
+        "G2",
+        "G302"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def WwcXt():\n    \"\"\"Connect the countless points with lines, till we reach the faraway yonder.\n\nTher",
+      "baseline_score": 2.49,
+      "random_score": 0.44999999999999996,
+      "curated_score": 0.51,
+      "self_debug_score": 0.6299999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G385",
+        "G154",
+        "G398",
+        "G351",
+        "G93"
+      ],
+      "random_skills": [
+        "G329",
+        "G359",
+        "G24",
+        "G121",
+        "G186"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def tkxCJ():\n    \"\"\"On her way to ChefLand, Marichka noticed $10^K$ road signs (numbered $0$ through",
+      "baseline_score": 0.9899999999999999,
+      "random_score": 2.64,
+      "curated_score": -1.26,
+      "self_debug_score": 0.23999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G112",
+        "G156",
+        "G111",
+        "G28",
+        "G398"
+      ],
+      "random_skills": [
+        "G223",
+        "G303",
+        "G116",
+        "G288",
+        "G275"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def zRNxQ():\n    \"\"\"Chef and Chefina are best friends. Chefina wants to test the Problem Solving ski",
+      "baseline_score": 0.3,
+      "random_score": 1.41,
+      "curated_score": -0.06000000000000005,
+      "self_debug_score": 0.0,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G112",
+        "G272",
+        "G85",
+        "G308",
+        "G348"
+      ],
+      "random_skills": [
+        "G39",
+        "G41",
+        "G90",
+        "G150",
+        "G349"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "class Solution:\n    def superEggDrop(self, K: int, N: int) -> int:\n            \"\"\"You are given K eg",
+      "baseline_score": 2.79,
+      "random_score": 2.49,
+      "curated_score": 0.9899999999999999,
+      "self_debug_score": 2.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G29",
+        "G22",
+        "G40",
+        "G398",
+        "G43"
+      ],
+      "random_skills": [
+        "G304",
+        "G255",
+        "G395",
+        "G221",
+        "G368"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def tzMDO():\n    \"\"\"You are given a grid of size M x N, where each square is colored with some rando",
+      "baseline_score": 0.66,
+      "random_score": 0.23999999999999994,
+      "curated_score": 0.6,
+      "self_debug_score": 0.21000000000000005,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G80",
+        "G385",
+        "G129",
+        "G398",
+        "G391"
+      ],
+      "random_skills": [
+        "G156",
+        "G116",
+        "G309",
+        "G163",
+        "G111"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def fdrwl():\n    \"\"\"You have a string of decimal digits s. Let's define b_{ij} = s_{i}·s_{j}. Find i",
+      "baseline_score": -0.44999999999999996,
+      "random_score": 0.36000000000000004,
+      "curated_score": 0.69,
+      "self_debug_score": 0.3,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G112",
+        "G183",
+        "G199",
+        "G296",
+        "G144"
+      ],
+      "random_skills": [
+        "G156",
+        "G331",
+        "G205",
+        "G109",
+        "G163"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def YVvJB():\n    \"\"\"You are fighting with Zmei Gorynich — a ferocious monster from Slavic myths, a h",
+      "baseline_score": 0.84,
+      "random_score": 1.14,
+      "curated_score": 0.96,
+      "self_debug_score": -0.06000000000000005,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G134",
+        "G59",
+        "G122",
+        "G101",
+        "G175"
+      ],
+      "random_skills": [
+        "G228",
+        "G136",
+        "G380",
+        "G349",
+        "G255"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def JDmwM():\n    \"\"\"A greek once sifted some numbers. And it did something wonderful!\n\n-----Input:--",
+      "baseline_score": 1.4400000000000002,
+      "random_score": 1.4400000000000002,
+      "curated_score": 1.4400000000000002,
+      "self_debug_score": 0.23999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G80",
+        "G398",
+        "G299",
+        "G385",
+        "G18"
+      ],
+      "random_skills": [
+        "G48",
+        "G367",
+        "G351",
+        "G110",
+        "G123"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def dLTUj():\n    \"\"\"You are given an array $a_1, a_2, \\dots, a_n$ where all $a_i$ are integers and g",
+      "baseline_score": 0.7799999999999999,
+      "random_score": 0.5999999999999999,
+      "curated_score": 0.9899999999999999,
+      "self_debug_score": 0.23999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G398",
+        "G156",
+        "G48",
+        "G238",
+        "G167"
+      ],
+      "random_skills": [
+        "G196",
+        "G134",
+        "G37",
+        "G81",
+        "G62"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def CtLsZ():\n    \"\"\"PolandBall is a young, clever Ball. He is interested in prime numbers. He has st",
+      "baseline_score": 2.25,
+      "random_score": 2.34,
+      "curated_score": 0.5399999999999999,
+      "self_debug_score": 0.5399999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G83",
+        "G43",
+        "G127",
+        "G385",
+        "G112"
+      ],
+      "random_skills": [
+        "G207",
+        "G372",
+        "G340",
+        "G111",
+        "G313"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def lFUzb():\n    \"\"\"You are given a graph with $3 \\cdot n$ vertices and $m$ edges. You are to find a",
+      "baseline_score": 1.7999999999999998,
+      "random_score": 0.3,
+      "curated_score": 0.23999999999999994,
+      "self_debug_score": -0.06000000000000005,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G227",
+        "G129",
+        "G286",
+        "G132",
+        "G390"
+      ],
+      "random_skills": [
+        "G238",
+        "G368",
+        "G252",
+        "G190",
+        "G28"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def kRxfd():\n    \"\"\"Kefa decided to celebrate his first big salary by going to the restaurant. \n\nHe ",
+      "baseline_score": 0.9899999999999999,
+      "random_score": 2.64,
+      "curated_score": 0.23999999999999994,
+      "self_debug_score": 0.23999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G79",
+        "G134",
+        "G398",
+        "G11",
+        "G296"
+      ],
+      "random_skills": [
+        "G349",
+        "G253",
+        "G54",
+        "G296",
+        "G238"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def wRpFi():\n    \"\"\"Sultan, the freestyle wrestler, you all know him. He broke multiple records in t",
+      "baseline_score": 0.06000000000000005,
+      "random_score": -0.21000000000000005,
+      "curated_score": 0.08999999999999994,
+      "self_debug_score": -0.44999999999999996,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G398",
+        "G156",
+        "G48",
+        "G167",
+        "G385"
+      ],
+      "random_skills": [
+        "G191",
+        "G147",
+        "G387",
+        "G376",
+        "G371"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def PJpxF():\n    \"\"\"You are given an integer sequence $A_1, A_2, \\ldots, A_N$ and an integer $X$. Co",
+      "baseline_score": 1.2899999999999998,
+      "random_score": -0.8999999999999999,
+      "curated_score": 0.5399999999999999,
+      "self_debug_score": 0.69,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G272",
+        "G111",
+        "G48",
+        "G112",
+        "G398"
+      ],
+      "random_skills": [
+        "G30",
+        "G257",
+        "G275",
+        "G61",
+        "G270"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def DWKun():\n    \"\"\"Yash likes playing with numbers. He has a challenge for you. Yash gives\nyou a nu",
+      "baseline_score": 2.01,
+      "random_score": 2.01,
+      "curated_score": 2.64,
+      "self_debug_score": 2.55,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G385",
+        "G227",
+        "G197",
+        "G296",
+        "G93"
+      ],
+      "random_skills": [
+        "G349",
+        "G352",
+        "G85",
+        "G124",
+        "G73"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def RNnVS():\n    \"\"\"Sergey Semyonovich is a mayor of a county city N and he used to spend his days a",
+      "baseline_score": 0.23999999999999994,
+      "random_score": -0.15,
+      "curated_score": -0.08999999999999994,
+      "self_debug_score": -1.71,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G48",
+        "G398",
+        "G351",
+        "G129",
+        "G272"
+      ],
+      "random_skills": [
+        "G323",
+        "G270",
+        "G379",
+        "G176",
+        "G129"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def ctsFS():\n    \"\"\"Gena loves sequences of numbers. Recently, he has discovered a new type of seque",
+      "baseline_score": -0.2700000000000001,
+      "random_score": 0.5399999999999999,
+      "curated_score": 0.23999999999999994,
+      "self_debug_score": -0.75,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G40",
+        "G55",
+        "G175",
+        "G116",
+        "G272"
+      ],
+      "random_skills": [
+        "G377",
+        "G312",
+        "G346",
+        "G227",
+        "G159"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def string_func(s, n):\n\t    \"\"\"This kata is  blatantly copied from  inspired by This Kata\nWelcome\n\nt",
+      "baseline_score": 0.81,
+      "random_score": 0.0,
+      "curated_score": -0.63,
+      "self_debug_score": 2.04,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G175",
+        "G272",
+        "G112",
+        "G80",
+        "G387"
+      ],
+      "random_skills": [
+        "G289",
+        "G208",
+        "G250",
+        "G173",
+        "G20"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def yDwHB():\n    \"\"\"Ivan is playing a strange game.\n\nHe has a matrix a with n rows and m columns. Ea",
+      "baseline_score": -0.8999999999999999,
+      "random_score": 0.0,
+      "curated_score": 0.3,
+      "self_debug_score": 0.3,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G197",
+        "G129",
+        "G40",
+        "G196",
+        "G286"
+      ],
+      "random_skills": [
+        "G149",
+        "G89",
+        "G131",
+        "G111",
+        "G213"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def FNvkR():\n    \"\"\"Chef likes to solve difficult tasks. This time, he tried to solve the Big Famous",
+      "baseline_score": 0.08999999999999994,
+      "random_score": -0.6,
+      "curated_score": 0.5399999999999999,
+      "self_debug_score": 0.9899999999999999,
+      "baseline_pass_rate": -3.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G112",
+        "G385",
+        "G272",
+        "G156",
+        "G342"
+      ],
+      "random_skills": [
+        "G22",
+        "G106",
+        "G8",
+        "G382",
+        "G268"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "class Solution:\n    def leastInterval(self, tasks: List[str], n: int) -> int:\n            \"\"\"Given a",
+      "baseline_score": 0.8999999999999999,
+      "random_score": 0.5399999999999999,
+      "curated_score": -0.06000000000000005,
+      "self_debug_score": 2.64,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G18",
+        "G351",
+        "G40",
+        "G348",
+        "G35"
+      ],
+      "random_skills": [
+        "G110",
+        "G186",
+        "G20",
+        "G96",
+        "G52"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "class Solution:\n    def longestDiverseString(self, a: int, b: int, c: int) -> str:\n            \"\"\"A ",
+      "baseline_score": 2.55,
+      "random_score": 2.55,
+      "curated_score": 2.64,
+      "self_debug_score": 2.49,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G383",
+        "G266",
+        "G263",
+        "G199",
+        "G83"
+      ],
+      "random_skills": [
+        "G197",
+        "G115",
+        "G165",
+        "G98",
+        "G302"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def YQpRx():\n    \"\"\"Snuke has a rooted tree with N+1 vertices.\nThe vertices are numbered 0 through N",
+      "baseline_score": -0.06000000000000005,
+      "random_score": 0.5399999999999999,
+      "curated_score": 0.3,
+      "self_debug_score": -0.06000000000000005,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G79",
+        "G93",
+        "G175",
+        "G272",
+        "G154"
+      ],
+      "random_skills": [
+        "G229",
+        "G371",
+        "G356",
+        "G88",
+        "G313"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def BKTmF():\n    \"\"\"Fox Ciel is going to publish a paper on FOCS (Foxes Operated Computer Systems, p",
+      "baseline_score": 0.69,
+      "random_score": 0.5399999999999999,
+      "curated_score": 0.5399999999999999,
+      "self_debug_score": 0.5399999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G48",
+        "G391",
+        "G385",
+        "G79",
+        "G112"
+      ],
+      "random_skills": [
+        "G184",
+        "G17",
+        "G370",
+        "G120",
+        "G329"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def XRjlg():\n    \"\"\"Vasya has a pile, that consists of some number of stones. $n$ times he either to",
+      "baseline_score": 0.51,
+      "random_score": 0.5399999999999999,
+      "curated_score": 0.66,
+      "self_debug_score": 0.06000000000000005,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G260",
+        "G18",
+        "G45",
+        "G86",
+        "G138"
+      ],
+      "random_skills": [
+        "G70",
+        "G191",
+        "G330",
+        "G345",
+        "G317"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def gSuEf():\n    \"\"\"There is a tree with N vertices numbered 1 through N.\nThe i-th edge connects Ver",
+      "baseline_score": 0.23999999999999994,
+      "random_score": -0.96,
+      "curated_score": 0.5399999999999999,
+      "self_debug_score": 0.3,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G93",
+        "G167",
+        "G266",
+        "G294",
+        "G134"
+      ],
+      "random_skills": [
+        "G47",
+        "G5",
+        "G59",
+        "G127",
+        "G312"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def sOXJS():\n    \"\"\"Petya is a beginner programmer. He has already mastered the basics of the C++ la",
+      "baseline_score": -0.96,
+      "random_score": 0.23999999999999994,
+      "curated_score": 0.08999999999999994,
+      "self_debug_score": 0.06000000000000005,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G266",
+        "G156",
+        "G342",
+        "G296",
+        "G18"
+      ],
+      "random_skills": [
+        "G287",
+        "G39",
+        "G385",
+        "G88",
+        "G362"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def zMpbZ():\n    \"\"\"You are given a tree that consists of $n$ nodes. You should label each of its $n",
+      "baseline_score": -0.96,
+      "random_score": 0.06000000000000005,
+      "curated_score": 0.06000000000000005,
+      "self_debug_score": 0.23999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G112",
+        "G79",
+        "G40",
+        "G18",
+        "G144"
+      ],
+      "random_skills": [
+        "G200",
+        "G67",
+        "G14",
+        "G133",
+        "G300"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def htuEi():\n    \"\"\"The chef is trying to solve some pattern problems, Chef wants your help to code ",
+      "baseline_score": 1.5899999999999999,
+      "random_score": 0.23999999999999994,
+      "curated_score": 0.15,
+      "self_debug_score": 0.23999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G18",
+        "G122",
+        "G35",
+        "G80",
+        "G9"
+      ],
+      "random_skills": [
+        "G55",
+        "G58",
+        "G99",
+        "G179",
+        "G6"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def ZFktN():\n    \"\"\"While Mike was walking in the subway, all the stuff in his back-bag dropped on t",
+      "baseline_score": -0.66,
+      "random_score": 2.64,
+      "curated_score": 2.49,
+      "self_debug_score": 0.06000000000000005,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G112",
+        "G354",
+        "G314",
+        "G156",
+        "G342"
+      ],
+      "random_skills": [
+        "G16",
+        "G102",
+        "G82",
+        "G5",
+        "G182"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "class Solution:\n    def largestValsFromLabels(self, values: List[int], labels: List[int], num_wanted",
+      "baseline_score": 2.34,
+      "random_score": 2.64,
+      "curated_score": 2.64,
+      "self_debug_score": -1.3499999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": -3.0,
+      "curated_skills": [
+        "G257",
+        "G175",
+        "G7",
+        "G296",
+        "G263"
+      ],
+      "random_skills": [
+        "G1",
+        "G375",
+        "G242",
+        "G251",
+        "G367"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def SRjwu():\n    \"\"\"Sereja has an array A of N positive integers : A[1], A[2], A[3], ... , A[N]. \n\nI",
+      "baseline_score": 2.34,
+      "random_score": 2.16,
+      "curated_score": 0.5399999999999999,
+      "self_debug_score": -0.15,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": -3.0,
+      "curated_skills": [
+        "G83",
+        "G385",
+        "G112",
+        "G79",
+        "G217"
+      ],
+      "random_skills": [
+        "G251",
+        "G6",
+        "G194",
+        "G44",
+        "G375"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "def ZUDsb():\n    \"\"\"Witua is a little student from the University of Lviv. He enjoys studying math. ",
+      "baseline_score": 0.5399999999999999,
+      "random_score": 0.15,
+      "curated_score": 0.23999999999999994,
+      "self_debug_score": 0.23999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G101",
+        "G4",
+        "G111",
+        "G48",
+        "G156"
+      ],
+      "random_skills": [
+        "G243",
+        "G225",
+        "G3",
+        "G107",
+        "G253"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def Gqvue():\n    \"\"\"A frog is initially at position $0$ on the number line. The frog has two positiv",
+      "baseline_score": -0.38999999999999996,
+      "random_score": 0.23999999999999994,
+      "curated_score": 0.5399999999999999,
+      "self_debug_score": -0.84,
+      "baseline_pass_rate": -3.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G167",
+        "G266",
+        "G351",
+        "G18",
+        "G385"
+      ],
+      "random_skills": [
+        "G288",
+        "G59",
+        "G13",
+        "G349",
+        "G300"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def AnBQk():\n    \"\"\"Awruk is taking part in elections in his school. It is the final round. He has o",
+      "baseline_score": 0.06000000000000005,
+      "random_score": 0.23999999999999994,
+      "curated_score": 0.06000000000000005,
+      "self_debug_score": 0.5399999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G122",
+        "G250",
+        "G35",
+        "G398",
+        "G101"
+      ],
+      "random_skills": [
+        "G14",
+        "G233",
+        "G314",
+        "G347",
+        "G192"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def hvzSr():\n    \"\"\"Alice and Johnny are playing a simple guessing game. Johnny picks an arbitrary p",
+      "baseline_score": 0.0,
+      "random_score": 0.5399999999999999,
+      "curated_score": -2.31,
+      "self_debug_score": -0.54,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": -3.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G272",
+        "G310",
+        "G93",
+        "G193",
+        "G367"
+      ],
+      "random_skills": [
+        "G90",
+        "G128",
+        "G325",
+        "G72",
+        "G253"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def MyhOC():\n    \"\"\"Vasya has an array a consisting of positive integer numbers. Vasya wants to divi",
+      "baseline_score": 2.1,
+      "random_score": 0.23999999999999994,
+      "curated_score": 0.36000000000000004,
+      "self_debug_score": 0.3,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G48",
+        "G385",
+        "G272",
+        "G156",
+        "G28"
+      ],
+      "random_skills": [
+        "G293",
+        "G279",
+        "G93",
+        "G318",
+        "G129"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def tViKw():\n    \"\"\"One day Kefa found n baloons. For convenience, we denote color of i-th baloon as",
+      "baseline_score": 2.1,
+      "random_score": 0.23999999999999994,
+      "curated_score": 0.23999999999999994,
+      "self_debug_score": 0.06000000000000005,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G100",
+        "G111",
+        "G48",
+        "G65",
+        "G52"
+      ],
+      "random_skills": [
+        "G210",
+        "G128",
+        "G217",
+        "G23",
+        "G228"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def jxEnR():\n    \"\"\"Lucy had recently learned the game, called Natural Numbers.\nThe rules of the gam",
+      "baseline_score": 0.5399999999999999,
+      "random_score": 0.0,
+      "curated_score": 0.06000000000000005,
+      "self_debug_score": 0.23999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G93",
+        "G305",
+        "G217",
+        "G112",
+        "G391"
+      ],
+      "random_skills": [
+        "G61",
+        "G137",
+        "G250",
+        "G127",
+        "G395"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def yibYM():\n    \"\"\"Recently a Golden Circle of Beetlovers was found in Byteland. It is a circle rou",
+      "baseline_score": -0.96,
+      "random_score": 0.08999999999999994,
+      "curated_score": 0.23999999999999994,
+      "self_debug_score": 0.3,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G398",
+        "G272",
+        "G156",
+        "G28",
+        "G63"
+      ],
+      "random_skills": [
+        "G27",
+        "G98",
+        "G52",
+        "G367",
+        "G306"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def iKgES():\n    \"\"\"There are times you recall a good old friend and everything you've come through ",
+      "baseline_score": -1.3499999999999999,
+      "random_score": 0.23999999999999994,
+      "curated_score": -1.3499999999999999,
+      "self_debug_score": -1.65,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G94",
+        "G41",
+        "G398",
+        "G45",
+        "G272"
+      ],
+      "random_skills": [
+        "G3",
+        "G361",
+        "G90",
+        "G252",
+        "G38"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def gQufz():\n    \"\"\"Inna likes sweets and a game called the \"Candy Matrix\". Today, she came up with ",
+      "baseline_score": 0.23999999999999994,
+      "random_score": 0.23999999999999994,
+      "curated_score": -1.95,
+      "self_debug_score": -0.75,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G296",
+        "G93",
+        "G175",
+        "G272",
+        "G238"
+      ],
+      "random_skills": [
+        "G137",
+        "G368",
+        "G380",
+        "G350",
+        "G313"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def bdWfu():\n    \"\"\"Permutation p is an ordered set of integers p_1,  p_2,  ...,  p_{n}, consisting ",
+      "baseline_score": -2.85,
+      "random_score": 0.15,
+      "curated_score": -1.7999999999999998,
+      "self_debug_score": 0.08999999999999994,
+      "baseline_pass_rate": -3.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": -3.0,
+      "curated_skills": [
+        "G148",
+        "G60",
+        "G175",
+        "G266",
+        "G196"
+      ],
+      "random_skills": [
+        "G272",
+        "G77",
+        "G397",
+        "G148",
+        "G256"
+      ],
+      "self_debug_n_rounds": 1,
+      "self_debug_had_fix": false
+    },
+    {
+      "task": "def lWdEU():\n    \"\"\"Today is Wednesday, the third day of the week. What's more interesting is that t",
+      "baseline_score": 0.5399999999999999,
+      "random_score": -1.65,
+      "curated_score": -1.2,
+      "self_debug_score": 0.08999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G1",
+        "G86",
+        "G138",
+        "G167",
+        "G377"
+      ],
+      "random_skills": [
+        "G238",
+        "G197",
+        "G1",
+        "G353",
+        "G306"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def HYDan():\n    \"\"\"Being tired of participating in too many Codeforces rounds, Gildong decided to t",
+      "baseline_score": -0.06000000000000005,
+      "random_score": 0.15,
+      "curated_score": 0.5399999999999999,
+      "self_debug_score": -0.08999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G238",
+        "G18",
+        "G385",
+        "G272",
+        "G196"
+      ],
+      "random_skills": [
+        "G68",
+        "G234",
+        "G70",
+        "G266",
+        "G262"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def rwNXU():\n    \"\"\"Let $f_{x} = c^{2x-6} \\cdot f_{x-1} \\cdot f_{x-2} \\cdot f_{x-3}$ for $x \\ge 4$.\n",
+      "baseline_score": 0.38999999999999996,
+      "random_score": 1.14,
+      "curated_score": 2.64,
+      "self_debug_score": 2.55,
+      "baseline_pass_rate": -3.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G299",
+        "G35",
+        "G148",
+        "G307",
+        "G4"
+      ],
+      "random_skills": [
+        "G316",
+        "G62",
+        "G60",
+        "G75",
+        "G217"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def ufOeN():\n    \"\"\"As we all know, Dhoni loves drinking milk. Once he and Sir Jadeja were invited i",
+      "baseline_score": 0.0,
+      "random_score": 0.08999999999999994,
+      "curated_score": 0.44999999999999996,
+      "self_debug_score": 0.23999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G45",
+        "G367",
+        "G85",
+        "G316",
+        "G39"
+      ],
+      "random_skills": [
+        "G95",
+        "G180",
+        "G371",
+        "G52",
+        "G364"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def pceQv():\n    \"\"\"Devu is a renowned classical singer. He is invited to many big functions/festiva",
+      "baseline_score": 0.5399999999999999,
+      "random_score": -1.3499999999999999,
+      "curated_score": 0.23999999999999994,
+      "self_debug_score": 0.06000000000000005,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G39",
+        "G272",
+        "G111",
+        "G48",
+        "G68"
+      ],
+      "random_skills": [
+        "G325",
+        "G12",
+        "G277",
+        "G282",
+        "G173"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def ImslF():\n    \"\"\"There are n Imperial stormtroopers on the field. The battle field is a plane wit",
+      "baseline_score": 2.19,
+      "random_score": 2.34,
+      "curated_score": 2.49,
+      "self_debug_score": 0.3,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G351",
+        "G272",
+        "G154",
+        "G122",
+        "G398"
+      ],
+      "random_skills": [
+        "G173",
+        "G209",
+        "G136",
+        "G72",
+        "G299"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def mXbWL():\n    \"\"\"Ivan is collecting coins. There are only $N$ different collectible coins, Ivan h",
+      "baseline_score": 0.15,
+      "random_score": 0.5399999999999999,
+      "curated_score": 0.5399999999999999,
+      "self_debug_score": 0.5399999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G101",
+        "G45",
+        "G348",
+        "G122",
+        "G374"
+      ],
+      "random_skills": [
+        "G385",
+        "G146",
+        "G182",
+        "G126",
+        "G123"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def WSwFk():\n    \"\"\"It is known that there are k fish species in the polar ocean, numbered from 1 to",
+      "baseline_score": 1.5899999999999999,
+      "random_score": 0.23999999999999994,
+      "curated_score": -0.8999999999999999,
+      "self_debug_score": 0.38999999999999996,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G32",
+        "G112",
+        "G398",
+        "G18",
+        "G156"
+      ],
+      "random_skills": [
+        "G113",
+        "G252",
+        "G270",
+        "G329",
+        "G315"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def riGIs():\n    \"\"\"Chef's daily routine is very simple. He starts his day with cooking food, then h",
+      "baseline_score": 0.23999999999999994,
+      "random_score": 0.5399999999999999,
+      "curated_score": 0.5399999999999999,
+      "self_debug_score": 0.08999999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G398",
+        "G351",
+        "G296",
+        "G93",
+        "G385"
+      ],
+      "random_skills": [
+        "G323",
+        "G309",
+        "G222",
+        "G103",
+        "G350"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def NesfS():\n    \"\"\"The HR manager was disappointed again. The last applicant failed the interview t",
+      "baseline_score": 0.23999999999999994,
+      "random_score": -0.75,
+      "curated_score": 0.0,
+      "self_debug_score": 7.3,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 1.0,
+      "curated_skills": [
+        "G398",
+        "G18",
+        "G156",
+        "G111",
+        "G150"
+      ],
+      "random_skills": [
+        "G9",
+        "G322",
+        "G96",
+        "G5",
+        "G198"
+      ],
+      "self_debug_n_rounds": 2,
+      "self_debug_had_fix": true
+    },
+    {
+      "task": "def fzRts():\n    \"\"\"An array $b$ is called to be a subarray of $a$ if it forms a continuous subseque",
+      "baseline_score": -1.05,
+      "random_score": -0.3,
+      "curated_score": 0.5399999999999999,
+      "self_debug_score": -0.9299999999999999,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "self_debug_pass_rate": 0.0,
+      "curated_skills": [
+        "G196",
+        "G286",
+        "G167",
+        "G266",
+        "G168"
+      ],
+      "random_skills": [
+        "G351",
+        "G64",
+        "G195",
+        "G143",
+        "G163"
+      ],
+      "self_debug_n_rounds": 3,
+      "self_debug_had_fix": true
+    }
+  ]
+}

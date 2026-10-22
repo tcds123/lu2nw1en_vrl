@@ -1,0 +1,237 @@
+defaults:
+  - _self_
+
+iterative_rl:
+  max_iterations: 1
+  convergence_threshold: 0.01
+  rollout_data_dir: "./smoke_test/rollouts"
+  iteration_log_dir: "./smoke_test/iterations"
+  system_prompt_count: 2
+  code_generation_count: 1
+  a_model:
+    model_path: "/data/zhuldz/lunwen/models/Qwen3-0.6B/v1"
+    device_id: 0
+    example_file: "/data/zhuldz/lunwen/rl/train/verl1/sysprompt_icl.txt"
+
+algorithm:
+  _target_: verl.trainer.config.AlgoConfig
+  adv_estimator: grpo
+  gamma: 1.0
+  lam: 1.0
+  norm_adv_by_std_in_grpo: true
+  use_kl_in_reward: True
+  rollout_is_threshold: null
+  kl_penalty: k1
+  kl_ctrl:
+    _target_: verl.trainer.config.KLControlConfig
+    type: fixed
+    kl_coef: 0.02
+    horizon: 10000
+    target_kl: 0.1
+
+trainer:
+  total_epochs: 1
+  project_name: verl_grpo_smoke_test
+  experiment_name: qwen3_0.6b_single_gpu
+  logger: ['console']
+  nnodes: 1
+  n_gpus_per_node: 1
+  save_freq: 999
+  test_freq: -1
+  critic_warmup: 0
+  device: cuda
+  default_local_dir: "./smoke_test/checkpoints"
+  val_only: false
+  val_before_train: false
+  seed: 42
+  total_training_steps: null
+  resume_mode: disable
+  default_hdfs_dir: null
+  balance_batch: True
+  log_val_generations: 0
+  esi_redundant_time: 0
+  del_local_ckpt_after_load: false
+  rollout_data_dir: "./smoke_test/rollouts"
+
+data:
+  train_files: "/data/zhuldz/lunwen/data/OpenCodeInstruct/dataparquet/train_testexample_bestmax.parquet"
+  val_files: "/data/zhuldz/lunwen/data/OpenCodeInstruct/dataparquet/train_testexample_bestmax.parquet"
+  train_batch_size: 2
+  micro_batch_size: 1
+  val_batch_size: null
+  max_prompt_length: 2048
+  max_response_length: 1024
+  shuffle: false
+  reward_fn_key: "output"
+  prompt_key: "input"
+  dataloader_num_workers: 0
+  return_raw_chat: True
+  filter_overlong_prompts: false
+  sampler:
+    class_path: null
+    class_name: null
+
+actor_rollout_ref:
+  model:
+    _target_: verl.workers.config.HFModelConfig
+    path: "/data/zhuldz/lunwen/models/Qwen3-0.6B/v1"
+    use_remove_padding: true
+    trust_remote_code: true
+    enable_gradient_checkpointing: false
+    custom_chat_template: null
+  actor:
+    _target_: verl.workers.config.FSDPActorConfig
+    strategy: fsdp
+    use_remove_padding: true
+    ppo_mini_batch_size: 2
+    ppo_micro_batch_size: null
+    ppo_micro_batch_size_per_gpu: 1
+    use_dynamic_bsz: false
+    use_kl_loss: false
+    kl_loss_coef: 0.001
+    kl_loss_type: "low_var_kl"
+    clip_ratio: 0.2
+    loss_agg_mode: "seq-mean-token-mean"
+    entropy_coeff: 0.01
+    ppo_epochs: 1
+    shuffle: false
+    use_torch_compile: false
+    optim:
+      _target_: verl.workers.config.FSDPOptimizerConfig
+      lr: 1e-5
+      betas: [0.9, 0.999]
+      weight_decay: 0.01
+    fsdp_config:
+      _target_: verl.workers.config.FSDPEngineConfig
+      wrap_policy:
+        min_num_params: 0
+      param_offload: true
+      optimizer_offload: false
+      offload_policy: false
+      reshard_after_forward: true
+      fsdp_size: -1
+      forward_prefetch: false
+      model_dtype: bfloat16
+      use_orig_params: false
+      ulysses_sequence_parallel_size: 1
+      entropy_from_logits_with_chunking: false
+      use_torch_compile: false
+      entropy_checkpointing: false
+      forward_only: false
+      strategy: fsdp
+    checkpoint:
+      _target_: verl.trainer.config.CheckpointConfig
+      save_contents: [model, optimizer, extra]
+      load_contents: ${.save_contents}
+      async_save: false
+  ref:
+    strategy: ${actor_rollout_ref.actor.strategy}
+    use_torch_compile: false
+    log_prob_micro_batch_size: null
+    log_prob_micro_batch_size_per_gpu: 1
+    log_prob_use_dynamic_bsz: false
+    log_prob_max_token_len_per_gpu: 8192
+    profiler:
+      _target_: verl.utils.profiler.ProfilerConfig
+      tool: null
+      enable: false
+      all_ranks: false
+      ranks: []
+      save_path: null
+      tool_config: {nsys: {_target_: verl.utils.profiler.config.NsightToolConfig, discrete: false}}
+    fsdp_config:
+      _target_: verl.workers.config.FSDPEngineConfig
+      wrap_policy: {min_num_params: 0}
+      param_offload: true
+      optimizer_offload: false
+      offload_policy: false
+      reshard_after_forward: true
+      fsdp_size: -1
+      forward_prefetch: false
+      model_dtype: bfloat16
+      use_orig_params: false
+      ulysses_sequence_parallel_size: 1
+      entropy_from_logits_with_chunking: false
+      use_torch_compile: false
+      entropy_checkpointing: false
+      forward_only: false
+      strategy: fsdp
+    model: null
+    ulysses_sequence_parallel_size: 1
+    entropy_from_logits_with_chunking: false
+    entropy_checkpointing: false
+  rollout:
+    _target_: verl.workers.config.RolloutConfig
+    name: vllm
+    max_model_len: 2048
+    n: 2
+    log_prob_micro_batch_size: null
+    log_prob_micro_batch_size_per_gpu: 1
+    temperature: 0.7
+    top_p: 0.9
+    top_k: 50
+    prompt_length: 512
+    response_length: 512
+    dtype: bfloat16
+    gpu_memory_utilization: 0.3
+    ignore_eos: false
+    enforce_eager: false
+    free_cache_engine: true
+    layered_summon: False
+    tensor_model_parallel_size: 1
+    data_parallel_size: 1
+    expert_parallel_size: 1
+    pipeline_model_parallel_size: 1
+    max_num_batched_tokens: 2048
+    max_num_seqs: 64
+    enable_chunked_prefill: true
+    enable_prefix_caching: true
+    load_format: dummy
+    log_prob_use_dynamic_bsz: false
+    log_prob_max_token_len_per_gpu: 8192
+    disable_log_stats: true
+    do_sample: true
+    over_sample_rate: 0
+    multi_stage_wake_up: false
+    calculate_log_probs: true
+    skip_rollout: false
+    skip_dump_dir: "/tmp/rollout_dump"
+    skip_tokenizer_init: true
+    mode: sync
+    multi_turn: {enable: false, max_user_turns: null, max_parallel_calls: 1, tool_response_truncate_side: middle, interaction_config_path: null, use_inference_chat_template: false, tokenization_sanity_check_mode: strict, format: hermes}
+    val_kwargs:
+      _target_: verl.workers.config.SamplingConfig
+      top_k: -1
+      top_p: 1.0
+      temperature: 0
+      n: 1
+      do_sample: false
+  hybrid_engine: true
+
+critic:
+  _target_: verl.workers.config.CriticConfig
+  enable: false
+  strategy: fsdp
+
+reward_model:
+  enable: False
+  enable_resource_pool: false
+  use_dynamic_bsz: false
+  reward_manager: batch
+  temperature: 1.0
+  top_p: 1.0
+  launch_reward_fn_async: false
+
+custom_reward_function:
+  path: "/data/zhuldz/lunwen/rl/train/verl1/custom_reward.py"
+  name: compute_custom_reward
+
+global_profiler:
+  _target_: verl.utils.profiler.ProfilerConfig
+  tool: null
+  steps: null
+  profile_continuous_steps: false
+  save_path: outputs/profile
+  global_tool_config:
+    nsys: {_target_: verl.utils.profiler.config.NsightToolConfig, discrete: false}
+    torch_memory: {trace_alloc_max_entries: 100000, stack_depth: 32}

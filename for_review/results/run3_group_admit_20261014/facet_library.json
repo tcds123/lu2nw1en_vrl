@@ -1,0 +1,239 @@
+{
+  "F0": {
+    "id": "F0",
+    "name": "Misreading the asked quantity (count vs value vs sum vs max vs min vs remainder)",
+    "description": "Misreading the asked quantity (count vs value vs sum vs max vs min vs remainder)",
+    "keyword_signature": [
+      "quantity parsing",
+      "what is asked",
+      "count vs",
+      "restat"
+    ],
+    "is_meta": false,
+    "example_failures": [
+      "Each vertex of a regular octagon is independently colored either red or blue with equal probability. The probability that the octagon can then be rotated so tha"
+    ],
+    "failure_count": 1,
+    "problems_seen": [
+      "aime24:62"
+    ],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791947705.6128442,
+    "promoted_at": null
+  },
+  "F1": {
+    "id": "F1",
+    "name": "Off-by-one / boundary (inclusive vs exclusive counting, endpoint inclusion)",
+    "description": "Off-by-one / boundary (inclusive vs exclusive counting, endpoint inclusion)",
+    "keyword_signature": [
+      "off by one",
+      "off-by-one",
+      "boundary",
+      "inclusive",
+      "exclusive",
+      "endpoint"
+    ],
+    "is_meta": false,
+    "example_failures": [],
+    "failure_count": 0,
+    "problems_seen": [],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791947705.6128442,
+    "promoted_at": null
+  },
+  "F2": {
+    "id": "F2",
+    "name": "Case enumeration completeness (missing or overlapping cases in combinatorics)",
+    "description": "Case enumeration completeness (missing or overlapping cases in combinatorics)",
+    "keyword_signature": [
+      "case enumeration",
+      "mutually exclusive",
+      "exhaustive",
+      "casework",
+      "cases systematically",
+      "rotation",
+      "regular polygon",
+      "colored vertices",
+      "probability",
+      "symmetry"
+    ],
+    "is_meta": false,
+    "example_failures": [
+      "Each vertex of a regular octagon is independently colored either red or blue with equal probability. The probability that the octagon can then be rotated so tha",
+      "Each vertex of a regular octagon is independently colored either red or blue with equal probability. The probability that the octagon can then be rotated so tha",
+      "Each vertex of a regular octagon is independently colored either red or blue with equal probability. The probability that the octagon can then be rotated so tha"
+    ],
+    "failure_count": 30,
+    "problems_seen": [
+      "aime24:62",
+      "aime24:89",
+      "aime24:81"
+    ],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791947705.6128442,
+    "promoted_at": null
+  },
+  "F3": {
+    "id": "F3",
+    "name": "Inclusion-exclusion / overcounting (double-counting, unaccounted symmetry)",
+    "description": "Inclusion-exclusion / overcounting (double-counting, unaccounted symmetry)",
+    "keyword_signature": [
+      "inclusion-exclusion",
+      "inclusion",
+      "overcount",
+      "complementary counting"
+    ],
+    "is_meta": false,
+    "example_failures": [],
+    "failure_count": 0,
+    "problems_seen": [],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791947705.6128442,
+    "promoted_at": null
+  },
+  "F4": {
+    "id": "F4",
+    "name": "Arithmetic / sign / computational slips in multi-step calculation",
+    "description": "Arithmetic / sign / computational slips in multi-step calculation",
+    "keyword_signature": [
+      "computation",
+      "arithmetic",
+      "sanity check",
+      "parity",
+      "magnitude"
+    ],
+    "is_meta": false,
+    "example_failures": [
+      "There is a collection of $25$ indistinguishable white chips and $25$ indistinguishable black chips. Find the number of ways to place some of these chips in the ",
+      "There is a collection of $25$ indistinguishable white chips and $25$ indistinguishable black chips. Find the number of ways to place some of these chips in the ",
+      "There is a collection of $25$ indistinguishable white chips and $25$ indistinguishable black chips. Find the number of ways to place some of these chips in the "
+    ],
+    "failure_count": 9,
+    "problems_seen": [
+      "aime24:89"
+    ],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791947705.6128442,
+    "promoted_at": null
+  },
+  "F5": {
+    "id": "F5",
+    "name": "Answer-form conversion (unreduced fraction, missing mod 0-999, wrong rounding)",
+    "description": "Answer-form conversion (unreduced fraction, missing mod 0-999, wrong rounding)",
+    "keyword_signature": [
+      "final answer",
+      "boxed",
+      "mod 1000",
+      "0-999",
+      "reduce"
+    ],
+    "is_meta": true,
+    "example_failures": [],
+    "failure_count": 0,
+    "problems_seen": [],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791947705.6128442,
+    "promoted_at": null
+  },
+  "F6": {
+    "id": "F6",
+    "name": "Number-theoretic case analysis (missing residue classes, unbounded solution range)",
+    "description": "Number-theoretic case analysis (missing residue classes, unbounded solution range)",
+    "keyword_signature": [
+      "divisor",
+      "congruence",
+      "residue",
+      "number theory",
+      "modular",
+      "periodic",
+      "sine",
+      "cosine",
+      "absolute value",
+      "intersection"
+    ],
+    "is_meta": false,
+    "example_failures": [
+      "Define $f(x)=|| x|-\\tfrac{1}{2}|$ and $g(x)=|| x|-\\tfrac{1}{4}|$. Find the number of intersections of the graphs of \\[y=4 g(f(\\sin (2 \\pi x))) \\quad\\text{ and }",
+      "Define $f(x)=|| x|-\\tfrac{1}{2}|$ and $g(x)=|| x|-\\tfrac{1}{4}|$. Find the number of intersections of the graphs of \\[y=4 g(f(\\sin (2 \\pi x))) \\quad\\text{ and }",
+      "Define $f(x)=|| x|-\\tfrac{1}{2}|$ and $g(x)=|| x|-\\tfrac{1}{4}|$. Find the number of intersections of the graphs of \\[y=4 g(f(\\sin (2 \\pi x))) \\quad\\text{ and }"
+    ],
+    "failure_count": 14,
+    "problems_seen": [
+      "aime24:63"
+    ],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791947705.6128442,
+    "promoted_at": null
+  },
+  "F7": {
+    "id": "F7",
+    "name": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+    "description": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+    "keyword_signature": [
+      "equation setup",
+      "equation",
+      "variable",
+      "unknown",
+      "introduce variables",
+      "circle",
+      "tangent",
+      "chain",
+      "inradius",
+      "triangle",
+      "hexagon",
+      "parallel",
+      "extensions",
+      "side length",
+      "torus",
+      "sphere",
+      "radius",
+      "revolving",
+      "regular polygon",
+      "dodecagon",
+      "rectangle",
+      "diagonal",
+      "vertices",
+      "segment",
+      "family",
+      "locus",
+      "envelope",
+      "first quadrant",
+      "sequentially tangent",
+      "chain of circles",
+      "tangent to sides"
+    ],
+    "is_meta": false,
+    "example_failures": [
+      "Let $ABC$ be a triangle inscribed in circle $\\omega$. Let the tangents to $\\omega$ at $B$ and $C$ intersect at point $D$, and let $\\overline{AD}$ intersect $\\om",
+      "Let $ABC$ be a triangle inscribed in circle $\\omega$. Let the tangents to $\\omega$ at $B$ and $C$ intersect at point $D$, and let $\\overline{AD}$ intersect $\\om",
+      "Rectangles $ABCD$ and $EFGH$ are drawn such that $D,E,C,F$ are collinear. Also, $A,D,H,G$ all lie on a circle. If $BC=16$,$AB=107$,$FG=17$, and $EF=184$, what i"
+    ],
+    "failure_count": 90,
+    "problems_seen": [
+      "aime24:61",
+      "aime24:70",
+      "aime24:85",
+      "aime24:89",
+      "aime24:88",
+      "aime24:66",
+      "aime24:80",
+      "aime24:73",
+      "aime24:81",
+      "aime24:62",
+      "aime24:77",
+      "aime24:78",
+      "aime24:63"
+    ],
+    "status": "actionable",
+    "ate_score": null,
+    "created_at": 1791947705.6128442,
+    "promoted_at": null
+  }
+}

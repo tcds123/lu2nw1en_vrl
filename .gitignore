@@ -19,6 +19,9 @@ data/
 dataset/
 datasets/
 models/
+outputs/
+evalplus_results/
+LiveCodeBench/
 
 # 忽略训练产生的大模型权重和日志
 *.pth
@@ -29,13 +32,55 @@ logs/
 wandb/
 runs/
 a_model_grpo_standard/
-a_model_grpo_5/
-a_model_grpo_8/
-a_model_grpo_6/
-a_model_grpo_7/
-a_model_grpo_1/
-a_model_grpo_9/
+a_model_grpo_10/
+a_model_grpo_0209/
+a_model_grpo_standard_0206/
 a_model_grpo_standard_1229/
+a_model_grpo_standard_0106/
+a_model_grpo_standard_0121/
+a_model_grpo_standard_0123_base/
+
+# 训练产物: checkpoint 权重与数据缓存 (a_model_grpo_standard_0615 等, 体积巨大)
+a_model_grpo_*/
+*_0615/
+checkpoints/
+data_cache/
+
+# 压缩包 (全局屏蔽, 含 for_review/ 下的 zip)
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+*.bz2
+
+# for_review/: 只屏蔽压缩包的解压副本 (大体积冗余), 本体 code/data/docs/results 保留提交
+for_review/archive/
+for_review/gpt_review_extracted/
+for_review/**/__MACOSX/
+
+# 备份文件 (*.bak / *.bak_phase2 / *.bak.phaseD / backups)
+outputs_backup/
+*.bak
+*.bak_*/
+*.bak.phase*
+
+# 第三方拷贝的 Agent 框架 (非本项目代码, 体积大: nanobot 88M / smolagents 11M / sema-code-core)
+agent/nanobot/
+agent/smolagents/
+agent/sema-code-core/
+
+# 本地运行时/日志/锁文件
+proxy/
+*.log
+*.lock
+*.chk
+
+# 一次性密钥脱敏迁移脚本 (内含全部真实 key 映射, 不可提交)
+.key_redact.py
+
+# 本地 Claude 配置 (含 settings.local.json, 可能有 key)
+.claude/
 
 
 # 忽略 IDE 配置文件

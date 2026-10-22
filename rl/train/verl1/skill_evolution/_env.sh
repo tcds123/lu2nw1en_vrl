@@ -1,0 +1,12 @@
+# DeepSeek-V3.2 backend env (authorized: DeepSeek + Qwen3-235B only). Sourced by smoke/full runs.
+export QWEN_CHAT_API_KEY="${QWEN_CHAT_API_KEY:?请先设置环境变量 QWEN_CHAT_API_KEY}"
+export QWEN_CHAT_BASE_URL="https://aimpapi.midea.com/t-aigc/aimp-deepseek/v1"
+export QWEN_CHAT_MODEL="/model/DeepSeek-V3.2"
+export QWEN_CHAT_AIGC_USER="zhuldz"
+export QWEN_CHAT_MAX_TOKENS="4096"
+export QWEN_CHAT_TEMPERATURE="0.0"
+export QWEN_CHAT_ENABLE_THINKING="false"
+export QWEN_CHAT_TIMEOUT_SECONDS="600"
+export QWEN_CHAT_MAX_RPM="14"
+export QWEN_CHAT_BURST="2"
+export PYTHONPATH="/data/zhuldz/skillopt:/data/zhuldz/lunwen/rl/train/verl1/skill_evolution:${PYTHONPATH:-}"

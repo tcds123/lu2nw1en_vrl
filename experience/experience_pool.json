@@ -1,0 +1,3218 @@
+{
+  "G0": {
+    "id": "G0",
+    "text": "[G1]. Explicitly instruct the model to write executable code that processes input and produces output, rather than generating static text or descriptions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781510284.6195056
+  },
+  "G1": {
+    "id": "G1",
+    "text": "[G2]. Anchor the solution logic to the user's provided input data (e.g., a function parameter, stdin) to prevent hallucination of fixed or exhaustive content.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781510284.6342735
+  },
+  "G2": {
+    "id": "G2",
+    "text": "[G3]. Prioritize concise, complete task specification over verbose formatting rules to avoid truncation and ensure core functionality is generated.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781510284.6478696
+  },
+  "G3": {
+    "id": "G3",
+    "text": "[G1]. Explicitly forbid sorting or reordering unless required, and emphasize order preservation as a critical constraint separate from efficiency",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781510344.4243321
+  },
+  "G4": {
+    "id": "G4",
+    "text": "[G2]. Instruct to output only the requested function without alternative implementations or explanatory text",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781510344.4377966
+  },
+  "G5": {
+    "id": "G5",
+    "text": "[G3]. Balance detail with clarity: specify complexity requirements (O(n+m)) but avoid contradictory or ambiguous efficiency suggestions that conflict with ordering needs",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781510344.449364
+  },
+  "G6": {
+    "id": "G6",
+    "text": "[G1]. Explicitly forbid returning error strings and require raising specific exceptions (e.g., `ValueError`) for invalid inputs, ensuring the docstring matches this behavior.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781510387.4232404
+  },
+  "G7": {
+    "id": "G7",
+    "text": "[G2]. Avoid internal contradictions in the prompt, especially between described behavior (e.g., raising exceptions) and example docstring return types.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781510387.4358273
+  },
+  "G8": {
+    "id": "G8",
+    "text": "[G3]. Do not over-constrain formatting to the point of risking empty or malformed output; allow necessary code structure while prohibiting only verbose explanations.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781510387.456129
+  },
+  "G9": {
+    "id": "G9",
+    "text": "[G1]. Always explicitly instruct the model to output executable code as the final answer, never meta-instructions or solution descriptions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781510464.6977525
+  },
+  "G10": {
+    "id": "G10",
+    "text": "[G2]. Provide clear technical constraints (time/space complexity) but avoid giving algorithmic details that could confuse the output format.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781510464.7105534
+  },
+  "G11": {
+    "id": "G11",
+    "text": "[G3]. Balance specificity with focus: state requirements (edge cases, style) without redundant restatement of the problem already in the user query.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781510464.722368
+  },
+  "G12": {
+    "id": "G12",
+    "text": "[G1]. Explicitly list all required class attributes, method signatures (including parameter names and return types), and the exact format for any string output in the problem specification.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781510520.361714
+  },
+  "G13": {
+    "id": "G13",
+    "text": "[G2]. Mandate the generation of a complete, runnable class definition by using a closing instruction like \"Provide the full, final Python code within a single code block.\"",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781510520.3787465
+  },
+  "G14": {
+    "id": "G14",
+    "text": "[G3]. Prioritize concise, unambiguous behavioral requirements over verbose style prescriptions; ensure every instruction directly contributes to functional correctness.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781510520.3923755
+  },
+  "G15": {
+    "id": "G15",
+    "text": "[G1]. Explicitly operationalize key constraints by specifying the exact transformation or comparison method (e.g., \"normalize strings to lowercase using `.lower()` before checking for duplicates\") rather than just stating the requirement.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512375.501802
+  },
+  "G16": {
+    "id": "G16",
+    "text": "[G2]. Ensure the required output format is complete and executable (e.g., \"output a complete, runnable Python function\") without being overly restrictive (e.g., forbidding necessary imports or structure).",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512375.54615
+  },
+  "G17": {
+    "id": "G17",
+    "text": "[G3]. Align prompt requirements with evaluation by including explicit test cases in the prompt for critical behaviors (e.g., \"include a test case verifying 'Apple' and 'apple' are treated as duplicates\") to guard against incomplete unit tests.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512375.5703971
+  },
+  "G18": {
+    "id": "G18",
+    "text": "[G1]. Explicitly require the output to be a complete, runnable code block without truncation",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512454.3959112
+  },
+  "G19": {
+    "id": "G19",
+    "text": "[G2]. Balance specificity with flexibility: define required methods and error handling, but avoid over‑prescribing minor details that could cause generation failure",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512454.4229763
+  },
+  "G20": {
+    "id": "G20",
+    "text": "[G3]. Always pair error‑handling instructions with a clear requirement that valid inputs must return correct numerical results, not just error messages",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512454.4381754
+  },
+  "G21": {
+    "id": "G21",
+    "text": "[G1]. Ensure all problem specifications (like numeric thresholds, rates, or constraints) are precisely correct and match the ground truth before inclusion in the prompt.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512585.4410841
+  },
+  "G22": {
+    "id": "G22",
+    "text": "[G2]. Balance clarity and structure with flexibility—avoid overly rigid formatting demands that may cause the model to generate nothing or break syntax.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512585.4614353
+  },
+  "G23": {
+    "id": "G23",
+    "text": "[G3]. Prioritize content accuracy over stylistic perfection; a well-formatted prompt with incorrect core logic will produce high-scoring but wrong solutions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512585.4860413
+  },
+  "G24": {
+    "id": "G24",
+    "text": "[G1]. Ensure the prompt explicitly defines the program's input mechanism (e.g., function parameters, stdin) and output format, aligning with the problem's functional requirements.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512656.8541653
+  },
+  "G25": {
+    "id": "G25",
+    "text": "[G2]. Prioritize conciseness in instructions to reserve model capacity for complete code generation, avoiding overly verbose formatting rules that can cause truncation.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512656.8688545
+  },
+  "G26": {
+    "id": "G26",
+    "text": "[G3]. Structure the prompt to mandate a self-contained, executable solution, including necessary boilerplate (e.g., `if __name__ == \"__main__\":`) and handling of dynamic input.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512656.8808696
+  },
+  "G27": {
+    "id": "G27",
+    "text": "[G1]. Explicitly forbid common misinterpretations (e.g., \"do not sort the output\") alongside stating the positive requirement (\"preserve order from list1\").",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512706.6857648
+  },
+  "G28": {
+    "id": "G28",
+    "text": "[G2]. Prioritize and isolate the most critical, non-default constraint in the instructions to ensure it overrides the model's typical solution patterns.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512706.7004914
+  },
+  "G29": {
+    "id": "G29",
+    "text": "[G3]. Ensure formatting instructions are clear and feasible, avoiding overly rigid commands that may prevent any code generation.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512706.7127311
+  },
+  "G30": {
+    "id": "G30",
+    "text": "[G1]. Clearly specify error handling as either raising exceptions or returning error values, never both, and ensure the docstring matches the actual behavior exactly.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512756.6778817
+  },
+  "G31": {
+    "id": "G31",
+    "text": "[G2]. Prioritize core functional correctness (algorithm, input validation) in instructions over stylistic details, and avoid overly restrictive constraints that can cause generation failure.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512756.694247
+  },
+  "G32": {
+    "id": "G32",
+    "text": "[G3]. Explicitly require that the function's docstring and type hints reflect only the successful return type, not error paths that are handled by exceptions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512756.712628
+  },
+  "G33": {
+    "id": "G33",
+    "text": "[G1]. Clearly define the core algorithmic requirement (e.g., \"count directories using '/' separator, break ties lexicographically\") but avoid over-specifying implementation steps",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512791.927462
+  },
+  "G34": {
+    "id": "G34",
+    "text": "[G2]. Set coding-style expectations (e.g., PEP 8, modularity, documentation) without creating contradictions (e.g., don't demand both \"only code\" and \"include docstrings\")",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512791.9495518
+  },
+  "G35": {
+    "id": "G35",
+    "text": "[G3]. Instruct the model to output only the final code solution, without explanations, unless explicitly required for the task",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512791.9708502
+  },
+  "G36": {
+    "id": "G36",
+    "text": "[G1]. Clearly command the model to generate executable code as the primary output, avoiding ambiguous phrases like \"provide instructions\" or \"don't include solution code\" that can cause meta-descriptions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512837.5597937
+  },
+  "G37": {
+    "id": "G37",
+    "text": "[G2]. Specify precise algorithmic constraints (e.g., O(n) time, O(1) space) and edge cases to guide the solution, but never describe the exact algorithm steps in the prompt to avoid contradiction and over-constraint.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512837.57326
+  },
+  "G38": {
+    "id": "G38",
+    "text": "[G3]. Structure the prompt with a concise expert persona and direct coding standards (readability, no external dependencies) without redundant or self-contradicting instructions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512837.5879633
+  },
+  "G39": {
+    "id": "G39",
+    "text": "[G1]. Explicitly list all required class attributes, method signatures, and exact output formats from the example usage in the problem statement",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512889.918538
+  },
+  "G40": {
+    "id": "G40",
+    "text": "[G2]. Mandate that the generated code must be complete, executable, and end with a fully formed class definition—no truncated methods",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512889.946089
+  },
+  "G41": {
+    "id": "G41",
+    "text": "[G3]. Prioritize strict adherence to the problem's interface over general coding best practices when they conflict",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512889.9646757
+  },
+  "G42": {
+    "id": "G42",
+    "text": "[G1]. Always restate the exact required method signatures and attributes from the problem statement verbatim, including parameter names and default values.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512929.4896271
+  },
+  "G43": {
+    "id": "G43",
+    "text": "[G2]. Explicitly forbid adding any methods, functions, or features not specified in the original problem requirements.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512929.505622
+  },
+  "G44": {
+    "id": "G44",
+    "text": "[G3]. For each required method, specify the exact return type and format (e.g., return float vs. print, return formatted string vs. print details).",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512929.522886
+  },
+  "G45": {
+    "id": "G45",
+    "text": "[G1]. Ensure all functional requirements from the problem statement are explicitly listed in the prompt without omission or addition",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512994.8557713
+  },
+  "G46": {
+    "id": "G46",
+    "text": "[G2]. Maintain absolute consistency in specifications, especially for critical behaviors like error handling (choose one approach and state it unambiguously)",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512994.893485
+  },
+  "G47": {
+    "id": "G47",
+    "text": "[G3]. Prioritize precise requirement translation over generic coding standards; constraints should directly serve functional correctness",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781512994.9074523
+  },
+  "G48": {
+    "id": "G48",
+    "text": "[G1]. Always explicitly name the target function and its exact signature to prevent misinterpretation of the task.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513080.1940231
+  },
+  "G49": {
+    "id": "G49",
+    "text": "[G2]. Ensure the core problem specification (e.g., shift amount, key behavior) is unambiguous and matches the true requirements, avoiding over-specific examples that may conflict.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513080.2115757
+  },
+  "G50": {
+    "id": "G50",
+    "text": "[G3]. Mandate that the solution's correctness is verifiable against the stated transformation logic, not just generic coding standards, to align with evaluation.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513080.2267373
+  },
+  "G51": {
+    "id": "G51",
+    "text": "[G1]. Ensure the system prompt's problem specification matches the actual user requirements exactly, avoiding contradictions or added constraints not present in the original problem.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513121.5751777
+  },
+  "G52": {
+    "id": "G52",
+    "text": "[G2]. Direct the model to generate executable code only, and never include meta-instructions (e.g., \"do not include solution code\") intended for the prompt engineer.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513121.593486
+  },
+  "G53": {
+    "id": "G53",
+    "text": "[G3]. Prioritize concise, essential constraints (e.g., validation, error handling) over verbose, over-prescriptive specifications that can lead to over-engineering or deviation from the required API.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513121.6091876
+  },
+  "G54": {
+    "id": "G54",
+    "text": "[G1]. Clearly specify exact method and parameter names to match test expectations, avoiding ambiguous descriptions",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513165.5971732
+  },
+  "G55": {
+    "id": "G55",
+    "text": "[G2]. Balance detail with conciseness - include essential requirements but avoid overly restrictive or verbose phrasing that can confuse the model",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513165.666486
+  },
+  "G56": {
+    "id": "G56",
+    "text": "[G3]. Prioritize functional correctness over stylistic perfection by ensuring prompt instructions align with test validation criteria",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513165.6861477
+  },
+  "G57": {
+    "id": "G57",
+    "text": "[G1]. Enforce strict adherence to required attributes and methods by explicitly prohibiting unsolicited additions or deviations.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513261.5744486
+  },
+  "G58": {
+    "id": "G58",
+    "text": "[G2]. Ensure prompt-task alignment by verifying the specification matches the exact problem statement and expected test cases.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513261.5920162
+  },
+  "G59": {
+    "id": "G59",
+    "text": "[G3]. Balance detail with clarity by avoiding redundant instructions that may distract the model from core requirements.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513261.6190424
+  },
+  "G60": {
+    "id": "G60",
+    "text": "[G1]. Align the prompt's scope precisely with the problem's actual requirements, avoiding over-specification of features or architecture not present in the task.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513341.4613147
+  },
+  "G61": {
+    "id": "G61",
+    "text": "[G2]. Provide concrete implementation constraints (e.g., required class name, core data structure, and exact method signatures) to ensure functional compatibility with unit tests.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513341.4804652
+  },
+  "G62": {
+    "id": "G62",
+    "text": "[G3]. Keep instructions clear and concise, focusing on the essential functional and structural requirements while avoiding verbose, generic, or internally contradictory advice.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513341.4990947
+  },
+  "G63": {
+    "id": "G63",
+    "text": "[G1]. Clearly instruct the model to generate executable code—never include contradictory phrases like \"do not provide the actual solution code\" for a code-generation task.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513459.341158
+  },
+  "G64": {
+    "id": "G64",
+    "text": "[G2]. Provide high-level requirements (e.g., \"use an optimized primality test\") rather than overly prescriptive, step-by-step implementation details that can restrict the model or cause confusion.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513459.378452
+  },
+  "G65": {
+    "id": "G65",
+    "text": "[G3]. Specify the exact expected output format and behavior for edge cases (e.g., \"return None if no prime is found\") to prevent minor deviations that could affect correctness.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513459.412644
+  },
+  "G66": {
+    "id": "G66",
+    "text": "[G1]. Explicitly instruct the model to output a complete, runnable code solution (e.g., \"Provide the full function definition\") and never forbid generating the actual code.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513566.966518
+  },
+  "G67": {
+    "id": "G67",
+    "text": "[G2]. Provide specific, non-contradictory instructions for the output format (e.g., \"Return only the function definition with its docstring\") to avoid mixed meta-commentary.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513566.9886565
+  },
+  "G68": {
+    "id": "G68",
+    "text": "[G3]. Guide the algorithm with concrete, non-leaky hints (e.g., \"use a descending list of value-symbol pairs\") rather than abstract procedural descriptions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513567.0123632
+  },
+  "G69": {
+    "id": "G69",
+    "text": "[G1]. Explicitly define the solution's exact interface and scope—specify what functions/classes to implement and prohibit any extra input/output handling unless required by the problem statement.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513663.7763176
+  },
+  "G70": {
+    "id": "G70",
+    "text": "[G2]. Ensure the prompt's functional requirements (e.g., \"process commands from stdin\") fully mirror the hidden problem's I/O format; validate alignment with example interactions if available.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513663.7934506
+  },
+  "G71": {
+    "id": "G71",
+    "text": "[G3]. Balance detail between behavior (validation, formatting) and boundaries—over-specifying internals is safe, but under-specifying scope leads to solutions that fail unit tests.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513663.8138824
+  },
+  "G72": {
+    "id": "G72",
+    "text": "[G1]. Ensure the prompt's functional requirements exactly match the original problem statement; do not add, omit, or misinterpret features.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513705.76721
+  },
+  "G73": {
+    "id": "G73",
+    "text": "[G2]. Prioritize clarity and conciseness over excessive verbosity; avoid unnecessary constraints, debates, or over-specification that can distract or confuse the model.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513705.781374
+  },
+  "G74": {
+    "id": "G74",
+    "text": "[G3]. Explicitly instruct the model to implement only the requested features and to avoid adding unrequested functionality (like transaction counts or print statements).",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513705.7982788
+  },
+  "G75": {
+    "id": "G75",
+    "text": "[G1]. Ensure the prompt's problem restatement is precisely consistent with the original, especially for boundary conditions (e.g., \"less than n\" vs \"up to n\").",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513757.0082598
+  },
+  "G76": {
+    "id": "G76",
+    "text": "[G2]. Explicitly define the exact output format, including how the result should be structured and printed (e.g., \"space-separated values\" vs \"Python list\").",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513757.0226567
+  },
+  "G77": {
+    "id": "G77",
+    "text": "[G3]. Prioritize unambiguous, single-source truth for core requirements; avoid repeating or rephrasing key specs in ways that introduce contradictions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513757.0433779
+  },
+  "G78": {
+    "id": "G78",
+    "text": "[G1]. Explicitly define the exact serialization format, including placeholder representation for null/missing nodes (e.g., output \"None\" for `None` children).",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513806.374225
+  },
+  "G79": {
+    "id": "G79",
+    "text": "[G2]. Specify the precise representation of an empty tree input (e.g., `None` vs. empty list `[]`) to prevent type errors in edge-case handling.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513806.4055457
+  },
+  "G80": {
+    "id": "G80",
+    "text": "[G3]. Require the output to be a single string with a defined delimiter (e.g., space-separated values) to match exact expected formatting.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513806.4240518
+  },
+  "G81": {
+    "id": "G81",
+    "text": "[G1]. Explicitly require the use of specific, appropriate built-in libraries (like `str.translate()` with `string.punctuation` for punctuation removal) rather than banning \"complex\" ones.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513859.0591443
+  },
+  "G82": {
+    "id": "G82",
+    "text": "[G2]. Define punctuation handling with unambiguous, testable rules (e.g., \"remove all punctuation characters, even those attached to words\") instead of vague descriptions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513859.0777736
+  },
+  "G83": {
+    "id": "G83",
+    "text": "[G3]. Mandate that the response contains only the requested function definition, prohibiting any test code, examples, or explanatory text in the output.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513859.098283
+  },
+  "G84": {
+    "id": "G84",
+    "text": "[G1]. Explicitly define the expected output format (e.g., function-only vs. full script) to match the evaluation environment.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513906.8262298
+  },
+  "G85": {
+    "id": "G85",
+    "text": "[G2]. Prioritize functional correctness and test passing in the prompt's instructions over stylistic or minor efficiency constraints.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513906.841718
+  },
+  "G86": {
+    "id": "G86",
+    "text": "[G3]. Structure the prompt concisely, avoiding redundant or over-constraining instructions that can confuse the core task.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513906.8567238
+  },
+  "G87": {
+    "id": "G87",
+    "text": "[G1]. Explicitly require executable code output and forbid meta-instructions or solution descriptions",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513953.6193085
+  },
+  "G88": {
+    "id": "G88",
+    "text": "[G2]. Specify concrete complexity constraints (O(n) time, O(1) space) and edge cases (empty list, decreasing prices)",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513953.6383102
+  },
+  "G89": {
+    "id": "G89",
+    "text": "[G3]. Define a clear expert persona (\"Expert Coder\") with standards for clean, production-ready code including docstrings",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513953.6576436
+  },
+  "G90": {
+    "id": "G90",
+    "text": "[G1]. Explicitly instruct the model to output executable code as the final deliverable, never just an explanation or plan.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513989.7685235
+  },
+  "G91": {
+    "id": "G91",
+    "text": "[G2]. Provide specific algorithmic constraints (e.g., \"handle n up to 10^18\", \"use trial division up to sqrt(n)\", \"eliminate factor 2 first\") but avoid over-prescribing steps that might conflict with valid implementations.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513989.7906435
+  },
+  "G92": {
+    "id": "G92",
+    "text": "[G3]. Balance technical guidance with flexibility: state the performance goal and key optimizations, but let the model determine the exact implementation structure.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781513989.8100238
+  },
+  "G93": {
+    "id": "G93",
+    "text": "[G1]. Ensure edge case specifications are unambiguous and consistent with the true problem requirements",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514027.3521888
+  },
+  "G94": {
+    "id": "G94",
+    "text": "[G2]. Prioritize functional correctness over stylistic constraints when they conflict",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514027.368832
+  },
+  "G95": {
+    "id": "G95",
+    "text": "[G3]. Explicitly forbid contradictory instructions between the prompt body and required code structures (like docstrings)",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514027.3861344
+  },
+  "G96": {
+    "id": "G96",
+    "text": "[G1]. Clearly specify algorithm requirements without contradictory constraints (e.g., don't require both \"stable sort\" and \"can use quicksort\")",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514081.6171064
+  },
+  "G97": {
+    "id": "G97",
+    "text": "[G2]. Prioritize functional correctness over unrealistic performance claims (e.g., avoid \"outperform built-in sort\" for Python implementations)",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514081.6357791
+  },
+  "G98": {
+    "id": "G98",
+    "text": "[G3]. Balance specificity with flexibility—define core requirements (algorithm choice, complexity) but avoid over-prescribing implementation details that conflict with optimal solutions",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514081.650556
+  },
+  "G99": {
+    "id": "G99",
+    "text": "[G1]. Always specify the exact function signature (name, parameters, return type) required by the evaluation tests.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514141.441692
+  },
+  "G100": {
+    "id": "G100",
+    "text": "[G2]. Explicitly state the expected behavior for all critical edge cases, including empty input and strings with no alphanumeric characters.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514141.461828
+  },
+  "G101": {
+    "id": "G101",
+    "text": "[G3]. Instruct the model to output only the raw function code, but ensure this does not conflict with the test harness's expectation of a complete, runnable definition.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514141.4787083
+  },
+  "G102": {
+    "id": "G102",
+    "text": "[G1]. Clearly define the problem's core logic in steps (e.g., \"filter alphanumeric characters, convert to lowercase, then compare with its reverse\") without writing the actual code",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514199.693445
+  },
+  "G103": {
+    "id": "G103",
+    "text": "[G2]. Mandate specific coding standards: require a docstring, edge-case handling, and a self-contained solution using only the standard library",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514199.7086809
+  },
+  "G104": {
+    "id": "G104",
+    "text": "[G3]. Instruct the model to output only the final code solution, avoiding explanatory text or markdown formatting in the response",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514199.7251954
+  },
+  "G105": {
+    "id": "G105",
+    "text": "[G1]. Clearly define the algorithm approach (e.g., recursion with memoization) but avoid overly restrictive bans on alternative methods (e.g., \"no iteration\") that can lead to unnatural or broken implementations.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514245.993376
+  },
+  "G106": {
+    "id": "G106",
+    "text": "[G2]. Explicitly forbid common implementation pitfalls specific to the required approach (e.g., \"do not use a mutable default argument for the memoization dictionary\").",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514246.010378
+  },
+  "G107": {
+    "id": "G107",
+    "text": "[G3]. Prioritize functional correctness and clarity over excessive stylistic constraints (e.g., avoid contradictory rules about comments/modularity that can result in no code output).",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514246.0328476
+  },
+  "G108": {
+    "id": "G108",
+    "text": "[G1]. Explicitly require handling of whitespace edge cases (leading, trailing, multiple spaces) and specify using Python's built-in string methods unless otherwise needed",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514292.4093583
+  },
+  "G109": {
+    "id": "G109",
+    "text": "[G2]. Mandate self-contained, modular functions with descriptive names and docstrings, but avoid verbose or ambiguous restrictions that may confuse the core logic",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514292.4234934
+  },
+  "G110": {
+    "id": "G110",
+    "text": "[G3]. Directly instruct the model to split on whitespace, reverse the word order, and join with single spaces—without revealing the exact code—to anchor the solution approach",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514292.4412937
+  },
+  "G111": {
+    "id": "G111",
+    "text": "[G1]. Explicitly require the function to handle base validation (2-36) and raise ValueError for invalid inputs",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514334.4662
+  },
+  "G112": {
+    "id": "G112",
+    "text": "[G2]. Specify that negative numbers should preserve their sign in the output string",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514334.4935088
+  },
+  "G113": {
+    "id": "G113",
+    "text": "[G3]. Mandate the use of digit mapping (0-9, A-Z) for bases above 10 without providing implementation details",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514334.5074003
+  },
+  "G114": {
+    "id": "G114",
+    "text": "[G1]. Explicitly state the sorting criteria with clear precedence and direction (e.g., \"descending by frequency, ascending lexicographical for ties\") to directly guide the key logic.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514387.9711554
+  },
+  "G115": {
+    "id": "G115",
+    "text": "[G2]. Mandate a clean, single-function output without explanations, comments, or extra code outside the required definition to prevent generation errors or invalid output.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514387.9889724
+  },
+  "G116": {
+    "id": "G116",
+    "text": "[G3]. Balance detail with brevity; avoid redundant or over-constraining instructions that can distract the model or cause generation drop-off.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514388.015184
+  },
+  "G117": {
+    "id": "G117",
+    "text": "[G1]. Align error-handling instructions with the problem's expected return type—avoid over-specifying behavior that may conflict with hidden test cases.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514433.97387
+  },
+  "G118": {
+    "id": "G118",
+    "text": "[G2]. Provide clear functional requirements (type hints, docstrings, exception handling) without overly restrictive formatting rules that limit model flexibility.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514433.9901125
+  },
+  "G119": {
+    "id": "G119",
+    "text": "[G3]. Define an expert persona and emphasize clean, safe, standards-compliant code, but ensure core logic instructions do not contradict the problem’s implicit evaluation criteria.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514434.007602
+  },
+  "G120": {
+    "id": "G120",
+    "text": "[G1]. Clearly define the required function signature and return behavior, but avoid overly restrictive output instructions that could suppress code generation entirely.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514526.1978023
+  },
+  "G121": {
+    "id": "G121",
+    "text": "[G2]. Emphasize robust error handling (e.g., using try-except for specific exceptions) and the use of standard libraries, but keep these technical constraints concise to prevent verbosity.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514526.2178934
+  },
+  "G122": {
+    "id": "G122",
+    "text": "[G3]. Instruct the model to output only the final code solution, but pair this with a strong, clear task definition to ensure the model has sufficient confidence to generate it.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514526.242063
+  },
+  "G123": {
+    "id": "G123",
+    "text": "[G1]. Provide clear technical constraints (e.g., time/space complexity, algorithm type) without giving a step-by-step implementation that risks truncation or over-constraint.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514593.8744664
+  },
+  "G124": {
+    "id": "G124",
+    "text": "[G2]. Enforce a clean output format (e.g., \"output only the final function with its docstring\") but avoid repeating the instruction excessively or making it so restrictive it prevents generating valid code structure.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514593.8930233
+  },
+  "G125": {
+    "id": "G125",
+    "text": "[G3]. Balance specificity with conciseness: define the expert persona and key requirements, but avoid verbose, redundant instructions that can confuse the model or lead to incomplete generation.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514593.910995
+  },
+  "G126": {
+    "id": "G126",
+    "text": "[G1]. Clearly define performance constraints (e.g., O(√n) complexity, skip even numbers) without over-prescribing a single exact implementation algorithm",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514629.3848772
+  },
+  "G127": {
+    "id": "G127",
+    "text": "[G2]. Explicitly require edge-case handling (n ≤ 1, small primes like 2 and 3) and a clean, modular output with only the requested function",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514629.4185188
+  },
+  "G128": {
+    "id": "G128",
+    "text": "[G3]. Balance specificity with flexibility: give optimization direction (e.g., \"check up to √n\") but avoid rigid step-by-step instructions that can confuse the model or cause implementation errors",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514629.440898
+  },
+  "G129": {
+    "id": "G129",
+    "text": "[G1]. Explicitly restrict the solution to only the required function(s) with no extra I/O, imports, or interactive elements",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514677.463638
+  },
+  "G130": {
+    "id": "G130",
+    "text": "[G2]. Specify both time and space complexity requirements, favoring O(1) space when possible to avoid inefficient intermediate storage",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514677.4995382
+  },
+  "G131": {
+    "id": "G131",
+    "text": "[G3]. Prohibit specific disallowed methods or libraries while allowing necessary built-ins, based on the problem's hidden constraints",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514677.5176113
+  },
+  "G132": {
+    "id": "G132",
+    "text": "[G1]. Define a clear, concise expert persona and explicitly restrict output to code-only with no additional explanations",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514774.4286664
+  },
+  "G133": {
+    "id": "G133",
+    "text": "[G2]. Specify exact preprocessing requirements (case handling, character filtering) and complexity constraints (O(n) time/space) directly in the prompt",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514774.4494748
+  },
+  "G134": {
+    "id": "G134",
+    "text": "[G3]. Balance detail with focus by including essential edge cases but avoiding redundant restatements of the problem description",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514774.4638715
+  },
+  "G135": {
+    "id": "G135",
+    "text": "[G1]. Explicitly forbid any extra output beyond the requested function, including print statements, example calls, or explanatory comments outside the code block.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514822.461456
+  },
+  "G136": {
+    "id": "G136",
+    "text": "[G2]. Provide clear functional requirements (e.g., \"ignore non-alphanumeric characters,\" \"case-insensitive\") but avoid prescribing the exact implementation steps or code structure.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514822.5064976
+  },
+  "G137": {
+    "id": "G137",
+    "text": "[G3]. Balance strictness by mandating a clean, modular solution and edge-case handling, but do not use overly restrictive formatting commands that risk generating no executable code.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514822.534424
+  },
+  "G138": {
+    "id": "G138",
+    "text": "[G1]. Explicitly forbid built-in functions or libraries that would trivialize the problem (e.g., `math.gcd`) to ensure a from-scratch implementation.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514860.825816
+  },
+  "G139": {
+    "id": "G139",
+    "text": "[G2]. Mandate a complete docstring with specific sections (e.g., `Parameters:`, `Returns:`, `Examples:`) to enforce documentation and clarify intent.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514860.8674383
+  },
+  "G140": {
+    "id": "G140",
+    "text": "[G3]. Instruct the model to output only the final code with no explanatory text, comments about the process, or markdown formatting.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514860.9567885
+  },
+  "G141": {
+    "id": "G141",
+    "text": "[G1]. Clearly specify encapsulation requirements (e.g., private/protected attributes) but avoid mandating non-idiomatic or error-prone implementations like strict double-underscore name mangling unless explicitly required by the problem.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514950.3398921
+  },
+  "G142": {
+    "id": "G142",
+    "text": "[G2]. Explicitly state validation rules and error handling (e.g., \"mileage must only increase, raise ValueError otherwise\") to ensure functional correctness aligns with test expectations.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514950.3675954
+  },
+  "G143": {
+    "id": "G143",
+    "text": "[G3]. Instruct the model to output only the required code solution, avoiding extraneous features or explanations, to prevent scope drift and maintain focus on passing unit tests.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514950.3826954
+  },
+  "G144": {
+    "id": "G144",
+    "text": "[G1]. Clearly define the required output format and structure, specifying that the model must output a complete, runnable function definition",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514996.616576
+  },
+  "G145": {
+    "id": "G145",
+    "text": "[G2]. Balance specificity with flexibility: provide clear algorithmic constraints (like O(n) time) without over-restricting implementation details (like banning specific Python constructs)",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514996.640311
+  },
+  "G146": {
+    "id": "G146",
+    "text": "[G3]. Emphasize functional correctness and edge case handling over stylistic preferences, ensuring the prompt prioritizes working code above all else",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781514996.6595938
+  },
+  "G147": {
+    "id": "G147",
+    "text": "[G1]. Explicitly forbid built-in conversion functions and mandate a manual algorithm to ensure foundational understanding",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781515054.395608
+  },
+  "G148": {
+    "id": "G148",
+    "text": "[G2]. Require strict output formatting: only the function definition with no extra text, comments, or print statements",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781515054.4148285
+  },
+  "G149": {
+    "id": "G149",
+    "text": "[G3]. Specify exact error handling (e.g., \"raise ValueError\") for invalid inputs instead of generic validation instructions",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781515054.430032
+  },
+  "G150": {
+    "id": "G150",
+    "text": "[G1]. Ensure the prompt explicitly requires the model to output complete, executable code, not just a function stub or partial solution.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781515084.5846708
+  },
+  "G151": {
+    "id": "G151",
+    "text": "[G2]. Balance specificity with flexibility: provide clear constraints (e.g., time/space complexity, edge cases) but avoid over-prescribing the exact implementation method (e.g., mandating recursion) unless strictly necessary.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781515084.6086228
+  },
+  "G152": {
+    "id": "G152",
+    "text": "[G3]. Separate formatting instructions clearly from solution constraints to prevent the model from omitting the code itself in an attempt to comply with \"output only code\" rules.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781515084.638188
+  },
+  "G153": {
+    "id": "G153",
+    "text": "[G1]. Explicitly require algorithmic efficiency details (e.g., \"check only up to sqrt(n)\", \"skip even numbers\") to guide correct implementation.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781515121.1155057
+  },
+  "G154": {
+    "id": "G154",
+    "text": "[G2]. Balance specificity with flexibility—provide functional constraints and coding standards without over-constraining to the point of generation failure.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781515121.1348636
+  },
+  "G155": {
+    "id": "G155",
+    "text": "[G3]. Mandate modular code structure (e.g., helper functions for key operations) while ensuring the core function interface matches the problem exactly.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781515121.1508505
+  },
+  "G156": {
+    "id": "G156",
+    "text": "[G1]. Explicitly state the exact function name and signature to avoid ambiguity in code generation.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781515205.4843347
+  },
+  "G157": {
+    "id": "G157",
+    "text": "[G2]. Prioritize functional correctness over stylistic restrictions by ensuring algorithmic requirements are clearly specified.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781515205.5008652
+  },
+  "G158": {
+    "id": "G158",
+    "text": "[G3]. Maintain consistency in instructions (e.g., allow or disallow docstrings/comments uniformly) to prevent conflicting guidance.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781515205.5226734
+  },
+  "G159": {
+    "id": "G159",
+    "text": "[G1]. Explicitly mention key algorithmic optimizations (like 6k±1 for primality) without giving the full implementation, to steer efficiency without over-constraining",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781515336.2706366
+  },
+  "G160": {
+    "id": "G160",
+    "text": "[G2]. Balance strict output formatting (e.g., \"output only the function definition\") with clear syntactic completeness requirements to prevent empty or truncated generation",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781515336.3048565
+  },
+  "G161": {
+    "id": "G161",
+    "text": "[G3]. Define a clear expert persona focused on performance and correctness, and explicitly require handling of fundamental edge cases (e.g., n ≤ 1, small primes) upfront",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781515336.3414235
+  },
+  "G162": {
+    "id": "G162",
+    "text": "[G1]. Faithfully translate the user's problem requirements into the prompt—do not add, remove, or alter required function names, counts, or signatures.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781515392.3336256
+  },
+  "G163": {
+    "id": "G163",
+    "text": "[G2]. Ensure the prompt instructs the model to output a complete, syntactically valid code block containing only the requested function(s), avoiding instructions that could lead to empty or non-code responses.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781515392.354233
+  },
+  "G164": {
+    "id": "G164",
+    "text": "[G3]. Prioritize constraints that guarantee correctness (input/output, immutability, edge cases) over arbitrary stylistic preferences not specified in the original problem.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781515392.3778067
+  },
+  "G165": {
+    "id": "G165",
+    "text": "[G1]. Always specify the exact function signature (name, parameters, return type) and core algorithmic constraint (e.g., \"preserve order using a set\") in clear, simple language.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781575482.016256
+  },
+  "G166": {
+    "id": "G166",
+    "text": "[G2]. Explicitly require a docstring following a named style (e.g., Google-style) and restrict output to only the requested code, with no extra commentary.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781575482.050261
+  },
+  "G167": {
+    "id": "G167",
+    "text": "[G3]. Ensure the prompt is grammatically coherent and free of formatting noise—broken symbols or fragmented instructions lead to complete failure.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781575482.0665143
+  },
+  "G168": {
+    "id": "G168",
+    "text": "[G1]. Clearly define the required output format—specifically whether to output only code or include explanations—and enforce it strictly",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781575764.4245543
+  },
+  "G169": {
+    "id": "G169",
+    "text": "[G2]. State the core task concisely upfront (function name, parameters, return type, and key constraints like recursion) before any secondary formatting details",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781575764.4519796
+  },
+  "G170": {
+    "id": "G170",
+    "text": "[G3]. Avoid contradictory instructions and excessive verbosity; remove redundant prohibitions and formatting rules that don't impact functionality",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781575764.470941
+  },
+  "G171": {
+    "id": "G171",
+    "text": "[G1]. Clearly define required function signatures and recursive structure without contradictory implementation details",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781575837.7861805
+  },
+  "G172": {
+    "id": "G172",
+    "text": "[G2]. Specify docstring format and ban explanatory text, but avoid micromanaging variable names or loop mechanics",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781575837.8081203
+  },
+  "G173": {
+    "id": "G173",
+    "text": "[G3]. Enforce algorithm purity (no built-in sort) and immutability requirements, but keep instructions concise and logically consistent",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781575837.8299189
+  },
+  "G174": {
+    "id": "G174",
+    "text": "[G1]. Provide clear, concise requirements without prescribing exact implementation steps—focus on what the code must achieve, not how to achieve it.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576023.6172662
+  },
+  "G175": {
+    "id": "G175",
+    "text": "[G2]. Ensure the prompt is logically consistent and free of contradictions (e.g., don’t mix “return” with “print” demands).",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576023.6433332
+  },
+  "G176": {
+    "id": "G176",
+    "text": "[G3]. Structure the prompt with direct, unambiguous instructions, avoiding verbose or metaphorical language that obscures the core task.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576023.6604555
+  },
+  "G177": {
+    "id": "G177",
+    "text": "[G1]. Clearly define the required function signature, output format, and core logic without over-specifying low-level implementation details.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576069.4882867
+  },
+  "G178": {
+    "id": "G178",
+    "text": "[G2]. Prioritize functional correctness and clarity over verbose meta-instructions about formatting, docstring style, or markdown.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576069.507607
+  },
+  "G179": {
+    "id": "G179",
+    "text": "[G3]. Use concise, non-contradictory instructions that guide the model's reasoning without causing confusion or generation paralysis.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576069.5440202
+  },
+  "G180": {
+    "id": "G180",
+    "text": "[G1]. Clearly specify the exact function signature, required formula, and rounding method without ambiguous or contradictory instructions",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576126.554087
+  },
+  "G181": {
+    "id": "G181",
+    "text": "[G2]. Enforce concise, direct coding constraints (like list comprehensions) while avoiding verbose technical jargon and irrelevant details",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576126.5767672
+  },
+  "G182": {
+    "id": "G182",
+    "text": "[G3]. Maintain structural clarity by using consistent formatting and complete sentences, eliminating syntactic noise that could confuse the model",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576126.605065
+  },
+  "G183": {
+    "id": "G183",
+    "text": "[G1]. Clearly define the core functional requirements (e.g., case-insensitivity, alphanumeric filtering) in a concise, structured list.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576173.754731
+  },
+  "G184": {
+    "id": "G184",
+    "text": "[G2]. Mandate a clean output format (e.g., \"Return only the final Python function with a docstring\") and forbid extraneous elements like test code or print statements.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576173.7772257
+  },
+  "G185": {
+    "id": "G185",
+    "text": "[G3]. Avoid over-specifying low-level implementation details (e.g., exact variable names, specific list comprehension syntax) which can confuse the model; focus on the *what* not the *how*.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576173.795339
+  },
+  "G186": {
+    "id": "G186",
+    "text": "[G1]. State the core task clearly and concisely at the beginning, using standard programming terminology without abstract or academic jargon.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576214.7448025
+  },
+  "G187": {
+    "id": "G187",
+    "text": "[G2]. Specify key constraints (e.g., banned libraries, required algorithms) explicitly but minimally; avoid over-specifying low-level syntax like exact variable names or expression forms.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576214.7651947
+  },
+  "G188": {
+    "id": "G188",
+    "text": "[G3]. Structure the prompt for direct parsing: use clear sections (like Task, Constraints, Output Format) and avoid mixing high-level philosophy with implementation instructions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576214.7901871
+  },
+  "G189": {
+    "id": "G189",
+    "text": "[G1]. Explicitly mandate the exact function signature, core algorithm (e.g., \"use slicing `[::-1]`\"), and return value format",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576308.281237
+  },
+  "G190": {
+    "id": "G190",
+    "text": "[G2]. Specify input validation and error handling requirements precisely, including the exact exception type and condition",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576308.3002975
+  },
+  "G191": {
+    "id": "G191",
+    "text": "[G1]. Clearly state the required function signatures and output format without over-specifying implementation details",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576370.3024235
+  },
+  "G192": {
+    "id": "G192",
+    "text": "[G2]. Emphasize core constraints (like efficiency requirements and input preservation) using concise, unambiguous language",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576370.3273118
+  },
+  "G193": {
+    "id": "G193",
+    "text": "[G3]. Avoid contradictory instructions, formatting demands, and verbose explanations that obscure the essential task",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576370.3879824
+  },
+  "G194": {
+    "id": "G194",
+    "text": "[G1]. Clearly define the exact function signature, required behavior for edge cases (like empty input → None), and output format constraints (e.g., \"return only the function definition inside a Python code block\").",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576442.7840102
+  },
+  "G195": {
+    "id": "G195",
+    "text": "[G2]. Provide specific, essential coding instructions (e.g., \"use sum() and len()\", \"include a docstring\") but avoid verbose over-specification and redundant rules that can confuse the model or break output structure.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576442.8036857
+  },
+  "G196": {
+    "id": "G196",
+    "text": "[G3]. Ensure the prompt is coherent, grammatically correct, and free of contradictory or garbled phrasing, as noise directly leads to catastrophic failure.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576442.8270054
+  },
+  "G197": {
+    "id": "G197",
+    "text": "[G1]. Clearly prescribe the core algorithm or logic approach, such as \"use a while loop with startswith and prefix slicing\"",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576536.8599355
+  },
+  "G198": {
+    "id": "G198",
+    "text": "[G2]. Enforce strict output formatting: require a docstring with :param/:return and forbid explanations, imports, or non-code text",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576536.8880272
+  },
+  "G199": {
+    "id": "G199",
+    "text": "[G3]. Define the function signature and edge-case behavior explicitly (e.g., return empty string for empty list input)",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576536.903836
+  },
+  "G200": {
+    "id": "G200",
+    "text": "[G1]. Define a clear, specific function signature including parameter types, return type, and exact naming requirements",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576624.5240474
+  },
+  "G201": {
+    "id": "G201",
+    "text": "[G2]. Explicitly state the core algorithm or data structure approach (e.g., \"use sorted(word) as dictionary key\") rather than just describing the problem",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576624.5650136
+  },
+  "G202": {
+    "id": "G202",
+    "text": "[G3]. Enforce output constraints: require a single, complete code block with no explanatory text or commentary outside it",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576624.6021636
+  },
+  "G203": {
+    "id": "G203",
+    "text": "[G1]. Clearly specify exact method signatures, required data structures (e.g., history as list of tuples), and precise error types with messages",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576674.5139632
+  },
+  "G204": {
+    "id": "G204",
+    "text": "[G2]. Structure the prompt concisely with unambiguous requirements, avoiding verbose repetition, contradictory instructions, and broken formatting",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576674.5349042
+  },
+  "G205": {
+    "id": "G205",
+    "text": "[G3]. Explicitly instruct the model to output only a single, complete code block with correct syntax, focusing on functional correctness over stylistic over-specification",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576674.5562963
+  },
+  "G206": {
+    "id": "G206",
+    "text": "[G1]. Define a clear, concise expert persona and enforce strict output constraints (e.g., \"code only\" with allowed docstrings) to focus the model on generating executable solutions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576711.8332994
+  },
+  "G207": {
+    "id": "G207",
+    "text": "[G2]. Specify the exact function signature, return format, and core logic requirements (sorting keys, slicing) without embedding the full solution code, to guide correct implementation without overfitting.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576711.8539436
+  },
+  "G208": {
+    "id": "G208",
+    "text": "[G3]. Ensure prompt coherence and remove contradictions or verbose noise; ambiguous or corrupted instructions lead to catastrophic failure, even if core requirements are buried within.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576711.871994
+  },
+  "G209": {
+    "id": "G209",
+    "text": "[G1]. Clearly define the exact function signature and naming requirements without contradictions",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576784.8778553
+  },
+  "G210": {
+    "id": "G210",
+    "text": "[G2]. Specify core algorithmic constraints (like \"use recursion with isinstance checks\") concisely, avoiding verbose jargon",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576784.8976462
+  },
+  "G211": {
+    "id": "G211",
+    "text": "[G3]. Forbid specific problematic approaches (e.g., \"no sum()\", \"no imports\") while allowing reasonable implementation freedom",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576784.9159873
+  },
+  "G212": {
+    "id": "G212",
+    "text": "[G1]. Structure the prompt clearly: define a concise persona, state the core task, then specify functional requirements (inputs, outputs, algorithm), error handling, and output format in separate, unambiguous points.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576839.2673802
+  },
+  "G213": {
+    "id": "G213",
+    "text": "[G2]. Mandate specific error handling: explicitly state which exceptions must be raised (e.g., `ValueError`) and for what conditions (e.g., malformed JSON input), including the exact error message format if required.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576839.295962
+  },
+  "G214": {
+    "id": "G214",
+    "text": "[G3]. Eliminate formatting noise and contradictions: ensure the prompt uses clean markdown, avoids broken syntax or garbled text, and does not embed conflicting instructions about code delimiters or structure.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576839.3137486
+  },
+  "G215": {
+    "id": "G215",
+    "text": "[G1]. Ensure absolute consistency between the prompt's core functional requirement and any provided examples or docstring templates",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576920.4254994
+  },
+  "G216": {
+    "id": "G216",
+    "text": "[G2]. Structure prompts with clear, concise, prioritized instructions: function signature first, then core logic, then formatting requirements",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576920.4476721
+  },
+  "G217": {
+    "id": "G217",
+    "text": "[G3]. Include explicit edge case handling instructions that align with the actual problem's test expectations",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576920.4735637
+  },
+  "G218": {
+    "id": "G218",
+    "text": "[G1]. Clearly specify the core algorithmic constraints (e.g., \"use a single regex pattern to validate four octets in range 0-255\") before any stylistic or formatting instructions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576980.5932043
+  },
+  "G219": {
+    "id": "G219",
+    "text": "[G2]. Maintain concise, unambiguous language; avoid verbose explanations, contradictory requirements, and decorative phrasing that obscure the primary task.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576980.6414
+  },
+  "G220": {
+    "id": "G220",
+    "text": "[G3]. Structure the prompt to first define the function signature and objective, then state the technical approach, and finally list any simple code style rules (e.g., use `re.compile`).",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781576980.672411
+  },
+  "G221": {
+    "id": "G221",
+    "text": "[G1]. Clearly define the function signature, required algorithm logic, and output format (code block only, no explanations) in a concise, non-contradictory manner.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577057.1650138
+  },
+  "G222": {
+    "id": "G222",
+    "text": "[G2]. Enforce documentation standards (e.g., Google-style docstring) and coding constraints (e.g., time/space complexity) without overly verbose or garbled phrasing that confuses the core instruction.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577057.189882
+  },
+  "G223": {
+    "id": "G223",
+    "text": "[G3]. Maintain prompt coherence and avoid corruption, gibberish, or contradictory formatting rules that lead to empty or invalid code generation.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577057.210592
+  },
+  "G224": {
+    "id": "G224",
+    "text": "[G1]. Clearly define the exact function signature, required imports, and return type before detailing implementation logic",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577140.042582
+  },
+  "G225": {
+    "id": "G225",
+    "text": "[G2]. Specify regex patterns with precise examples of matching/non-matching inputs, not just abstract descriptions",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577140.064009
+  },
+  "G226": {
+    "id": "G226",
+    "text": "[G3]. Explicitly state error handling requirements (e.g., \"raise ValueError with descriptive message when pattern doesn't match\")",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577140.085722
+  },
+  "G227": {
+    "id": "G227",
+    "text": "[G1]. Enforce core algorithmic constraints explicitly and concisely (e.g., \"use a single linear scan with two integer counters, no slicing, no imports\")",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577207.6456633
+  },
+  "G228": {
+    "id": "G228",
+    "text": "[G2]. Define the exact function signature, parameter name, and return type before any other implementation details",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577207.667325
+  },
+  "G229": {
+    "id": "G229",
+    "text": "[G3]. Structure the prompt with clear, imperative instructions; avoid verbose explanations, contradictory phrases, and ambiguous jargon",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577207.686216
+  },
+  "G230": {
+    "id": "G230",
+    "text": "[G1]. Clearly define the exact output format with precise examples, including zero-padding and spacing requirements",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577385.0066369
+  },
+  "G231": {
+    "id": "G231",
+    "text": "[G2]. Explicitly state edge case handling rules (e.g., 00:00 → 12:00 AM, 12:00 → 12:00 PM) rather than letting the model infer them",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577385.0321772
+  },
+  "G232": {
+    "id": "G232",
+    "text": "[G3]. Provide structured, unambiguous requirements without contradictory instructions or over-specified implementation details",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577385.0540662
+  },
+  "G233": {
+    "id": "G233",
+    "text": "[G1]. Clearly specify the exact algorithm name and its key optimization steps (e.g., \"Sieve of Eratosthenes, iterating up to sqrt(n), marking multiples starting from prime^2\")",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577480.2962334
+  },
+  "G234": {
+    "id": "G234",
+    "text": "[G2]. Explicitly define the function signature, return format, and edge-case behavior (e.g., \"for n < 2, return an empty list\")",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577480.3165092
+  },
+  "G235": {
+    "id": "G235",
+    "text": "[G3]. Provide a clear, concise persona and coding standard without verbose, contradictory, or noisy instructions",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577480.3342912
+  },
+  "G236": {
+    "id": "G236",
+    "text": "[G1]. Clearly state the core task and expected function signature in simple, direct language",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577583.0149415
+  },
+  "G237": {
+    "id": "G237",
+    "text": "[G2]. Provide specific implementation constraints without over-specifying syntax or using confusing jargon",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577583.0416193
+  },
+  "G238": {
+    "id": "G238",
+    "text": "[G3]. Ensure the prompt is syntactically complete and focuses on actionable requirements rather than abstract metaphors",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577583.0633965
+  },
+  "G239": {
+    "id": "G239",
+    "text": "[G1]. Clearly define the required function signature, recursive/iterative approach, and docstring format without revealing exact implementation logic",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577641.3532624
+  },
+  "G240": {
+    "id": "G240",
+    "text": "[G2]. Establish an expert coder persona with emphasis on Pythonic conventions and clean code structure, but avoid overly verbose or unnatural phrasing",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577641.374076
+  },
+  "G241": {
+    "id": "G241",
+    "text": "[G3]. Balance specificity with flexibility: provide clear constraints (e.g., \"use recursion\") while allowing appropriate extensions like input validation",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577641.3928113
+  },
+  "G242": {
+    "id": "G242",
+    "text": "[G1]. Clearly state the core algorithmic requirement in simple, unambiguous language (e.g., \"remove duplicates while preserving original order\") before any secondary constraints.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577717.2988462
+  },
+  "G243": {
+    "id": "G243",
+    "text": "[G2]. Avoid verbose meta-commentary, contradictory instructions, and over-specification of trivial syntax; prioritize concise, logically consistent directives.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577717.3206854
+  },
+  "G244": {
+    "id": "G244",
+    "text": "[G3]. Ensure example code stubs or formatting templates are complete, syntactically correct, and directly illustrate the expected function signature and return value.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577717.3475394
+  },
+  "G245": {
+    "id": "G245",
+    "text": "[G1]. Clearly define the function signature, core algorithm, and constraints without over-specifying low-level implementation details like variable names or loop structures.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577775.859096
+  },
+  "G246": {
+    "id": "G246",
+    "text": "[G2]. Use concise, unambiguous language and consistent formatting; avoid verbose explanations, contradictory instructions, and broken markdown that confuse the model.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577775.904207
+  },
+  "G247": {
+    "id": "G247",
+    "text": "[G3]. Focus on the essential task requirements (correct logic, time/space complexity, handling edge cases) and prohibit only clearly harmful approaches, not stylistic preferences.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577775.9377267
+  },
+  "G248": {
+    "id": "G248",
+    "text": "[G1]. Clearly define the exact function signature (name, parameters, return type) and core logic requirement (e.g., \"use set difference\") in simple, unambiguous language.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577823.393694
+  },
+  "G249": {
+    "id": "G249",
+    "text": "[G2]. Require a docstring describing parameters and return value, but avoid over-specifying implementation details or banning specific constructs (like loops) unless absolutely necessary.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577823.4222395
+  },
+  "G250": {
+    "id": "G250",
+    "text": "[G3]. Instruct the model to output only the final code, with no explanatory text, and ensure all formatting instructions (like backticks) are correctly balanced and non-distracting.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577823.4576712
+  },
+  "G251": {
+    "id": "G251",
+    "text": "[G1]. Use clear, concise language and avoid abstract jargon—prioritize direct algorithmic instructions over verbose, metaphorical descriptions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577863.0907245
+  },
+  "G252": {
+    "id": "G252",
+    "text": "[G2]. Explicitly define the required function signature, return format, and any helper functions to enforce structural correctness.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577863.1169875
+  },
+  "G253": {
+    "id": "G253",
+    "text": "[G3]. Balance algorithmic guidance with practical coding standards (e.g., modularity, readability, edge-case handling) without over-constraining implementation details.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577863.1384547
+  },
+  "G254": {
+    "id": "G254",
+    "text": "[G1]. Clearly define the core requirements (recursion, signature, edge cases) without excessive formatting or contradictory style rules",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577909.4737067
+  },
+  "G255": {
+    "id": "G255",
+    "text": "[G2]. Balance specificity with clarity: provide exact constraints (base cases, input ranges) but avoid verbose repetition that distracts from logic",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577909.4936862
+  },
+  "G256": {
+    "id": "G256",
+    "text": "[G3]. Prioritize functional correctness instructions over strict output formatting demands like specific docstring syntax or code fence rules",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577909.510397
+  },
+  "G257": {
+    "id": "G257",
+    "text": "[G1]. Specify exact class names, method signatures, and required return behaviors with unambiguous precision",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577979.4576313
+  },
+  "G258": {
+    "id": "G258",
+    "text": "[G2]. Define error handling with exact string outputs or exception types when test cases depend on specific formats",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577979.4871898
+  },
+  "G259": {
+    "id": "G259",
+    "text": "[G3]. Enforce output purity by prohibiting explanatory comments, prints, or unnecessary imports unless explicitly required",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781577979.5092719
+  },
+  "G260": {
+    "id": "G260",
+    "text": "[G1]. Clearly state the core transformation logic in a single, concise sentence before adding any formatting or style constraints.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578040.3375192
+  },
+  "G261": {
+    "id": "G261",
+    "text": "[G2]. Define the exact function signature (name, parameters, return type) and provide a concrete input/output example.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578040.3637142
+  },
+  "G262": {
+    "id": "G262",
+    "text": "[G3]. Separate high-level requirements (what the function must do) from implementation suggestions (how to do it) and style rules, avoiding contradictory or overly prescriptive implementation details.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578040.3880293
+  },
+  "G263": {
+    "id": "G263",
+    "text": "[G1]. Define a clear, concise persona and specify the exact function signature and return behavior upfront",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578082.8642914
+  },
+  "G264": {
+    "id": "G264",
+    "text": "[G2]. Provide specific implementation requirements (regex patterns, validation rules, formatting details) without excessive verbosity or repetition",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578082.8971267
+  },
+  "G265": {
+    "id": "G265",
+    "text": "[G3]. Explicitly prohibit unwanted behaviors (no explanations, no extra output, no external libraries) while maintaining coherent, non-corrupted instructions",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578082.9282289
+  },
+  "G266": {
+    "id": "G266",
+    "text": "[G1]. Ensure the prompt is syntactically clean, logically consistent, and free of contradictory or broken code snippets",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578194.044789
+  },
+  "G267": {
+    "id": "G267",
+    "text": "[G2]. Explicitly define the exact function signature, input/output types, and handling of edge cases (e.g., empty string, ties)",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578194.0654125
+  },
+  "G268": {
+    "id": "G268",
+    "text": "[G3]. When specifying an algorithm, provide correct, unambiguous key steps (e.g., DP state definition, iteration order) without mandating low-level implementation noise",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578194.1002152
+  },
+  "G269": {
+    "id": "G269",
+    "text": "[G1]. Clearly list required methods with precise signatures and return types, avoiding contradictory or ambiguous behavioral instructions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578247.5263693
+  },
+  "G270": {
+    "id": "G270",
+    "text": "[G2]. Keep the prompt concise and structured, focusing on the class API and core logic rather than over-specifying low-level formatting or output strings.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578247.5469496
+  },
+  "G271": {
+    "id": "G271",
+    "text": "[G3]. Ensure all instructions are internally consistent (e.g., don't mix \"no return\" with \"must return a float\") and avoid referencing non-existent examples or solutions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578247.5688674
+  },
+  "G272": {
+    "id": "G272",
+    "text": "[G1]. Ensure the system prompt is fully coherent, free of gibberish, and provides a clear, logical task specification",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578284.43347
+  },
+  "G273": {
+    "id": "G273",
+    "text": "[G2]. Explicitly prescribe the core algorithm, mathematical bounds, and edge-case handling to constrain the solution space correctly",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578284.464229
+  },
+  "G274": {
+    "id": "G274",
+    "text": "[G3]. Provide specific, unambiguous instructions for input validation and error handling, avoiding contradictory or vague statements",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578284.4929338
+  },
+  "G275": {
+    "id": "G275",
+    "text": "[G1]. Clearly state the core task and expected input-output behavior in simple, direct language before adding any constraints or stylistic instructions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578350.9077206
+  },
+  "G276": {
+    "id": "G276",
+    "text": "[G2]. Provide specific, correct implementation patterns (e.g., \"use recursion with `isinstance(value, dict)` and build keys with `f'{parent_key}{sep}{k}'` if parent_key else k\") but avoid overly verbose or confusing jargon.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578350.9303558
+  },
+  "G277": {
+    "id": "G277",
+    "text": "[G3]. Ensure the final instruction explicitly mandates the generation of complete, runnable code (e.g., \"Output only the final Python function\") to prevent empty or partial responses.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578350.9648504
+  },
+  "G278": {
+    "id": "G278",
+    "text": "[G1]. Provide clear, concise algorithmic steps without over-specifying implementation syntax",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578479.6213758
+  },
+  "G279": {
+    "id": "G279",
+    "text": "[G2]. Balance expert persona with direct requirements, avoiding verbose or confusing phrasing",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578479.6525679
+  },
+  "G280": {
+    "id": "G280",
+    "text": "[G3]. Focus on functional constraints (edge cases, data structures) rather than stylistic micro-management",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578479.685186
+  },
+  "G281": {
+    "id": "G281",
+    "text": "[G1]. Keep the prompt concise and focused on core functional requirements, avoiding verbose meta-commentary and contradictory instructions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578587.2989292
+  },
+  "G282": {
+    "id": "G282",
+    "text": "[G2]. Clearly specify the exact function signature, mutation behavior (e.g., in-place update), and required documentation (like a docstring) in simple, unambiguous terms.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578587.323582
+  },
+  "G283": {
+    "id": "G283",
+    "text": "[G3]. Structure the prompt logically: state the task, define the interface, then list key constraints, without mixing formatting rules with core logic instructions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578587.3422177
+  },
+  "G284": {
+    "id": "G284",
+    "text": "[G1]. Specify the exact algorithm or key implementation steps (e.g., \"use Sieve of Eratosthenes, start marking multiples from p*p\")",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578716.748262
+  },
+  "G285": {
+    "id": "G285",
+    "text": "[G2]. Explicitly state edge cases and expected outputs (e.g., \"return an empty list if limit < 2\")",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578716.7712228
+  },
+  "G286": {
+    "id": "G286",
+    "text": "[G3]. Ensure instructions are grammatically coherent and free of contradictory or garbled text",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578716.7946928
+  },
+  "G287": {
+    "id": "G287",
+    "text": "[G1]. Provide clear, structured filtering logic with explicit conditions and output format requirements",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578758.1986194
+  },
+  "G288": {
+    "id": "G288",
+    "text": "[G2]. Maintain coherent, concise instructions without contradictory or redundant implementation details",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578758.2219315
+  },
+  "G289": {
+    "id": "G289",
+    "text": "[G3]. Define a specific persona and coding standards while avoiding corrupted or nonsensical text",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578758.278491
+  },
+  "G290": {
+    "id": "G290",
+    "text": "[G1]. Clearly define the function signature, core task, and required output format in simple, unambiguous language.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578792.247993
+  },
+  "G291": {
+    "id": "G291",
+    "text": "[G2]. Specify critical constraints and edge cases (e.g., \"handle negative numbers\") without dictating the exact implementation steps.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578792.2928643
+  },
+  "G292": {
+    "id": "G292",
+    "text": "[G3]. Avoid over-prescription: give requirements for *what* the code must do, not *how* to do it (e.g., don't mandate specific variable names, loop structures, or operators).",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578792.313571
+  },
+  "G293": {
+    "id": "G293",
+    "text": "[G1]. Clearly define the function signature, input/output types, and provide concrete examples of expected behavior",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578846.134108
+  },
+  "G294": {
+    "id": "G294",
+    "text": "[G2]. Explicitly specify edge case handling requirements (like division by zero or empty inputs) with the exact return values",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578846.1591148
+  },
+  "G295": {
+    "id": "G295",
+    "text": "[G3]. Maintain coherent, concise instructions without contradictory formatting rules or unnecessary restrictions",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578846.1853933
+  },
+  "G296": {
+    "id": "G296",
+    "text": "[G1]. Define a clear expert persona and require modular, well-structured code with helper methods for separation of concerns.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578905.2977622
+  },
+  "G297": {
+    "id": "G297",
+    "text": "[G2]. Explicitly state the core functional requirements and constraints (e.g., duplicate handling, time complexity) without redundant or verbose repetition.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578905.3243215
+  },
+  "G298": {
+    "id": "G298",
+    "text": "[G3]. Strictly instruct the model to output only the final code without any additional explanations, comments, or markdown outside the solution classes.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578905.3445427
+  },
+  "G299": {
+    "id": "G299",
+    "text": "[G1]. Clearly define the exact function signature, input format, and expected output structure with concrete examples",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578949.8966672
+  },
+  "G300": {
+    "id": "G300",
+    "text": "[G2]. Provide specific implementation constraints (like allowed/disallowed methods) concisely without contradictory or fragmented phrasing",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578949.9195883
+  },
+  "G301": {
+    "id": "G301",
+    "text": "[G3]. Focus on functional requirements and clean structure over verbose formatting rules or stylistic demands",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781578949.939281
+  },
+  "G302": {
+    "id": "G302",
+    "text": "[G1]. Clearly define the required function signature, return type, and edge-case handling in simple, unambiguous language",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579154.9175534
+  },
+  "G303": {
+    "id": "G303",
+    "text": "[G2]. Specify algorithmic approach at a high level (e.g., \"use an optimized trial division\") without over-prescribing implementation details like specific variable names",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579154.987454
+  },
+  "G304": {
+    "id": "G304",
+    "text": "[G3]. Explicitly state output format constraints (e.g., \"output only the function definition, no test code\") using direct, emphatic phrasing",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579155.0525908
+  },
+  "G305": {
+    "id": "G305",
+    "text": "[G1]. Explicitly define mapping rules and case handling with concrete examples",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579267.2456331
+  },
+  "G306": {
+    "id": "G306",
+    "text": "[G2]. Maintain clear, concise instructions without redundant formatting or verbosity",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579267.2701879
+  },
+  "G307": {
+    "id": "G307",
+    "text": "[G3]. Specify exact function signature and output format requirements",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579267.3066883
+  },
+  "G308": {
+    "id": "G308",
+    "text": "[G1]. Clearly define the core task and expected output format in simple, unambiguous language before adding any constraints",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579374.9874892
+  },
+  "G309": {
+    "id": "G309",
+    "text": "[G2]. Ensure all technical specifications are consistent and avoid contradictory instructions (e.g., don't mix generator and list comprehension requirements)",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579375.0103421
+  },
+  "G310": {
+    "id": "G310",
+    "text": "[G3]. Prioritize essential functional requirements over stylistic preferences, and place stylistic rules after the core task is established",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579375.0316677
+  },
+  "G311": {
+    "id": "G311",
+    "text": "[G1]. Explicitly command the model to generate code (e.g., \"Write a Python function called X that does Y\") before describing constraints.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579418.6866214
+  },
+  "G312": {
+    "id": "G312",
+    "text": "[G2]. State core functional requirements (e.g., use recursion, validate inputs, handle base cases) as direct, concise bullet points or short sentences, not buried in abstract prose.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579418.7095573
+  },
+  "G313": {
+    "id": "G313",
+    "text": "[G3]. Prioritize concrete implementation details (function name, parameter types, return type, error conditions) over philosophical descriptions of code quality.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579418.7338955
+  },
+  "G314": {
+    "id": "G314",
+    "text": "[G1]. Clearly specify whether preprocessing (like removing punctuation or lowercasing) should affect only the palindrome detection logic, and how to map results back to the original input string",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579487.1245534
+  },
+  "G315": {
+    "id": "G315",
+    "text": "[G2]. Provide precise algorithmic requirements without contradictory instructions, and avoid over-specifying unnecessary constraints not in the original problem",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579487.1457164
+  },
+  "G316": {
+    "id": "G316",
+    "text": "[G3]. Maintain a concise, well-structured prompt that defines the developer persona and core requirements without verbose noise or formatting corruption",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579487.1694715
+  },
+  "G317": {
+    "id": "G317",
+    "text": "[G1]. Provide clear, concise requirements for function signature, input validation, and edge cases (zero, negatives, invalid base) without prescribing implementation details",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579518.4788897
+  },
+  "G318": {
+    "id": "G318",
+    "text": "[G2]. Maintain coherent structure with consistent formatting and avoid contradictory instructions or corrupted text",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579518.504564
+  },
+  "G319": {
+    "id": "G319",
+    "text": "[G3]. Establish a clear expert persona and coding standards while avoiding excessive verbosity and implementation step-by-step recipes",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579518.5265772
+  },
+  "G320": {
+    "id": "G320",
+    "text": "[G1]. Clearly and concisely state the core task: the function signature, expected behavior, and required output format.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579581.8892913
+  },
+  "G321": {
+    "id": "G321",
+    "text": "[G2]. Provide specific, non-contradictory implementation constraints (e.g., time complexity, allowed methods) without burying them in verbose jargon.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579581.9086037
+  },
+  "G322": {
+    "id": "G322",
+    "text": "[G3]. Structure the prompt logically, prioritizing essential instructions and avoiding formatting noise or ambiguous phrasing.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579581.9312103
+  },
+  "G323": {
+    "id": "G323",
+    "text": "[G1]. Provide clear function signature requirements (name, parameters, return type) but avoid overly rigid step-by-step implementation details that can conflict with model generation patterns.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579630.618696
+  },
+  "G324": {
+    "id": "G324",
+    "text": "[G2]. Balance specificity with flexibility: give high-level algorithmic direction (e.g., \"use a stack\") and style constraints, but allow the model autonomy in exact implementation and variable naming.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579630.678078
+  },
+  "G325": {
+    "id": "G325",
+    "text": "[G3]. Ensure output format instructions are simple and unambiguous (e.g., \"output only the function definition\") without embedding contradictory or overly restrictive negative commands.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579630.707506
+  },
+  "G326": {
+    "id": "G326",
+    "text": "[G1]. Clearly specify the required algorithm or approach by name (e.g., \"expand around center\") and define the expected function signature precisely.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579694.1177638
+  },
+  "G327": {
+    "id": "G327",
+    "text": "[G2]. Provide concrete, concise instructions on core logic and edge cases (e.g., \"handle strings of length 0 or 1\"), avoiding abstract metaphors and unnecessary jargon.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579694.1517608
+  },
+  "G328": {
+    "id": "G328",
+    "text": "[G3]. Mandate a clean output format (e.g., \"return only the substring\") and forbid extraneous code or prints, but avoid over-specifying low-level implementation details like exact variable names or loop structures.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579694.185492
+  },
+  "G329": {
+    "id": "G329",
+    "text": "[G2]. Specify the core algorithmic logic in simple, direct terms (e.g., \"use recursion,\" \"handle dict and list types,\" \"join keys with a separator\").",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579748.3850713
+  },
+  "G330": {
+    "id": "G330",
+    "text": "[G3]. Avoid abstract jargon, pedagogical framing, and verbose philosophical constraints; prioritize concise, testable instructions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579748.431752
+  },
+  "G331": {
+    "id": "G331",
+    "text": "[G1]. Explicitly prohibit disallowed methods or syntax (e.g., \"do not use `[::-1]`, `reversed()`, or `join()`\") to constrain the solution approach.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579794.617272
+  },
+  "G332": {
+    "id": "G332",
+    "text": "[G2]. Mandate a specific output format (e.g., \"output only the final function code in a single code block\") to ensure clean, directly usable results.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579794.6750052
+  },
+  "G333": {
+    "id": "G333",
+    "text": "[G3]. Provide clear, concise algorithmic requirements (e.g., \"use a loop and build the reversed string by prepending each character\") instead of verbose, contradictory, or incoherent instructions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579794.6985044
+  },
+  "G334": {
+    "id": "G334",
+    "text": "[G1]. Explicitly forbid incorrect approaches (e.g., \"Do not use built-in sorting functions\") while mandating the correct algorithm (e.g., \"Use a two-pointer merge technique\")",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579853.9690564
+  },
+  "G335": {
+    "id": "G335",
+    "text": "[G2]. Define precise output formatting requirements, including function signature, docstring style, and that only the final code block should be returned",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579854.0000558
+  },
+  "G336": {
+    "id": "G336",
+    "text": "[G3]. Provide clear algorithmic constraints (time/space complexity) and implementation boundaries, but avoid over-specifying low-level details like exact variable names or loop structures",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579854.0216415
+  },
+  "G337": {
+    "id": "G337",
+    "text": "[G1]. Clearly define the exact function signature, required algorithm constraints, and performance expectations in simple, unambiguous language",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579916.9576344
+  },
+  "G338": {
+    "id": "G338",
+    "text": "[G2]. Structure the prompt with clean formatting and avoid markdown noise, fragmented sentences, or redundant phrasing that could confuse the model",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579916.986236
+  },
+  "G339": {
+    "id": "G339",
+    "text": "[G3]. Explicitly require proper documentation (docstrings) and output format while eliminating any contradictory or nonsensical instructions",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579917.0135164
+  },
+  "G340": {
+    "id": "G340",
+    "text": "[G1]. Use clear, concise language and avoid abstract jargon or unnecessary verbosity to ensure the core task is immediately understandable.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579979.852133
+  },
+  "G341": {
+    "id": "G341",
+    "text": "[G2]. Provide specific, actionable requirements (e.g., function names, key algorithms, structural constraints) in a simple, prioritized list.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579979.877716
+  },
+  "G342": {
+    "id": "G342",
+    "text": "[G3]. Focus on functional correctness and code structure first; avoid over-specifying low-level implementation details in a way that confuses the primary goal.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781579979.9152932
+  },
+  "G343": {
+    "id": "G343",
+    "text": "[G1]. Ensure the prompt is syntactically clean and free of formatting corruption, as even minor noise can degrade code quality despite correct logic.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580043.2814243
+  },
+  "G344": {
+    "id": "G344",
+    "text": "[G2]. Provide clear, concise, and structured requirements (e.g., handling missing keys, tie-breaking rules) without excessive verbosity to prevent model confusion.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580043.3265688
+  },
+  "G345": {
+    "id": "G345",
+    "text": "[G3]. Explicitly instruct the model to generate executable, syntactically correct code, including a valid test suite, to avoid evaluation failures from ancillary errors.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580043.3689728
+  },
+  "G346": {
+    "id": "G346",
+    "text": "[G1]. Clearly define the exact function signature, return type, and required documentation format (e.g., Google-style docstring)",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580082.5190542
+  },
+  "G347": {
+    "id": "G347",
+    "text": "[G2]. Specify the core algorithmic approach or constraints (e.g., \"use a set to track seen items, preserve first-appearance order\") without over-prescribing syntax or forbidding all reasonable alternatives",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580082.5469952
+  },
+  "G348": {
+    "id": "G348",
+    "text": "[G3]. Instruct the model to output only the requested code solution, without additional explanations or text in the response",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580082.6054723
+  },
+  "G349": {
+    "id": "G349",
+    "text": "[G1]. Enforce a clear, logical structure for the code (e.g., define helper classes first, then main class) to match standard implementation patterns.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580092.9627779
+  },
+  "G350": {
+    "id": "G350",
+    "text": "[G2]. Prioritize concise, unambiguous instructions over verbose formatting and avoid contradictory or non-essential rules that can confuse the model.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580092.9872382
+  },
+  "G351": {
+    "id": "G351",
+    "text": "[G1]. Clearly state the exact function name and core task in a single, unambiguous sentence at the beginning.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580369.292595
+  },
+  "G352": {
+    "id": "G352",
+    "text": "[G2]. Avoid verbose, contradictory, or syntactically broken instructions; prioritize concise, correct, and logically structured requirements.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580369.3159018
+  },
+  "G353": {
+    "id": "G353",
+    "text": "[G3]. Ensure the prompt's primary logic description aligns perfectly with the intended evaluation; do not mix or hint at alternative tasks (e.g., average vs. median).",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580369.3374085
+  },
+  "G354": {
+    "id": "G354",
+    "text": "[G1]. Ensure the prompt is syntactically and semantically coherent—avoid corruption, gibberish, or token-mixing artifacts that render instructions uninterpretable.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580420.1753862
+  },
+  "G355": {
+    "id": "G355",
+    "text": "[G2]. Explicitly state core functional requirements: for algorithmic functions, specify the exact approach (e.g., \"use recursion\"), input validation rules, and error-handling expectations.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580420.2022805
+  },
+  "G356": {
+    "id": "G356",
+    "text": "[G3]. Define output formatting constraints, including mandatory documentation (e.g., \"include a Google-style docstring with Parameters and Returns sections\") and code structure.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580420.2261164
+  },
+  "G357": {
+    "id": "G357",
+    "text": "[G1]. Prioritize concise, unambiguous functional requirements (method signatures, core logic, validation rules) over verbose stylistic or domain commentary.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580494.9444559
+  },
+  "G358": {
+    "id": "G358",
+    "text": "[G2]. Explicitly ground all specifications in the user's provided problem statement to prevent adding unrequested features or altering required parameters.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580494.9687347
+  },
+  "G359": {
+    "id": "G359",
+    "text": "[G3]. Instruct the model to output only the requested code solution, avoiding explanatory text, usage examples, or comments unless explicitly required.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580494.9882061
+  },
+  "G360": {
+    "id": "G360",
+    "text": "[G1]. Define a clear expert persona and specify concise, non-repetitive requirements focusing on correctness, efficiency, and edge cases",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580553.62448
+  },
+  "G361": {
+    "id": "G361",
+    "text": "[G2]. Instruct the model to output only the function definition with docstring, avoiding any extraneous explanations or test cases",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580553.6520505
+  },
+  "G362": {
+    "id": "G362",
+    "text": "[G3]. Provide essential constraints (like no external libraries) without over-specifying implementation details or making overly restrictive assumptions",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580553.6837957
+  },
+  "G363": {
+    "id": "G363",
+    "text": "[G1]. Clearly define edge-case behavior and ensure it's consistent throughout the prompt (no contradictory instructions)",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580612.771459
+  },
+  "G364": {
+    "id": "G364",
+    "text": "[G2]. Provide strict constraints (like \"no built-in functions\") but avoid over-prescribing implementation details that restrict solution flexibility",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580612.7993627
+  },
+  "G365": {
+    "id": "G365",
+    "text": "[G3]. Balance thoroughness with conciseness—include essential requirements but avoid verbose instructions that may confuse the model",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580612.8332703
+  },
+  "G366": {
+    "id": "G366",
+    "text": "[G1]. Focus on core functional requirements without prescribing example usage or output formatting within the implementation",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580668.9148908
+  },
+  "G367": {
+    "id": "G367",
+    "text": "[G2]. Maintain clarity and conciseness—avoid overly verbose, restrictive, or contradictory instructions that obscure the primary task",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580668.9947739
+  },
+  "G368": {
+    "id": "G368",
+    "text": "[G3]. Define clear coding standards (modularity, docstrings, validation) but keep them separate from specific demonstration steps",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580669.0359871
+  },
+  "G369": {
+    "id": "G369",
+    "text": "[G1]. Clearly specify exact method signatures (names, parameters, return types) without over-constraining implementation details",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580744.6867986
+  },
+  "G370": {
+    "id": "G370",
+    "text": "[G2]. Balance precision with flexibility—define core behavior requirements but avoid overly restrictive implementation rules that may conflict with test expectations",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580744.720685
+  },
+  "G371": {
+    "id": "G371",
+    "text": "[G3]. Prioritize functional correctness instructions over formatting details, ensuring critical behaviors (like error handling) are explicitly defined",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580744.7428195
+  },
+  "G372": {
+    "id": "G372",
+    "text": "[G1]. Ensure the prompt's functional specifications (attributes, method names, logic) precisely match the true problem statement, not an inferred or incomplete version.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580875.5819764
+  },
+  "G373": {
+    "id": "G373",
+    "text": "[G2]. Prioritize core functional correctness and interface adherence over stylistic prescriptions like docstring format.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580875.6087272
+  },
+  "G374": {
+    "id": "G374",
+    "text": "[G3]. Avoid overly restrictive output instructions (e.g., \"output only code\") unless you are certain the model's task is pure code generation, not meta-tasks.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580875.6371887
+  },
+  "G375": {
+    "id": "G375",
+    "text": "[G1]. Explicitly require case normalization (e.g., .lower()) in the implementation when specifying case-insensitive operations, and validate that the docstring matches this behavior.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580961.236069
+  },
+  "G376": {
+    "id": "G376",
+    "text": "[G2]. Ensure the prompt mandates code generation; avoid overly restrictive \"do not\" rules that may suppress output entirely.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580961.2597206
+  },
+  "G377": {
+    "id": "G377",
+    "text": "[G3]. Instruct the model to include internal verification (e.g., a comment or assert) that the implementation aligns with the stated comparison rule (case-sensitive/insensitive).",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580961.2880697
+  },
+  "G378": {
+    "id": "G378",
+    "text": "[G1]. Explicitly state the core algorithmic requirement (e.g., \"use recursion\") in a clear, direct, and simple sentence.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580998.8037586
+  },
+  "G379": {
+    "id": "G379",
+    "text": "[G2]. Specify concrete validation and error-handling rules (e.g., \"raise a ValueError for negative inputs\") separately from general coding principles.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580998.830213
+  },
+  "G380": {
+    "id": "G380",
+    "text": "[G3]. Use concise, imperative language focused on the task; avoid verbose abstractions, meta-commentary, and unnatural jargon.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781580998.8624976
+  },
+  "G381": {
+    "id": "G381",
+    "text": "[G1]. Clearly define the function signature, including default parameter values, and explicitly state that the generated code must match them exactly.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581042.3791332
+  },
+  "G382": {
+    "id": "G382",
+    "text": "[G2]. Provide precise technical requirements (e.g., recursive approach, key concatenation logic) but avoid overly verbose or restrictive phrasing that can confuse the model.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581042.4061956
+  },
+  "G383": {
+    "id": "G383",
+    "text": "[G3]. Instruct the model to output only the requested code and docstring, but ensure the core prompt does not contain contradictory or ambiguous output instructions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581042.4377913
+  },
+  "G384": {
+    "id": "G384",
+    "text": "[G1]. First, ensure the prompt accurately reflects the complete and correct user requirement by explicitly restating the core task (e.g., \"Write a function named `remove_vowels` that returns a new string with all vowels removed\") before any implementation details.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581143.6408908
+  },
+  "G385": {
+    "id": "G385",
+    "text": "[G2]. Mandate that the generated code includes a simple, explicit example in the docstring showing the function's input and expected output to ground the model's understanding of the required behavior.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581143.6710365
+  },
+  "G386": {
+    "id": "G386",
+    "text": "[G3]. Require correctness for basic public test cases within the prompt itself (e.g., \"Ensure it passes: `remove_vowels('Hello World!') == 'Hll Wrld!'`\") before optimizing for efficiency or style, to anchor the primary objective.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581143.698049
+  },
+  "G387": {
+    "id": "G387",
+    "text": "[G1]. Clearly specify the required output format (e.g., tuple, string, list) with a concrete example, and ensure it aligns with the problem's common interpretation.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581217.7354822
+  },
+  "G388": {
+    "id": "G388",
+    "text": "[G2]. Enforce code quality (PEP 8, docstrings, meaningful names) with positive instructions, but avoid prohibitions that break basic Python syntax or idiomatic structure (e.g., \"no variables,\" \"no conditionals\").",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581217.7599337
+  },
+  "G389": {
+    "id": "G389",
+    "text": "[G3]. Keep constraints focused on the core task; remove redundant, ambiguous, or overly restrictive rules that do not directly affect correctness or readability.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581217.7832088
+  },
+  "G390": {
+    "id": "G390",
+    "text": "[G1]. Ensure the prompt's task description is unambiguous and matches the true problem; avoid contradictory or misstated requirements.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581278.1475942
+  },
+  "G391": {
+    "id": "G391",
+    "text": "[G2]. Balance strict formatting rules with a clear, non-negotiable command to always generate the requested code block.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581278.1842525
+  },
+  "G392": {
+    "id": "G392",
+    "text": "[G3]. Prioritize functional correctness and alignment with the actual problem over verbose style or performance constraints.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581278.235767
+  },
+  "G393": {
+    "id": "G393",
+    "text": "[G1]. Prioritize functional correctness and test passing over implementation details—clearly state the required algorithm but avoid step-by-step coding instructions that can distract from core logic.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581387.684726
+  },
+  "G394": {
+    "id": "G394",
+    "text": "[G2]. Balance specificity with flexibility: define the function signature, edge cases, and performance constraints, but allow the model autonomy in implementation details like variable naming and exact loop structures.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581387.7129002
+  },
+  "G395": {
+    "id": "G395",
+    "text": "[G3]. Enforce output format strictly (e.g., function name, docstring, no extra text) while keeping algorithmic guidance high-level and outcome-focused (e.g., “use Sieve of Eratosthenes with O(n log log n) complexity” rather than “start from p²”).",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581387.7377722
+  },
+  "G396": {
+    "id": "G396",
+    "text": "[G1]. Align prompt requirements precisely with the problem statement's core attributes and methods; avoid adding or omitting key specifications.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581437.8362596
+  },
+  "G397": {
+    "id": "G397",
+    "text": "[G2]. Prioritize explicit, concise functional requirements (method names, signatures, core logic) over verbose stylistic prescriptions.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581437.8604157
+  },
+  "G398": {
+    "id": "G398",
+    "text": "[G3]. Ensure error handling instructions are directly tied to specific methods and conditions stated in the problem.",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581437.8872714
+  },
+  "G399": {
+    "id": "G399",
+    "text": "[G1]. Clearly specify the core algorithm or data structure requirements without contradictory or ambiguous implementation details",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581501.1539712
+  },
+  "G400": {
+    "id": "G400",
+    "text": "[G2]. Maintain coherent, concise instructions while avoiding verbose explanations that introduce noise or confusion",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581501.181364
+  },
+  "G401": {
+    "id": "G401",
+    "text": "[G3]. Ensure all prompt components are logically consistent, especially when combining multiple requirements (like prime sieve + BST + summation)",
+    "score_delta": 0.0,
+    "usage_count": 0,
+    "source_batch": 0,
+    "created_at": 1781581501.204782
+  }
+}

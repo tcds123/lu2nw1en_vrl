@@ -1,0 +1,129 @@
+{
+  "stats": {
+    "baseline_mean": 7.05,
+    "random_mean": 7.002,
+    "curated_mean": 7.05,
+    "curated_vs_baseline_p": 0.999999999999986,
+    "curated_vs_random_p": 0.36534845360263657,
+    "curated_winrate_vs_baseline": 0.2,
+    "curated_winrate_vs_random": 0.4,
+    "n_samples": 5
+  },
+  "results": [
+    {
+      "task": "You are tasked with implementing an efficient algorithm to compute the nth Fibonacci number. To opti",
+      "baseline_score": 9.82,
+      "random_score": 9.879999999999999,
+      "curated_score": 9.879999999999999,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "curated_skills": [
+        "G111",
+        "G48",
+        "G154",
+        "G361",
+        "G4"
+      ],
+      "random_skills": [
+        "G201",
+        "G163",
+        "G78",
+        "G146",
+        "G5"
+      ]
+    },
+    {
+      "task": "You are given a list of dictionaries representing sales data for various products. Each dictionary c",
+      "baseline_score": 2.79,
+      "random_score": 2.79,
+      "curated_score": 2.79,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_skills": [
+        "G272",
+        "G111",
+        "G199",
+        "G48",
+        "G351"
+      ],
+      "random_skills": [
+        "G8",
+        "G350",
+        "G139",
+        "G371",
+        "G294"
+      ]
+    },
+    {
+      "task": "You are given a list of integers and a target integer. Your task is to implement a function that rem",
+      "baseline_score": 2.88,
+      "random_score": 2.88,
+      "curated_score": 2.8199999999999994,
+      "baseline_pass_rate": 0.0,
+      "random_pass_rate": 0.0,
+      "curated_pass_rate": 0.0,
+      "curated_skills": [
+        "G48",
+        "G263",
+        "G272",
+        "G199",
+        "G261"
+      ],
+      "random_skills": [
+        "G113",
+        "G112",
+        "G141",
+        "G2",
+        "G206"
+      ]
+    },
+    {
+      "task": "You are given a list of integers. Your task is to implement a function `filter_odd_numbers` that pro",
+      "baseline_score": 9.94,
+      "random_score": 9.73,
+      "curated_score": 9.94,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "curated_skills": [
+        "G272",
+        "G48",
+        "G351",
+        "G193",
+        "G236"
+      ],
+      "random_skills": [
+        "G331",
+        "G377",
+        "G110",
+        "G358",
+        "G190"
+      ]
+    },
+    {
+      "task": "You are given a string `s`. Your task is to determine if it is a palindrome, considering only alphan",
+      "baseline_score": 9.82,
+      "random_score": 9.73,
+      "curated_score": 9.82,
+      "baseline_pass_rate": 1.0,
+      "random_pass_rate": 1.0,
+      "curated_pass_rate": 1.0,
+      "curated_skills": [
+        "G272",
+        "G374",
+        "G2",
+        "G147",
+        "G340"
+      ],
+      "random_skills": [
+        "G68",
+        "G399",
+        "G61",
+        "G350",
+        "G292"
+      ]
+    }
+  ]
+}

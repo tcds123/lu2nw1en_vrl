@@ -290,7 +290,7 @@ Correct code（output）：{output_code}
 
 def main():
     # 配置参数
-    API_KEY = "msk-4b8773bf749c892f2c9803aa69ef94b8b96e7cf807da78cbfdf8606ed919adef"
+    API_KEY = os.environ.get("QWEN480B_API_KEY", "")
     DATASET_PATH = "/data/zhuldz/lunwen/data/OpenCodeInstruct/datajson/small_test1.json"  # 支持.json和.jsonl格式
     EXAMPLE_PATH = "/data/zhuldz/lunwen/judge/sysprompt_icl.txt"
     SAVE_PATH = "/data/zhuldz/lunwen/judge/generated_system_prompts.json"

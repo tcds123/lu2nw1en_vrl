@@ -67,12 +67,12 @@ def generate_code(model, tokenizer, prompt: str) -> str:
             "input_ids": input_ids,
             "attention_mask": attention_mask,
             "max_new_tokens": 2048,  # 增加生成长度避免截断
-            "temperature": 0.3,     # 降低温度提高稳定性
+            "temperature": 0.05,     # 降低温度提高稳定性
             "top_p": 0.9,
             "do_sample": True,
             "pad_token_id": tokenizer.pad_token_id,
             "eos_token_id": tokenizer.eos_token_id,
-            "repetition_penalty": 1.1,
+            #"repetition_penalty": 1.1,
         }
 
         with torch.no_grad():

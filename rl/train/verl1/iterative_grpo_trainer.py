@@ -16,6 +16,25 @@ from verl.trainer.main_ppo import TaskRunner
 from verl.trainer.ppo.utils import need_critic, need_reference_policy
 from verl.utils.config import validate_config
 
+
+# 必须在 ray.init 之前设置
+os.environ["RAY_memory_monitor_refresh_ms"] = "0"
+
+# ============================================================================
+# 【Patch 0】修复 verl 本地路径加载 (huggingface_hub 新版本验证问题)
+# ============================================================================
+import verl.utils.tokenizer as verl_tokenizer_module
+_original_hf_tokenizer = verl_tokenizer_module.hf_tokenizer
+
+def patched_hf_tokenizer(name_or_path, **kwargs):
+    """支持本地绝对路径加载模型 tokenizer"""
+    if name_or_path.startswith("/"):
+        kwargs["local_files_only"] = True
+    return _original_hf_tokenizer(name_or_path, **kwargs)
+
+verl_tokenizer_module.hf_tokenizer = patched_hf_tokenizer
+print("✅ [Patch 0] verl tokenizer patched for local paths")
+
 # ============================================================================
 # 【Patch 1】动态维度对齐 (保持不变)
 # ============================================================================

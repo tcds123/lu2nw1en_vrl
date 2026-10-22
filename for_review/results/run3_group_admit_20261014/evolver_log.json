@@ -1,0 +1,1512 @@
+{
+  "ts": "20261014_111505",
+  "init_skill": "/data/zhuldz/lunwen/data/skill_aime_initial_v2.md",
+  "init_skill_hash": "c11d7dc0c8",
+  "ablation": "FULL",
+  "baseline_val": {
+    "pass": 0.6,
+    "delta": 1.8503717077085942e-18,
+    "ci": -0.12222222222222225
+  },
+  "iters": [
+    {
+      "t": 1,
+      "facet_tree": true,
+      "secs": 3594.3,
+      "n_active": 3,
+      "n_archive": 6,
+      "best_val_delta": 0.0,
+      "best_val_ci": -0.1222,
+      "best_n_sec": 4,
+      "best_facet": "Quantity Parsing",
+      "crossover": null,
+      "overlay": {
+        "delta": -0.0444,
+        "ci": -0.1333,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "n_axes_combined": 0,
+        "n_sections": 4,
+        "not_meta_ci": -0.1264,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "Combinatorics": -0.0667,
+          "NumberTheory": -0.3889,
+          "Geometry": -0.1667,
+          "Algebra": -0.3333
+        }
+      },
+      "expand": {
+        "section_name": "Equation & Constraint Verification",
+        "target_type": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+        "delta": 0.0222,
+        "ci": -0.0667,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "not_meta_ci": -0.0575,
+        "not_meta_n": 29,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "Combinatorics": 0.0333,
+          "NumberTheory": -0.1667,
+          "Algebra": -0.3333,
+          "Geometry": -0.1667
+        }
+      },
+      "cumulative_diag": {
+        "best_ratio": 1.0,
+        "best_native": "Quantity Parsing",
+        "leaves_ratio_mean": 1.0,
+        "per_leaf": [
+          {
+            "facet": "Quantity Parsing",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Case Enumeration",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Computation & Verification",
+            "ratio": 1.0
+          }
+        ]
+      },
+      "branch_failure_types": {
+        "Quantity Parsing": {
+          "Misreading the asked quantity (count vs value vs sum vs max vs min vs remainder)": 1,
+          "Nested Function Periodicity": 1
+        },
+        "Case Enumeration": {
+          "Arithmetic / sign / computational slips in multi-step calculation": 1
+        },
+        "Computation & Verification": {
+          "Geometry Structure Misidentification": 1,
+          "Geometry Chain Setup": 1,
+          "Geometry Parallel Extension": 1,
+          "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 1
+        }
+      },
+      "operator_counts": {
+        "facet_edit": {
+          "attempted": 3,
+          "guard_rejected": 0,
+          "evaluated": 3,
+          "admitted": 3,
+          "promoted": 0
+        },
+        "crossover": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "overlay": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "expand": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "strengthen": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        }
+      },
+      "pool_filter_gates": {
+        "quality": {
+          "pass": 0,
+          "reject": 0
+        },
+        "spike": {
+          "pass": 0,
+          "reject": 0
+        },
+        "diverse": {
+          "pass": 0,
+          "reject": 0
+        }
+      },
+      "stagnation_fb": {
+        "stage1": false,
+        "stage2": false,
+        "no_improve_iter": 0,
+        "pool_ci_gate": 0.0,
+        "best_ci_gate": 0.0,
+        "best_delta_floor": 0.0,
+        "promoted_this_iter": false
+      }
+    },
+    {
+      "t": 2,
+      "facet_tree": true,
+      "secs": 2436.8,
+      "n_active": 3,
+      "n_archive": 9,
+      "best_val_delta": 0.0,
+      "best_val_ci": -0.1222,
+      "best_n_sec": 4,
+      "best_facet": "Quantity Parsing",
+      "crossover": null,
+      "overlay": {
+        "delta": -0.0222,
+        "ci": -0.1,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "n_axes_combined": 0,
+        "n_sections": 4,
+        "not_meta_ci": -0.092,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "Combinatorics": -0.0667,
+          "Algebra": 0.0,
+          "NumberTheory": 0.0,
+          "Geometry": -0.25
+        }
+      },
+      "expand": {
+        "section_name": "Equation/Setup Verification via Dimensional/Unit Consistency & Symmetry Check",
+        "target_type": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+        "delta": 0.0111,
+        "ci": -0.0556,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "not_meta_ci": -0.0575,
+        "not_meta_n": 29,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "Combinatorics": 0.0333,
+          "NumberTheory": -0.1667,
+          "Algebra": 0.0,
+          "Geometry": -0.1667
+        }
+      },
+      "cumulative_diag": {
+        "best_ratio": 1.0,
+        "best_native": "Quantity Parsing",
+        "leaves_ratio_mean": 1.0,
+        "per_leaf": [
+          {
+            "facet": "Quantity Parsing",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Case Enumeration",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Computation & Verification",
+            "ratio": 1.0
+          }
+        ]
+      },
+      "branch_failure_types": {
+        "Quantity Parsing": {
+          "Case enumeration completeness (missing or overlapping cases in combinatorics)": 1,
+          "Nested Function Periodicity": 1
+        },
+        "Case Enumeration": {
+          "Arithmetic / sign / computational slips in multi-step calculation": 1
+        },
+        "Computation & Verification": {
+          "Geometry Structure Misidentification": 1,
+          "Geometry Chain Setup": 1,
+          "Geometry Parallel Extension": 1,
+          "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 1
+        }
+      },
+      "operator_counts": {
+        "facet_edit": {
+          "attempted": 3,
+          "guard_rejected": 0,
+          "evaluated": 3,
+          "admitted": 3,
+          "promoted": 0
+        },
+        "crossover": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "overlay": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "expand": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "strengthen": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        }
+      },
+      "pool_filter_gates": {
+        "quality": {
+          "pass": 0,
+          "reject": 0
+        },
+        "spike": {
+          "pass": 0,
+          "reject": 0
+        },
+        "diverse": {
+          "pass": 0,
+          "reject": 0
+        }
+      },
+      "stagnation_fb": {
+        "stage1": false,
+        "stage2": false,
+        "no_improve_iter": 1,
+        "pool_ci_gate": 0.0,
+        "best_ci_gate": 0.0,
+        "best_delta_floor": 0.0,
+        "promoted_this_iter": false
+      }
+    },
+    {
+      "t": 3,
+      "facet_tree": true,
+      "secs": 1942.0,
+      "n_active": 3,
+      "n_archive": 12,
+      "best_val_delta": 0.0,
+      "best_val_ci": -0.1222,
+      "best_n_sec": 4,
+      "best_facet": "Quantity Parsing",
+      "crossover": null,
+      "overlay": {
+        "delta": -0.0333,
+        "ci": -0.0889,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "n_axes_combined": 0,
+        "n_sections": 4,
+        "not_meta_ci": -0.0805,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "Combinatorics": -0.0667,
+          "Algebra": 0.0,
+          "NumberTheory": -0.2222,
+          "Geometry": -0.1389
+        }
+      },
+      "expand": {
+        "section_name": "Equation & Constraint Verification",
+        "target_type": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+        "delta": -0.0222,
+        "ci": -0.1222,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "not_meta_ci": -0.1264,
+        "not_meta_n": 29,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "NumberTheory": -0.1667,
+          "Combinatorics": 0.0,
+          "Algebra": 0.0,
+          "Geometry": -0.3333
+        }
+      },
+      "cumulative_diag": {
+        "best_ratio": 1.0,
+        "best_native": "Quantity Parsing",
+        "leaves_ratio_mean": 1.0,
+        "per_leaf": [
+          {
+            "facet": "Quantity Parsing",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Case Enumeration",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Computation & Verification",
+            "ratio": 1.0
+          }
+        ]
+      },
+      "branch_failure_types": {
+        "Quantity Parsing": {
+          "Case enumeration completeness (missing or overlapping cases in combinatorics)": 1,
+          "Nested Function Periodicity": 1
+        },
+        "Case Enumeration": {
+          "Arithmetic / sign / computational slips in multi-step calculation": 1
+        },
+        "Computation & Verification": {
+          "Geometry Structure Misidentification": 1,
+          "Geometry Chain Setup": 1,
+          "Geometry Parallel Extension": 1,
+          "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 1
+        }
+      },
+      "operator_counts": {
+        "facet_edit": {
+          "attempted": 3,
+          "guard_rejected": 0,
+          "evaluated": 3,
+          "admitted": 3,
+          "promoted": 0
+        },
+        "crossover": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "overlay": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "expand": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "strengthen": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        }
+      },
+      "pool_filter_gates": {
+        "quality": {
+          "pass": 0,
+          "reject": 0
+        },
+        "spike": {
+          "pass": 0,
+          "reject": 0
+        },
+        "diverse": {
+          "pass": 0,
+          "reject": 0
+        }
+      },
+      "stagnation_fb": {
+        "stage1": false,
+        "stage2": false,
+        "no_improve_iter": 2,
+        "pool_ci_gate": 0.0,
+        "best_ci_gate": 0.0,
+        "best_delta_floor": 0.0,
+        "promoted_this_iter": false
+      }
+    },
+    {
+      "t": 4,
+      "facet_tree": true,
+      "secs": 2997.5,
+      "n_active": 3,
+      "n_archive": 15,
+      "best_val_delta": 0.0,
+      "best_val_ci": -0.1222,
+      "best_n_sec": 4,
+      "best_facet": "Quantity Parsing",
+      "crossover": null,
+      "overlay": {
+        "delta": 0.0333,
+        "ci": -0.0444,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "n_axes_combined": 0,
+        "n_sections": 4,
+        "not_meta_ci": -0.023,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "Combinatorics": 0.0,
+          "Algebra": 0.0,
+          "NumberTheory": -0.2222,
+          "Geometry": -0.1111
+        }
+      },
+      "expand": {
+        "section_name": "Equation/Constraint Verification",
+        "target_type": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+        "delta": -0.0111,
+        "ci": -0.0889,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "not_meta_ci": -0.0805,
+        "not_meta_n": 29,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "Combinatorics": -0.0667,
+          "NumberTheory": -0.1667,
+          "Algebra": 0.0,
+          "Geometry": -0.1944
+        }
+      },
+      "cumulative_diag": {
+        "best_ratio": 1.0,
+        "best_native": "Quantity Parsing",
+        "leaves_ratio_mean": 1.0,
+        "per_leaf": [
+          {
+            "facet": "Quantity Parsing",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Case Enumeration",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Computation & Verification",
+            "ratio": 1.0
+          }
+        ]
+      },
+      "branch_failure_types": {
+        "Quantity Parsing": {
+          "Case enumeration completeness (missing or overlapping cases in combinatorics)": 1,
+          "Nested Function Periodicity": 1
+        },
+        "Case Enumeration": {
+          "Arithmetic / sign / computational slips in multi-step calculation": 1
+        },
+        "Computation & Verification": {
+          "Geometry Structure Misidentification": 1,
+          "Geometry Chain Setup": 1,
+          "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 2
+        }
+      },
+      "operator_counts": {
+        "facet_edit": {
+          "attempted": 3,
+          "guard_rejected": 0,
+          "evaluated": 3,
+          "admitted": 3,
+          "promoted": 0
+        },
+        "crossover": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "overlay": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "expand": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "strengthen": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        }
+      },
+      "pool_filter_gates": {
+        "quality": {
+          "pass": 0,
+          "reject": 0
+        },
+        "spike": {
+          "pass": 0,
+          "reject": 0
+        },
+        "diverse": {
+          "pass": 0,
+          "reject": 0
+        }
+      },
+      "stagnation_fb": {
+        "stage1": false,
+        "stage2": false,
+        "no_improve_iter": 3,
+        "pool_ci_gate": 0.0,
+        "best_ci_gate": 0.0,
+        "best_delta_floor": 0.0,
+        "promoted_this_iter": false
+      }
+    },
+    {
+      "t": 5,
+      "facet_tree": true,
+      "secs": 2407.0,
+      "n_active": 3,
+      "n_archive": 18,
+      "best_val_delta": 0.0,
+      "best_val_ci": -0.1222,
+      "best_n_sec": 4,
+      "best_facet": "Quantity Parsing",
+      "crossover": null,
+      "overlay": {
+        "delta": 0.0222,
+        "ci": -0.0333,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "n_axes_combined": 0,
+        "n_sections": 4,
+        "not_meta_ci": -0.023,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "NumberTheory": -0.2222,
+          "Combinatorics": 0.0,
+          "Algebra": 0.0,
+          "Geometry": -0.0556
+        }
+      },
+      "expand": {
+        "section_name": "Equation & Constraint Verification",
+        "target_type": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+        "delta": 0.0,
+        "ci": -0.0667,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "not_meta_ci": -0.0575,
+        "not_meta_n": 29,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "Combinatorics": 0.0,
+          "NumberTheory": -0.1667,
+          "Geometry": -0.1111,
+          "Algebra": -0.3333
+        }
+      },
+      "cumulative_diag": {
+        "best_ratio": 1.0,
+        "best_native": "Quantity Parsing",
+        "leaves_ratio_mean": 1.0,
+        "per_leaf": [
+          {
+            "facet": "Quantity Parsing",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Case Enumeration",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Computation & Verification",
+            "ratio": 1.0
+          }
+        ]
+      },
+      "branch_failure_types": {
+        "Quantity Parsing": {
+          "Case enumeration completeness (missing or overlapping cases in combinatorics)": 1,
+          "Nested Function Periodicity": 1
+        },
+        "Case Enumeration": {
+          "Case enumeration completeness (missing or overlapping cases in combinatorics)": 1
+        },
+        "Computation & Verification": {
+          "Geometry Structure Misidentification": 1,
+          "Geometry Chain Setup": 1,
+          "Geometry Parallel Extension": 1,
+          "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 1
+        }
+      },
+      "operator_counts": {
+        "facet_edit": {
+          "attempted": 3,
+          "guard_rejected": 0,
+          "evaluated": 3,
+          "admitted": 3,
+          "promoted": 0
+        },
+        "crossover": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "overlay": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "expand": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "strengthen": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        }
+      },
+      "pool_filter_gates": {
+        "quality": {
+          "pass": 0,
+          "reject": 0
+        },
+        "spike": {
+          "pass": 0,
+          "reject": 0
+        },
+        "diverse": {
+          "pass": 0,
+          "reject": 0
+        }
+      },
+      "stagnation_fb": {
+        "stage1": false,
+        "stage2": false,
+        "no_improve_iter": 4,
+        "pool_ci_gate": 0.0,
+        "best_ci_gate": 0.0,
+        "best_delta_floor": 0.0,
+        "promoted_this_iter": false
+      }
+    },
+    {
+      "t": 6,
+      "facet_tree": true,
+      "secs": 2933.5,
+      "n_active": 3,
+      "n_archive": 21,
+      "best_val_delta": 0.0,
+      "best_val_ci": -0.1222,
+      "best_n_sec": 4,
+      "best_facet": "Quantity Parsing",
+      "crossover": null,
+      "overlay": {
+        "delta": -0.0111,
+        "ci": -0.1,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "n_axes_combined": 0,
+        "n_sections": 4,
+        "not_meta_ci": -0.1034,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "Combinatorics": -0.0667,
+          "Algebra": -0.3333,
+          "NumberTheory": -0.1667,
+          "Geometry": -0.2222
+        }
+      },
+      "expand": {
+        "section_name": "Equation Cross-Check",
+        "target_type": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+        "delta": 0.0111,
+        "ci": -0.0889,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "not_meta_ci": -0.0805,
+        "not_meta_n": 29,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "NumberTheory": -0.1667,
+          "Combinatorics": 0.0333,
+          "Algebra": 0.0,
+          "Geometry": -0.25
+        }
+      },
+      "cumulative_diag": {
+        "best_ratio": 1.0,
+        "best_native": "Quantity Parsing",
+        "leaves_ratio_mean": 1.0,
+        "per_leaf": [
+          {
+            "facet": "Quantity Parsing",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Case Enumeration",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Computation & Verification",
+            "ratio": 1.0
+          }
+        ]
+      },
+      "branch_failure_types": {
+        "Quantity Parsing": {
+          "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 1,
+          "Nested Function Periodicity": 1
+        },
+        "Case Enumeration": {
+          "Arithmetic / sign / computational slips in multi-step calculation": 1
+        },
+        "Computation & Verification": {
+          "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 3,
+          "Geometry Chain Setup": 1
+        }
+      },
+      "operator_counts": {
+        "facet_edit": {
+          "attempted": 3,
+          "guard_rejected": 0,
+          "evaluated": 3,
+          "admitted": 3,
+          "promoted": 0
+        },
+        "crossover": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "overlay": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "expand": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "strengthen": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        }
+      },
+      "pool_filter_gates": {
+        "quality": {
+          "pass": 0,
+          "reject": 0
+        },
+        "spike": {
+          "pass": 0,
+          "reject": 0
+        },
+        "diverse": {
+          "pass": 0,
+          "reject": 0
+        }
+      },
+      "stagnation_fb": {
+        "stage1": false,
+        "stage2": false,
+        "no_improve_iter": 5,
+        "pool_ci_gate": 0.0,
+        "best_ci_gate": 0.0,
+        "best_delta_floor": 0.0,
+        "promoted_this_iter": false
+      }
+    },
+    {
+      "t": 7,
+      "facet_tree": true,
+      "secs": 2280.0,
+      "n_active": 3,
+      "n_archive": 24,
+      "best_val_delta": 0.0,
+      "best_val_ci": -0.1222,
+      "best_n_sec": 4,
+      "best_facet": "Quantity Parsing",
+      "crossover": null,
+      "overlay": {
+        "delta": -0.0333,
+        "ci": -0.1333,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "n_axes_combined": 0,
+        "n_sections": 4,
+        "not_meta_ci": -0.1379,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "NumberTheory": -0.5,
+          "Combinatorics": 0.0,
+          "Algebra": 0.0,
+          "Geometry": -0.1667
+        }
+      },
+      "expand": {
+        "section_name": "Equation/Constraint Reinterpretation Check",
+        "target_type": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+        "delta": 0.0111,
+        "ci": -0.0778,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "not_meta_ci": -0.069,
+        "not_meta_n": 29,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "Algebra": 0.0,
+          "NumberTheory": -0.1667,
+          "Combinatorics": 0.0333,
+          "Geometry": -0.25
+        }
+      },
+      "cumulative_diag": {
+        "best_ratio": 1.0,
+        "best_native": "Quantity Parsing",
+        "leaves_ratio_mean": 1.0,
+        "per_leaf": [
+          {
+            "facet": "Quantity Parsing",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Case Enumeration",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Computation & Verification",
+            "ratio": 1.0
+          }
+        ]
+      },
+      "branch_failure_types": {
+        "Quantity Parsing": {
+          "Case enumeration completeness (missing or overlapping cases in combinatorics)": 1,
+          "Number-theoretic case analysis (missing residue classes, unbounded solution range)": 1
+        },
+        "Case Enumeration": {
+          "Arithmetic / sign / computational slips in multi-step calculation": 1
+        },
+        "Computation & Verification": {
+          "Case enumeration completeness (missing or overlapping cases in combinatorics)": 1,
+          "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 3
+        }
+      },
+      "operator_counts": {
+        "facet_edit": {
+          "attempted": 3,
+          "guard_rejected": 0,
+          "evaluated": 3,
+          "admitted": 3,
+          "promoted": 0
+        },
+        "crossover": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "overlay": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "expand": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "strengthen": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        }
+      },
+      "pool_filter_gates": {
+        "quality": {
+          "pass": 0,
+          "reject": 0
+        },
+        "spike": {
+          "pass": 0,
+          "reject": 0
+        },
+        "diverse": {
+          "pass": 0,
+          "reject": 0
+        }
+      },
+      "stagnation_fb": {
+        "stage1": false,
+        "stage2": false,
+        "no_improve_iter": 6,
+        "pool_ci_gate": 0.0,
+        "best_ci_gate": 0.0,
+        "best_delta_floor": 0.0,
+        "promoted_this_iter": false
+      }
+    },
+    {
+      "t": 8,
+      "facet_tree": true,
+      "secs": 2678.5,
+      "n_active": 3,
+      "n_archive": 27,
+      "best_val_delta": 0.0,
+      "best_val_ci": -0.1222,
+      "best_n_sec": 4,
+      "best_facet": "Quantity Parsing",
+      "crossover": null,
+      "overlay": {
+        "delta": -0.0111,
+        "ci": -0.0778,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "n_axes_combined": 0,
+        "n_sections": 4,
+        "not_meta_ci": -0.0805,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "NumberTheory": 0.0,
+          "Algebra": 0.0,
+          "Combinatorics": 0.0,
+          "Geometry": -0.2222
+        }
+      },
+      "expand": {
+        "section_name": "Equation & Constraint Verification",
+        "target_type": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+        "delta": -0.0556,
+        "ci": -0.1444,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "not_meta_ci": -0.1494,
+        "not_meta_n": 29,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "Combinatorics": -0.0333,
+          "Algebra": 0.0,
+          "NumberTheory": -0.1667,
+          "Geometry": -0.3611
+        }
+      },
+      "cumulative_diag": {
+        "best_ratio": 1.0,
+        "best_native": "Quantity Parsing",
+        "leaves_ratio_mean": 1.0,
+        "per_leaf": [
+          {
+            "facet": "Quantity Parsing",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Case Enumeration",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Computation & Verification",
+            "ratio": 1.0
+          }
+        ]
+      },
+      "branch_failure_types": {
+        "Quantity Parsing": {
+          "Case enumeration completeness (missing or overlapping cases in combinatorics)": 1,
+          "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 1
+        },
+        "Case Enumeration": {
+          "Arithmetic / sign / computational slips in multi-step calculation": 1
+        },
+        "Computation & Verification": {
+          "Case enumeration completeness (missing or overlapping cases in combinatorics)": 1,
+          "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 3
+        }
+      },
+      "operator_counts": {
+        "facet_edit": {
+          "attempted": 3,
+          "guard_rejected": 0,
+          "evaluated": 3,
+          "admitted": 3,
+          "promoted": 0
+        },
+        "crossover": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "overlay": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "expand": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "strengthen": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        }
+      },
+      "pool_filter_gates": {
+        "quality": {
+          "pass": 0,
+          "reject": 0
+        },
+        "spike": {
+          "pass": 0,
+          "reject": 0
+        },
+        "diverse": {
+          "pass": 0,
+          "reject": 0
+        }
+      },
+      "stagnation_fb": {
+        "stage1": false,
+        "stage2": false,
+        "no_improve_iter": 7,
+        "pool_ci_gate": 0.0,
+        "best_ci_gate": 0.0,
+        "best_delta_floor": 0.0,
+        "promoted_this_iter": false
+      }
+    },
+    {
+      "t": 9,
+      "facet_tree": true,
+      "secs": 2117.7,
+      "n_active": 3,
+      "n_archive": 30,
+      "best_val_delta": 0.0,
+      "best_val_ci": -0.1222,
+      "best_n_sec": 4,
+      "best_facet": "Quantity Parsing",
+      "crossover": null,
+      "overlay": {
+        "delta": 0.0333,
+        "ci": -0.0444,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "n_axes_combined": 0,
+        "n_sections": 4,
+        "not_meta_ci": -0.0345,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "NumberTheory": -0.1667,
+          "Combinatorics": 0.0,
+          "Algebra": 0.0,
+          "Geometry": -0.1111
+        }
+      },
+      "expand": {
+        "section_name": "Equation Setup Verification via Dimensional/Unit Consistency",
+        "target_type": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+        "delta": -0.0111,
+        "ci": -0.0778,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "not_meta_ci": -0.0805,
+        "not_meta_n": 29,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "Combinatorics": 0.0333,
+          "NumberTheory": -0.1667,
+          "Algebra": 0.0,
+          "Geometry": -0.2222
+        }
+      },
+      "cumulative_diag": {
+        "best_ratio": 1.0,
+        "best_native": "Quantity Parsing",
+        "leaves_ratio_mean": 1.0,
+        "per_leaf": [
+          {
+            "facet": "Quantity Parsing",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Case Enumeration",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Computation & Verification",
+            "ratio": 1.0
+          }
+        ]
+      },
+      "branch_failure_types": {
+        "Quantity Parsing": {
+          "Case enumeration completeness (missing or overlapping cases in combinatorics)": 1,
+          "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 1
+        },
+        "Case Enumeration": {
+          "Arithmetic / sign / computational slips in multi-step calculation": 1
+        },
+        "Computation & Verification": {
+          "Case enumeration completeness (missing or overlapping cases in combinatorics)": 1,
+          "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 3
+        }
+      },
+      "operator_counts": {
+        "facet_edit": {
+          "attempted": 3,
+          "guard_rejected": 0,
+          "evaluated": 3,
+          "admitted": 3,
+          "promoted": 0
+        },
+        "crossover": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "overlay": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "expand": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "strengthen": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        }
+      },
+      "pool_filter_gates": {
+        "quality": {
+          "pass": 0,
+          "reject": 0
+        },
+        "spike": {
+          "pass": 0,
+          "reject": 0
+        },
+        "diverse": {
+          "pass": 0,
+          "reject": 0
+        }
+      },
+      "stagnation_fb": {
+        "stage1": false,
+        "stage2": false,
+        "no_improve_iter": 8,
+        "pool_ci_gate": 0.0,
+        "best_ci_gate": 0.0,
+        "best_delta_floor": 0.0,
+        "promoted_this_iter": false
+      }
+    },
+    {
+      "t": 10,
+      "facet_tree": true,
+      "secs": 2487.6,
+      "n_active": 3,
+      "n_archive": 33,
+      "best_val_delta": 0.0,
+      "best_val_ci": -0.1222,
+      "best_n_sec": 4,
+      "best_facet": "Quantity Parsing",
+      "crossover": null,
+      "overlay": {
+        "delta": 0.0333,
+        "ci": -0.0444,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "n_axes_combined": 0,
+        "n_sections": 4,
+        "not_meta_ci": -0.0345,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "NumberTheory": -0.1667,
+          "Combinatorics": 0.0333,
+          "Geometry": -0.1111,
+          "Algebra": -0.3333
+        }
+      },
+      "expand": {
+        "section_name": "Equation Setup Verification",
+        "target_type": "Equation / setup errors (wrong variable, wrong formula, misread constraint)",
+        "delta": -0.0444,
+        "ci": -0.1333,
+        "admitted": false,
+        "reason": "lost-or-ci<=0",
+        "not_meta_ci": -0.1264,
+        "not_meta_n": 29,
+        "meta_ci": -Infinity,
+        "group_signal": {
+          "NumberTheory": -0.1667,
+          "Combinatorics": -0.1,
+          "Algebra": 0.0,
+          "Geometry": -0.2778
+        }
+      },
+      "cumulative_diag": {
+        "best_ratio": 1.0,
+        "best_native": "Quantity Parsing",
+        "leaves_ratio_mean": 1.0,
+        "per_leaf": [
+          {
+            "facet": "Quantity Parsing",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Case Enumeration",
+            "ratio": 1.0
+          },
+          {
+            "facet": "Computation & Verification",
+            "ratio": 1.0
+          }
+        ]
+      },
+      "branch_failure_types": {
+        "Quantity Parsing": {
+          "Case enumeration completeness (missing or overlapping cases in combinatorics)": 1,
+          "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 1
+        },
+        "Case Enumeration": {
+          "Arithmetic / sign / computational slips in multi-step calculation": 1
+        },
+        "Computation & Verification": {
+          "Case enumeration completeness (missing or overlapping cases in combinatorics)": 1,
+          "Geometry Chain Tangent Setup": 1,
+          "Equation / setup errors (wrong variable, wrong formula, misread constraint)": 2
+        }
+      },
+      "operator_counts": {
+        "facet_edit": {
+          "attempted": 3,
+          "guard_rejected": 0,
+          "evaluated": 3,
+          "admitted": 3,
+          "promoted": 0
+        },
+        "crossover": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "overlay": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "expand": {
+          "attempted": 1,
+          "guard_rejected": 0,
+          "evaluated": 1,
+          "admitted": 0,
+          "promoted": 0
+        },
+        "strengthen": {
+          "attempted": 0,
+          "guard_rejected": 0,
+          "evaluated": 0,
+          "admitted": 0,
+          "promoted": 0
+        }
+      },
+      "pool_filter_gates": {
+        "quality": {
+          "pass": 0,
+          "reject": 0
+        },
+        "spike": {
+          "pass": 0,
+          "reject": 0
+        },
+        "diverse": {
+          "pass": 0,
+          "reject": 0
+        }
+      },
+      "stagnation_fb": {
+        "stage1": false,
+        "stage2": false,
+        "no_improve_iter": 9,
+        "pool_ci_gate": 0.0,
+        "best_ci_gate": 0.0,
+        "best_delta_floor": 0.0,
+        "promoted_this_iter": false
+      }
+    }
+  ],
+  "args": {
+    "init_skill": "/data/zhuldz/lunwen/data/skill_aime_initial_v2.md",
+    "s0": "/data/zhuldz/lunwen/data/skill_aime_initial_v2.md",
+    "split_dir": "/data/zhuldz/lunwen/data/aime24.jsonl",
+    "s0_cache": "/data/zhuldz/lunwen/rl/train/verl1/outputs/tf_skill_aime_v2/s0_cache_aime_k3.json",
+    "shuffle_seed": 0,
+    "iters": 10,
+    "K": 4,
+    "eval_k": 3,
+    "n_parallel": 1,
+    "parallel_diversity": "auto",
+    "n_diag": 8,
+    "train_n": 18,
+    "consolidate_every": 3,
+    "patience": 3,
+    "out_dir": "rl/train/verl1/outputs/skill_evolver_aime_v2/efl_tree_run",
+    "ablate_gepa": false,
+    "ablate_failure": false,
+    "ablate_consolidate": false,
+    "ablate_antideg": false,
+    "select_by_ci": false,
+    "fix_exploration": false,
+    "cache_failures": false,
+    "allow_modify": false,
+    "learn_positive": false,
+    "meta_contrast": false,
+    "gate_consolidate": false,
+    "data_driven_focus": false,
+    "coverage_diagnosis": false,
+    "structure_evolution": false,
+    "Kc": 4,
+    "struct_temp": 1.0,
+    "resume": null,
+    "probe_split": false,
+    "probe_ratio": 0.5,
+    "probe_seed": 42,
+    "select_exclude_train": false,
+    "select_lcb": false,
+    "self_test_facet": false,
+    "facet_tree": true,
+    "facet_axes": "Quantity Parsing,Case Enumeration,Computation & Verification,Final Answer",
+    "freeze_facet": "Final Answer",
+    "failure_modes": "",
+    "no_emergence": false,
+    "bootstrap": true,
+    "crossover": true,
+    "overlay": true,
+    "preserve_extend": false,
+    "probe_replay": false,
+    "pop_mutation": false,
+    "pop_eps": 0.3,
+    "expand": true,
+    "expand_every": 1,
+    "expand_candidates": 1,
+    "strengthen": false,
+    "strengthen_per_type": false,
+    "emergent_facets": true,
+    "efl_min_failures": 2,
+    "efl_min_problems": 2,
+    "self_test_efl": false,
+    "donor_topk": 1,
+    "xo_pair_retries": 0,
+    "xo_cohere_retries": 0,
+    "xo_allow_merge": false,
+    "xo_multiparent": 0,
+    "xo_donor_directed": false,
+    "subset_admit": true,
+    "facet_group_admit": true,
+    "pool_filter": false,
+    "pool_eps": 0.02,
+    "stagnation_fallback": false,
+    "pool_tol": 0.05,
+    "best_tol": 0.03
+  },
+  "probe_split": false,
+  "probe_n": 30,
+  "diag_n": 30,
+  "n_select": 30,
+  "param_warnings": [],
+  "crossover_fired": 0,
+  "archive_size": 33,
+  "operator_counts": {
+    "facet_edit": {
+      "attempted": 30,
+      "guard_rejected": 0,
+      "evaluated": 30,
+      "admitted": 30,
+      "promoted": 0
+    },
+    "crossover": {
+      "attempted": 0,
+      "guard_rejected": 0,
+      "evaluated": 0,
+      "admitted": 0,
+      "promoted": 0
+    },
+    "overlay": {
+      "attempted": 10,
+      "guard_rejected": 0,
+      "evaluated": 10,
+      "admitted": 0,
+      "promoted": 0
+    },
+    "expand": {
+      "attempted": 10,
+      "guard_rejected": 0,
+      "evaluated": 10,
+      "admitted": 0,
+      "promoted": 0
+    },
+    "strengthen": {
+      "attempted": 0,
+      "guard_rejected": 0,
+      "evaluated": 0,
+      "admitted": 0,
+      "promoted": 0
+    }
+  },
+  "rescue_by_source": {}
+}
