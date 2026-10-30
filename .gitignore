@@ -83,6 +83,11 @@ proxy/
 .claude/
 
 
+# 模型 API 配置: *.local.yaml 含明文 key, 仅本地跑评测用, 不上传 GitHub
+# 入库可见版为 models_aimp.yaml (key 脱敏为 ${AIMP_KEY_*} 占位)
+configs/*.local.yaml
+configs/.env
+
 # 第三方 baseline: SkillOpt 代码迁移到 baselines/skillopt/ (代码入库可见, 用户要求不 gitignore 代码)
 # 仅 run 产物 (baselines/skillopt_outputs/, 4.9G) 被忽略, 见下方规则。
 # skillopt 代码树内的 data/ 是 split manifests (1.8M, 属代码), 须抵消全局 data/ 规则使其入库。

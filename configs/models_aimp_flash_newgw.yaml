@@ -1,0 +1,45 @@
+# models_aimp_flash_newgw.yaml — 跨模型评测模型配置 (deepseek-v4-flash 改用专有网关)
+#
+# 来源: SmartPad/evaluation/cc_switch_compare/config/models_aimp_flash_newgw.yaml (2026-07-23)
+# 迁入 lunwen: 2026-10-30。
+#
+# 与 models_aimp.yaml 的唯一差异: deepseek-v4-flash 的 base_url 从 OpenAI 兼容端点
+# (llm-openai-api) 改为 AIMP 专有端点 (aimp-deepseek-v4-flash/v1)。其余两个模型相同。
+# 用途: 当 llm-openai-api 网关对 flash 不稳定时, 切到专有网关兜底。
+#
+# 🔑 密钥安全: 本文件已脱敏, api_key 从环境变量读取, 不写入仓库。
+#   本地跑评测: export AIMP_KEY_FLASH / AIMP_KEY_PRO / AIMP_KEY_GLM 三个变量。
+
+providers:
+  # ---- deepseek-v4-flash (AIMP 专有端点, 非 openai-compat) ----
+  deepseek-v4-flash:
+    api: openai-completions
+    api_key: ${AIMP_KEY_FLASH}
+    base_url: "https://aimpapi.midea.com/t-aigc/aimp-deepseek-v4-flash/v1"
+    model: deepseek-v4-flash
+    max_output: 32000
+    max_context: 128000
+    extra_body:
+      thinking: {type: disabled}
+
+  # ---- deepseek-v4-pro (OpenAI 兼容端点) ----
+  deepseek-v4-pro:
+    api: openai-completions
+    api_key: ${AIMP_KEY_PRO}
+    base_url: "https://aimpapi.midea.com/t-aigc/llm-openai-api"
+    model: deepseek-v4-pro
+    max_output: 32000
+    max_context: 128000
+    extra_body:
+      thinking: {type: disabled}
+
+  # ---- glm-5.2 (AIMP 专有端点, 需 AIGC-USER header) ----
+  glm-5.2:
+    api: aimp
+    api_key: ${AIMP_KEY_GLM}
+    base_url: "https://aimpapi.midea.com/t-aigc/aimp-glm/v1"
+    model: glm-5.2
+    max_context: 202752
+    extra_body:
+      chat_template_kwargs: {thinking: false}
+      separate_reasoning: true
