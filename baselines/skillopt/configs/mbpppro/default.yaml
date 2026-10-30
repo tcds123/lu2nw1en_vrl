@@ -1,0 +1,21 @@
+_base_: ../_base_/default.yaml
+
+train:
+  train_size: 0
+  batch_size: 40
+  accumulation: 1
+
+env:
+  name: mbpppro
+  skill_init: skillopt/envs/mbpppro/skills/initial.md
+  split_mode: ratio
+  split_ratio: 2:1:7
+  split_dir: ""
+  data_path: /data/zhuldz/lunwen/data/CodeEval-Pro/dataset
+  split_output_dir: ""
+  max_turns: 1
+  max_completion_tokens: 4096
+  exec_timeout: 300
+  workers: 8
+  limit: 0
+  dataset_glob: mbpp_pro*

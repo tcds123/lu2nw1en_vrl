@@ -1,0 +1,58 @@
+_base_: ../_base_/default.yaml
+
+# ── Backend: DeepSeek-V3.2 via qwen_chat (matches the lunwen project's A/B/C
+# pipeline B-model). API key / base_url / model come from QWEN_CHAT_* env vars
+# exported by the launch shim — NOT committed here (no-leak rule). ───────────
+model:
+  backend: qwen_chat
+  optimizer: /model/DeepSeek-V3.2
+  target: /model/DeepSeek-V3.2
+  optimizer_backend: qwen_chat
+  target_backend: qwen_chat
+  reasoning_effort: ""
+  qwen_chat_temperature: "0.0"
+  qwen_chat_max_tokens: "4096"
+  qwen_chat_enable_thinking: "false"
+  qwen_chat_timeout_seconds: 600
+
+train:
+  train_size: 0
+  # 30-item AIME24 → 6:2:2 = 18 train / 6 val / 6 internal-test (gate).
+  # Held-out generalization is measured separately on AIME25 via eval_only.py.
+  batch_size: 6
+  accumulation: 1
+  num_epochs: 8
+  seed: 42
+
+gradient:
+  minibatch_size: 6
+  merge_batch_size: 6
+  analyst_workers: 8
+  max_analyst_rounds: 3
+  failure_only: false
+
+optimizer:
+  learning_rate: 4
+  skill_update_mode: patch
+  use_slow_update: true
+  slow_update_samples: 12
+
+evaluation:
+  use_gate: true
+  sel_env_num: 0
+  test_env_num: 0
+  eval_test: true
+
+env:
+  name: aime
+  skill_init: skillopt/envs/aime/skills/initial.md
+  split_mode: ratio
+  split_ratio: "6:2:2"
+  split_seed: 42
+  data_path: /data/zhuldz/lunwen/data/aime24.jsonl
+  split_output_dir: ""
+  max_turns: 1
+  max_completion_tokens: 4096
+  exec_timeout: 600
+  workers: 8
+  limit: 0

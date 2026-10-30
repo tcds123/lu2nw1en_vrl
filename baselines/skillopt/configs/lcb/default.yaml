@@ -1,0 +1,25 @@
+_base_: ../_base_/default.yaml
+
+train:
+  train_size: 0
+  batch_size: 40
+  accumulation: 1
+
+env:
+  name: lcb
+  skill_init: skillopt/envs/lcb/skills/initial.md
+  split_mode: ratio
+  split_ratio: 2:1:7
+  split_dir: ""
+  data_path: /data/zhuldz/lunwen/data/LCB
+  split_output_dir: ""
+  max_turns: 1
+  max_completion_tokens: 4096
+  exec_timeout: 300
+  workers: 8
+  limit: 0
+  dataset_glob: test*.jsonl
+  # Contamination filter: keep only problems whose contest ran after this date.
+  # DeepSeek-V3.2-Exp (rel 2025-09, built on V3 rel 2024-12) -> 2025-01-01 is safely post-cutoff.
+  contest_date_after: "2025-01-01"
+  difficulty_filter: ""
