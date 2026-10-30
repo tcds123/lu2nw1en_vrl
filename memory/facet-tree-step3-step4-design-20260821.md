@@ -71,4 +71,4 @@ smoke 通过后 → 正式 2 代产 go/no-go 结论 (test 4-seed > 0.4654)。
 - theorem_type 值域 test(n=106)=13 类, unknown=3(脏); val(n=53) unknown=5。
 - 一题多类 96/106。facet 轴不能按单题单类硬切。
 - `--init_skill`(L633 起点, 默认 V2) vs `--s0`(L634 delta 基线, 默认 S0)。step5 须双同传真 S₀。
-- fitness 链路 = 纯 EM pass_rate, 不调 qwen_235B/CModelJudge/c_interface → C-judge=pro 对 Stage0 是 no-op。
+- fitness 链路 = 纯 EM pass_rate，不调任何 LLM judge（C 已停用，见 [[c-model-and-grpo-reward-status-20261030]]）。

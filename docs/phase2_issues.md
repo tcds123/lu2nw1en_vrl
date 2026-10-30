@@ -4412,3 +4412,880 @@ Bootstrap (n_pooled=90, n_boot=10000, seeded):
 **教训 #6 (本会话累计)**: subagent 报告的数字也需对磁盘复核 — subagent 摘要说"s0 mean 0.5350 / max last_completion_tokens 10138 / finish_reason stop 180" 等看似精确, 但第一次脚本遍历因 detail 文件是 dict-by-qid 非 list 而 n=0 空跑; 按正确 schema 重遍历才逐点吻合。**subagent 报告 ≠ 磁盘真相, 即使数字看起来对也要独立复核。**
 
 关联 [[f7-16384-baseline-result-20261021]] [[aime25-heldout-iter2-nogeneralize-20261021]] [[deepseek-three-layer-reassess-20261021]] [[direction1-design-review-20261021]]。
+
+---
+
+## 2026-10-23 — Direction 1 Step 1 诊断1: best_skill 晋升来源误读 (evolver_log best_val_delta 字段语义)
+
+### 症状
+Direction 1 Step 1 held-out 结果落盘 (`memory/dir1-step1-heldout-result-20261022.md`) 时, 我将最终 best_skill 归因于 "iter1 overlay (n_axes_combined=0, 纯加4个section)"。用户审核后指出关键盲点: 若晋升的是 overlay (与flag无关的机制), 则 held-out +0.0153 不是 flag 的对照实验, 是 overlay 在 held-out 上的表现。此归因直接决定下一步方向。
+
+### 根因
+误读 `evolver_log.json` 的 `best_val_delta` 字段。在 `paired_rescore=on` (C2, 2026-10-19 改动, L3649) 时, `best_val_delta` 是 **paired Δ (cand_pass − base_pass 同批配对)**, 不是 cumulative 全局最优 delta。iter1 overlay 的 best_val_delta=0.075 是 paired 值, 且 overlay skill hash=c11d7dc0c8 (== S₀ 原文, overlay 组装在 root 之上因无 donor 等于 root) — 即 iter1 的 "best" 在 paired 口径下是 +0.075 但实际 skill 未变 (599c)。最终输出的 best_skill_evolved.md 是 iter2 的 facet_edit 候选, 非 iter1 overlay。
+
+### 验证 (逐字节复核, Lesson #5)
+- `best_skill_evolved.md` (hash 9c9bc27e84, 705c) == `archive_iter2.json` node[9] **逐字节相同** (python `sk==best` → True)
+- node[9]: parent="Computation & Verification", delta=+0.0375, ci=0.0 → **facet_edit 候选**, 非 overlay
+- `best_skill_iter1.md` (hash c11d7dc0c8, 599c) == S₀ 原文 (overlay 在无 donor 时 == root)
+- evolver.log L32 印证: `✅ FACET-RESCUE-REJECT iter2[Computation & Verification]: delta=+0.037 src=subset sig={'meta':-inf,'not_meta':0.004}`
+
+### 诊断结论
+晋升的 best_skill 是 **facet_edit 候选经 subset 救援 (not_meta ci=+0.004) 晋升**, 而 facet_edit 正是吃 `POSITIVE_SECTION`(learn_positive) + `META_CONTRAST_SECTION`(meta_contrast) flag 注入的路径 (L4781-4787, L1254-1277)。rescue 门控 (subset_promote_decision L561) 用 `classify_item_meta` 零API分类器, 与 flag 独立; 但候选内容是 flag 注入路径生成的。
+
+**决定性对比**: ON-run 与 OFF-run6d 共享完全相同的 probe/s0_cache/seed (s0_cache=run4_measure_foundation, shuffle_seed=0, train_n=18, n_select=30, probe_n=30, split_dir=aime24.jsonl)。ON 晋升的 bullet "test the result against extreme or simplified cases" 在 OFF-run6d 10 轮全部 skill 文件中从未出现 (grep NOT FOUND)。→ flag 非无功, 影响了候选内容且该内容 held-out 正向。
+
+但 rescue 门 not_meta ci=+0.004 极薄 (高于0门仅0.004), 单 run, 无法排除采样运气。
+
+### 教训 #7
+**evolver_log 的 best_val_delta 字段在 paired_rescore=on 时是 paired Δ 非累计最优**。读 evolver_log 判断"最终 best 是哪个候选"时, 必须逐字节比对 best_skill_*.md 与 archive_iter*.json 的 node, 不能只看 best_val_delta 数值 (它可能是 paired 口径且对应的 skill 可能 == parent 本身)。`best_skill_iter{t}.md` 文件才是该 iter 真实 best skill 的逐字快照。
+
+### 解决方案
+1. 纠正 `dir1-step1-heldout-result-20261022.md` 的晋升来源描述 (3处: 正文第3条、对比表、产物路径)。
+2. 新建 `memory/dir1-step1-diag1-flag-attribution-20261023.md` 记录完整诊断。
+3. 下一步: 跑 iters≥5 ON-flag rep (同 probe/同 cache) 坐实 flag 因果 (rescue 门极薄需 rep 验证稳定性), 再决定 Step 2。
+
+关联 [[dir1-step1-heldout-result-20261022]] [[dir1-step1-onflags-launch-20261021]] [[direction1-design-review-20261021]] [[deepseek-three-layer-reassess-20261021]]。
+
+## 2026-10-23 — Direction 1 Step 1 诊断1 第二轮: grep 口径错误 + 归因措辞二次修正 (教训 #8)
+
+### 症状
+
+诊断1 (上一条 entry) 的"决定性证据"写: "OFF-run6d 在 10 轮的全部 skill 文件中从未产出此 bullet (grep 全 run6d 目录 'extreme or simplified' / 'After each major computation' → NOT FOUND)"。
+
+用户审核后做更宽 grep, 发现 run6d 里 `extreme` 这个词出现了 16 次, 且 Final Answer 段本来就有 "sanity-check magnitude" → 指出归因措辞需修正: flag 没凭空造新推理能力, 而是把已散落/隐含概念 crystallize 成 bullet。
+
+### 根因 (Lesson #5 的反面 — 我第一反应也是错的)
+
+1. **第一层错误 (诊断1 原文)**: 我用 `grep -rl "extreme or simplified" *.md` (精确短语, 仅 .md skill 文件) → NOT FOUND, 据此写"OFF 从未产出"。但 `grep -roi "extreme" 全目录` 给出 16, 说明 `extreme` 词在 OFF 是存在的, 只是不在我 grep 的精确短语/文件类型里。
+2. **第二层错误 (我修正时的第一反应, 也错)**: 我看到 16 次 `extreme` 后第一反应说"那 16 次是 trace 日志 (paired_eval_samples.jsonl 42MB + evolver_log.json) 的噪音, 不是 skill 文件"。**这是错的** — 逐文件分解后: 16 = 8 个 `archive_iter{2-9}.json` × 2, 全是 **OFF 反复生成的同概念候选 hash f0ade174da** 跨轮持久化, 根本不是 trace 噪音。
+
+### 逐字核实 (Lesson #5: 不得凭记忆重写统计量)
+
+分文件类型 grep:
+- OFF-run6d `*.md` skill 文件: `extreme` 出现 **0 次** (best_skill_*.md 里确实没有这颗 bullet — 这部分对)
+- OFF-run6d `archive_iter{2-9}.json` 候选存档: `extreme` 每文件 2 次, 共 16 次
+- ON-run `best_skill_evolved.md`: 1 次 (晋升的 bullet)
+
+精确短语 grep 仍证实 ON 专属措辞在 OFF NOT FOUND:
+- "extreme or simplified" → OFF NOT FOUND ✅
+- "After each major computation" → OFF NOT FOUND ✅
+- "detect gross errors" → OFF NOT FOUND ✅
+
+逐字上下文 (OFF archive_iter2 node[8], hash f0ade174da):
+```
+- Before finalizing, test extreme cases or alternative counting methods if the answer is unexpectedly small or large.
+  (delta=−0.0083, ci=−0.0792, iter2→9 持续8轮, 从未晋升)
+```
+ON 晋升 (best_skill_evolved.md, hash 9c9bc27e84):
+```
+- After each major computation, test the result against extreme or simplified cases to detect gross errors.
+  (delta=+0.0375, ci=0.0, 经 subset rescue not_meta ci=+0.004 晋升)
+```
+
+### 归因真相 (比"全新信号"/"结晶"都精确)
+
+| 表述 | 对错 | 理由 |
+|------|------|------|
+| "flag 产生了全新的跨题推理信号" | ❌ | extreme-case 概念 OFF iter2 就生成 |
+| "flag 把散落/隐含概念结晶成 bullet" | ❌ 偏轻 | OFF 那颗本就是显式 bullet, 只是被门控拒绝 (delta=−0.0083 ci=−0.0792 连拒8轮) |
+| "flag 把 OFF 反复生成却连拒8轮的 extreme-case 概念, steer 成了 in-sample +0.0375 过门的措辞变体" | ✅ | 同概念, ON 专属措辞, delta/CI 翻正 |
+
+### 严谨性强化 (比修正前更脆弱)
+
+- 概念非 flag 独有 → +0.0153 不能归因于"flag 造出新能力"
+- ON +0.0375 vs OFF −0.0083 的差 0.046 在 n=30 probe 上不排除测量噪声; held-out +0.0153 < 单 seed σ≈0.044
+- rescue 门 not_meta ci=+0.004 极薄 (掷硬币量级)
+- 单 run, 1 个晋升点
+
+→ **"flag 影响候选措辞过门"已证; "flag 是 held-out +0.0153 的因果来源"仍需 rep 坐实。**
+
+### 解决方案
+
+1. 修正 `memory/dir1-step1-diag1-flag-attribution-20261023.md` 决定性证据段 + 严谨性段 + 判定段 + 下一步段。
+2. 修正 `memory/dir1-step1-heldout-result-20261022.md` 第3条严谨性标注。
+3. 追加本条 + 教训 #8。
+
+### 教训 #8 (grep 方法论 + 归因措辞精度)
+
+1. **grep 口径必须分文件类型**: `grep -r word 全目录` 会把候选存档 (archive_*.json)、trace 日志 (paired_eval_samples.jsonl)、skill 文件 (.md) 混在一起, 数量失去归因意义。**必须先 `for f in *; do grep -c word $f` 分文件**, 再决定哪个文件类型代表"skill 内容"。本例 16 次 `extreme` 全在 archive_iter*.json 候选池, 0 次在 best_skill_*.md — 二者含义完全不同 (候选被生成 vs 候选被晋升)。
+2. **"从未产出" vs "从未晋升" 是两件事**: OFF 反复 *生成* 同概念候选 (archive 里有), 但从未 *晋升* (best_skill 里没有)。诊断必须区分这两层, 不能用"从未产出"一笔带过。
+3. **精确短语 grep 只能证"逐字复现", 不能证"概念有无"**: "extreme or simplified" 精确短语 NOT FOUND 只说明 ON 那颗 bullet 的逐字措辞在 OFF 没出现, 不说明 extreme-case *概念* 在 OFF 没有 (概念以变体形式存在于 archive)。
+4. **归因措辞需匹配证据强度**: 证据只支持"flag steer 措辞变体过门" → 措辞就写这个, 不要升格成"flag 造出新能力"或"flag 产生全新跨题推理信号"。汇报口径红线: "影响候选措辞过门(已证)" ≠ "因果有效(待证)", 不得混成一句。
+
+关联 [[dir1-step1-heldout-result-20261022]] [[dir1-step1-diag1-flag-attribution-20261023]]。
+
+---
+
+## 2026-10-23 — Direction 1 Step 1 rep5 iter1 第三轴 base eval deadline 命中 (13/30 abandoned 污染 paired delta)
+
+### 症状
+
+rep5 (PID 85158, iters=5 ON-flag rep, run_dir1_step1_onflags/rep5_20261023/) iter1 第三轴 (Computation & Verification, 关键轴) base 批评估命中 900s 墙钟:
+
+```
+⚠ eval_paired[evolver_facet_paired_base] deadline(900s) hit: 13/30 tasks abandoned (treated as 0 pass)
+```
+
+`paired_eval_samples.jsonl` 实测 (iter1 完整统计, 17:27 更新): 28 条 `parse_status=abandoned`, 分布 **base 23 / cand 5**。分批:
+- facet_paired_base 13/30, facet_paired_cand 1/30 (第三轴, 污染 +0.104)
+- overlay_paired_base 10/30, overlay_paired_cand 4/30 (overlay, delta=+0.013 admitted=N **未过门**)
+
+base 端 23/60 vs cand 端 5/60, base 仍系统性偏低但 overlay 的 10:4 比 facet 的 13:1 更接近对称 → overlay 的 +0.013 受污染更轻, 且未过门, 不影响结论。iter1 唯一 PROMOTE 仍为污染驱动的第三轴 +0.104。
+
+### 根因
+
+1. **临时 API 抖动, 非系统性 cap 问题**: 对照原 ON-run (run_20261022_091146) 用**同 cap=16384** (launch_dir1_step1.sh 注释 "唯一改动 = 两 flag ON + iters=2 + 16384 cap"), 全程 **0 次** deadline 命中。OFF-run6d (run6d_launch.log) 同口径。rep5 跑于 14:41-16:53 时段, DeepSeek-V3.2 aimpapi 间歇性慢导致单批 30 题 × k=8 在 900s 内未完成。
+2. **deadline 机制无重试** (tf_global_v2_aime.py:407-452 `_run_batch`): `as_completed(futs, timeout=eval_deadline_s)` 超时后 `fut.cancel()`, 未完成 item 直接记 `pass_rate=0.0` + `parse_status=abandoned`, 不重跑。`EVAL_DEADLINE_S=900` (L104), 注释 "正常 ~24-71 题 k=3 在 28RPM 下 ~3-6min; 900s 留 3x 余量" —— 该余量按 k=3 估, rep5 用 k=8 (2.67x 负载) + 16384 cap, 余量不足。
+
+### 影响判读 (方向性)
+
+- base 端 13/30 当 0 → **base_pass 人为偏低** → paired delta = cand_pass − base_pass **人为抬高** → **偏向假阳性晋升** (利于候选过门, 不利保守判断)。
+- 这一批的 paired delta 即将被算出 (末样本已到 `evolver_facet_paired_cand` 批)。若该虚高 delta 触发 FACET-RESCUE-REJECT 或直接 PROMOTE, iter1 的 best_skill_iter1.md 会带上一个**污染驱动的假阳性 bullet**。
+- 核心判据是 "bullet 稳定性 ≥3/5 轮": 若 iter1 因污染假阳性晋升, 后续 iter2-5 若不再抖动, 该 bullet 可能因真实 delta 不达标而消失 → 判据本身有抗噪性 (5 轮里看稳定性, 1 轮污染难撑满 3/5)。但仍需在结果判读时**剔除 iter1 污染轮**。
+
+### 解决方案 (2026-10-23 17:05 校准: run6d 对照后推翻初判)
+
+**初判错误**: 最初写"run6d 修好后丢题 ≤2%、rep5 是回潮"。**逐字复核 run6d_launch.log 实测: run6d 自己有 7 次 deadline, 单次最多 4/30 abandoned (13%)** —— deadline 在成熟基线里是**常态存在**, 不是"修好后归零"。rep5 的 13/30 (43%) 是 run6d 4/30 的 3x, 确偏高, 但 cand 批立即降到 1/30, 是**单次尖峰而非持续过载**。
+
+1. **不停掉重来 (校准后仍成立, 但理由变了)**: 不是"抖动非系统性所以重跑不保证干净", 而是"run6d 成熟基线本身就带 1-4/30 deadline abandoned 且被接受; rep5 13/30 是尖峰, 原连续两批已回落到 1/30"。停掉重跑无机制优势 (原 ON-run 0 deadline 是时段运气)。
+2. **iter1 第三轴标"污染轮"**: best_delta=+0.104 是 base 13/30 当 0 撑出的虚高 (原 ON-run 同轴 iter2 干净值 +0.037, 差 0.067 ≈ base 多当 0 的量级)。且该轮 PROMOTE 的候选 hash (`0510108c0e`/`12064805af`/`fb9b789cc0`) **都不是**原 ON-run ON 专属措辞变体 `9c9bc27e84`, iter1 cand 样本 0 次 "extreme or simplified" → 污染推上去的是不相干候选, 不是目标 bullet。
+3. **核心判据收紧**: iter1 已废 (污染 + 无目标 bullet), 剩 iter2-5 四轮。目标 bullet ("After each major computation... extreme or simplified cases") 需在这 4 干净轮里出现 ≥2 次 (2/4=50%) 才算稳定。
+4. **止损线 (校准: 从"≥10/30 即触发"放宽)**: 原"≥10/30 且压 base → 转 C"在 run6d 对照后被推翻 —— run6d 自身有 6 次 base 高丢 (最高 11/30) 仍被采纳为成熟基线。**新止损线**: 仅当某轮 base abandoned ≥20/30 (>66%, 远超 run6d 11/30 峰值) 且持续多轮 → 才判彻底过载需 C。当前 rep5 iter1 的 13/30 + 10/30 在 run6d 量级内, 不触发。
+5. **held-out eval 前**: 若最终 best_skill_evolved.md 来自 iter1 污染轮, held-out 结果打"污染"标注或改取 iter2-5 干净轮 best。
+
+### 教训 #9 (deadline 余量随 k 缩放 + 监控盲区)
+
+1. **EVAL_DEADLINE_S=900 的余量是按 k=3 估的** (注释 "24-71 题 k=3 ~3-6min; 900s 3x 余量")。当 eval_k=8 (2.67x) + 16384 cap (响应长), 实际负载远超 k=3 假设, 900s 余量不足 → 单批易触发 deadline。**调参时若改 eval_k, 需同步评估 deadline 余量** (粗估: deadline ∝ eval_k × avg_response_time × n_items / 40_workers)。
+2. **deadline 命中是"偏向假阳性"的污染** (base 当 0 抬高 delta), 不是随机噪声 —— 它系统性地让候选更容易过门。判读时遇 deadline 轮应**向下修正**该轮 delta, 而非中性处理。当且仅当丢题**不对称** (base 端远多于 cand 端) 时才系统性偏 delta; 对称丢题近似随机噪声。
+3. **abandoned 样本有审计痕迹** (`parse_status=abandoned`), 判读时可用 `grep abandoned paired_eval_samples.jsonl | wc -l` 逐轮逐轴量化污染程度, 剔除受污染的 paired delta。
+4. **(监控方法论) 监控脚本每次 fire 必须主动 `grep deadline/abandoned/Traceback`, 不能只看 log 尾部最后几行**。本例第 9-10 次 fire 我看到 `futex_wait` + 活跃 socket 只判成"API 慢、正常", 没主动 grep deadline, 直到 deadline 行被 Python 缓冲 flush 到第 11 次 fire 才看到 —— 这是盲区。监控的"健康"判定应包含"无 deadline 命中"这一硬指标, 而非仅"进程活 + 文件涨"。
+5. **(校准纠正) 对照基线不能凭记忆, 必须逐字 grep 全量**: 我两次凭印象写 run6d —— 第一次写"修好后 ≤2%", 第二次写"最高 4/30", **两次都错**。逐字 grep run6d_launch.log 实测: run6d 有 7 次 deadline, 分布 `[1,1,4,4,4(base),11(base),1(overlay)]`, **最高 11/30 (base 批)**。且 run6d 的 abandoned 也是 base 端远多于 cand (6 次 base 高丢 vs 1 次 cand) —— 即"base 系统性偏低"是 run6d 自身就有的偏置, rep5 的 13/30 与 run6d 的 11/30 同量级同方向。判断"是否异常"前必须逐字 grep 同口径基线全量分布, 记忆会漏行 (我两次都漏看了 11/30 那条)。
+6. **(决策校准) "base 系统性偏低"是这套 evolver+DeepSeek API 的固有偏置, 非异常**: run6d (采纳的 OFF 成熟基线) 自带此偏置跑完, 原 ON-run 0 偏置是时段运气 (API 顺) 而非机制更优。rep5 与 run6d 同口径 (都脏), 二者 delta/晋升结论可比。若因 base 偏低作废 rep5, 须同时作废 run6d —— 但 run6d 已被采纳, 故 rep5 不作废。判读时: rep5 各轮 delta 与 run6d 各轮 delta 同口径对照即可, 不需"干净"前提。
+7. **(监控方法论补 — **更正前版** — paired_eval 是逐 sample 增量写入, 非批末 bulk-write) `paired_eval_samples.jsonl` 是 `open("a", buffering=1)` 行缓冲 append (tf_global_v2_aime.py L367-368), 由 `run_one` 内的 `capture_cb` 在**每个采样完成时**即时写入 (L403 `_persist_fp.write` ← L124-126 / L139-141 调用点)。L441-451 **仅**写超时 abandoned 的滞留样本 (批末补), 非整批持久化点。**结论更正**: paired_eval 在批跑期间会持续增长行数, mtime 更新频繁。因此:
+   - **行数长时间不增 + mtime_ago 大 = 真信号** (前版误判为"正常 bulk-write 假象", 会掩盖真 stall — 危险)。
+   - iter1 overlay→expand 间静默 16min 那次, 当时确实是 expand base 批内逐 sample 在写 (行数在增), 只是我 tail 采样间隔太疏看漏了增量, 不是"批末才 flush"。
+   - **判 stall 须同时满足: 进程 cpu 长期 0 + 全线程 futex_wait + paired_eval 行数不增 + mtime_ago > 900s (deadline 上限) + 无活跃 socket**。
+   - 有活跃 socket (aimpapi ESTABLISHED) → 批进行中, 哪怕 mtime_ago 暂时偏大。
+   - **(补 2 — `ts` 字段是 RED HERRING, 勿用于判 stall)** paired_eval 行内嵌的 `ts` 字段是 **stale closure-captured 值, 非写入时间**。20:29 实测: 文件 mtime=20:29:25 (新鲜), 但 tail -1 读到的 `ts=2026-10-23T18:14:48` (iter1 完成时刻) — 跨越 iter1→iter2 的所有 expand 新行都带这个旧 ts。即 `ts` 在某轮初始化后未随轮刷新, 或 capture_cb 闭包绑定了上层 stale 变量。**判 staleness 必须用 OS 级 `stat -c %y` 文件 mtime, 绝不能用行内 `ts`**。曾险些据此误判 "stalled since 18:14" (实际批在跑)。教训: 行内时间戳字段语义须验证 (写一行 probe + stat 对照), 勿默认 ts=写入时间。
+   - 前版把 L441-451 误读为"整批持久化点", 实际那是 abandoned 补录点; 真正的逐 sample 写在 L403 (正常 parsed 行)。教训: 读源码须追全调用链 (capture_cb 在 run_one 的触发点 L124/139), 勿凭一个 write 语句定位就下"bulk-write"结论。
+   - **(补 3 — 判 expand 是否跑须看 paired_eval 行数增量, 不能仅凭 evolver.log 有无决策行)** rep5 iter2: evolver.log 中 overlay iter2 决策行与 iter3 头之间无 expand 决策行, 曾误判"expand 被跳过"。实为 iter2 expand 跑了 452 样本 (base212/cand240), **0 abandoned** (全在 900s deadline 内完成, 无警告行), 候选被拒后不打印决策摘要 (似乎仅 PROMOTE 或特定条件才打 expand 决策行; overlay 总打, expand 不总打)。**判 expand 是否实际运行: 看 paired_eval 的 `evolver_expand_paired` stage 行数是否较上轮增长** (iter1=496 → iter1+2=948, iter2 新增 452)。教训: 缺决策行 ≠ 未运行; 算子执行证据在 paired_eval 增量, 非在 log 决策行。
+  - **(补 4 — grep paired_eval 必须容忍空格, 勿用紧凑 JSON 假设)** 连环踩坑: 先用 `grep '"iter":3'` 查 iter3 (0 命中) → 用 `grep '"stage":"evolver_facet_paired_base"'` 查 abandoned suffixed rows (0 命中) → 几据此误判 "iter3 有 abandoned" 或 "iter3 无数据"。根因: Python `json.dumps` 默认分隔符带空格 (`"stage": "..."`, `"iter": 3`), 紧凑假设的 grep 模式全空。**正确做法: 统计 paired_eval 必须用 `python3 -c` 加 `json.loads` 解析后按字段值 filter, 不能裸 grep JSON 字面量**; 若必须 grep, 模式需含可选空格 `grep -E '"stage":\s*".*"'`。教训: JSONL 行内字段顺序与空白非契约, grep 字面量是不可靠的; parse-then-filter 是唯一可靠口径。曾用裸 grep 险些漏掉 iter3 的 62 条 abandoned 全量复核 (实为 38 iter1 + 24 iter2, 与 evolver.log 10 行 deadline 完全吻合)。
+  - **(补 5 — 判 stall 必须看 `/proc/<pid>/io` 字节流, 勿仅凭 ESTABLISHED socket 数)** rep5 iter3 overlay→expand 间隙 (22:25 起 paired_eval 不写) 曾险判 stall: 0 ESTABLISHED TCP + 40 线程 futex_wait + CPU 0.2%, 3s 内 rchar 不动 → 几判"内部死锁, 非正常 LLM 等待"。实为**采样窗口太短落在 pipe 间隙**: 15s 长采样 rchar delta=+50266 wchar=+27226 (字节在流), 进程的 3 个 socket fd 是 **unix domain socket (不在 /proc/net/tcp)**, API 经本地代理隧道走 unix socket, 故 TCP ESTABLISHED=0 但 IO 正常。**判真 stall 必须三件同时满足且持续**: (1) `/proc/<pid>/io` rchar+wchar 15s+ 长采样 delta=0 (非 3s 间隙); (2) paired_eval mtime_ago>900s; (3) CPU=0 + 全线程 futex。教训#9.7 真 stall 判据需补: **短窗口 (3-5s) 的 IO 不动是 pipe/生成间隙的正常现象, 必须用 15s+ 长采样 + mtime_ago>900s 双确认**; 且 ESTABLISHED TCP 数对本环境 (unix socket 代理) 无效。
+
+### iter1 完整算子流 (17:46 更新)
+
+facet_edit (3轴: Quantity Parsing LOST delta=-0.062 / Case Enumeration KEEP-PARENT +0.017 NO-CI / Computation & Verification **PROMOTE +0.104 污染**) → overlay (admitted=N, +0.013 CI=-0.042) → **expand** (运行中, base 23 parsed 0 abandoned, cand 批待跑)。iter1 唯一 PROMOTE 仍为第三轴污染 +0.104。expand 完成后 iter1 archive 落盘, 进入 iter2。
+
+### iter2 新发现: cand-low 反向偏置 (19:14 更新)
+
+iter2 CE 轴出现 **cand-low** (候选端 13/30 abandoned, base 端仅 6/30), 与 iter1 第三轴 base-low **方向相反**:
+- iter1 第三轴: base 13 / cand 1 → base-low → base_pass 当 0 → paired delta **人为抬高** → **假阳性** (推上不相干 CV 候选 12064805af, +0.104)
+- iter2 CE 轴: base 6 / cand 13 → cand-low → cand_pass 当 0 → paired delta **人为压低** → **假阴性** (CE 候选 LOST delta=−0.079 被拒)
+
+**判读影响**: iter2 CE 的 LOST (−0.079) 可能是 cand-low 驱动的假阴性, 而非真实降级。即 CE 候选可能被 API 抖动不公平地拒掉。教训#9.2 的非对称偏置在 rep5 里**两个方向都出现了**: iter1 base-low 偏假阳, iter2 cand-low 偏假阴。这反而是**自我平衡的信号**: 偏置不固定方向, 跨轮看 (而非单轮) 能部分抵消。但仍需在判读 CE 轴时**向上修正** iter2 的 −0.079 (与向下修正 iter1 的 +0.104 对称)。
+
+iter2 进度: QP✓ (KEEP-PARENT −0.013, base 4/cand 1) → CE✓ (LOST −0.079, base 6/cand 13 cand-low) → CV 待跑 → overlay/expand → iter2 archive。deadline 总数=10 (iter1 6 + iter2 4)。
+
+### iter2 CV 干净轮核验 (19:53, 关键发现 — iter1 污染机制二次坐实)
+
+iter2 CV (Computation & Verification) 决策落定: **KEEP-PARENT(NO-CI), best_delta=−0.054, CI=−0.096, parent=+0.104**。
+
+**关键对照**:
+| | iter1 CV | iter2 CV |
+|---|---|---|
+| 决策 | **PROMOTE** +0.104 CI+0.021 | **KEEP-PARENT** −0.054 CI−0.096 |
+| base abandon | 13/30 (**base-low**) | **0/30 (干净)** |
+| cand abandon | 1/30 | **0/30 (干净)** |
+| parent | −0.008 (s0) | +0.104 (iter1 推上的污染候选) |
+
+**污染机制二次坐实**: iter2 CV 是干净轮 (base/cand 零 abandoned, 无 deadline 偏置)。其 best_delta=−0.054 意味 iter2 的 CV cand **比 parent (iter1 推上的污染候选 12064805af) 还差 0.054** → 拒。iter1 的 +0.104 在干净条件下翻成 −0.054, 差值 ~0.158 即 base-low 偏置 (base 13/30 当 0) 造成的虚高量级。iter1 的 PROMOTE 确为 false-positive, iter2 干净轮的 cand 真实不如 parent。
+
+**rep5 判读影响 (重要)**:
+1. iter1 污染轮坐实 (二次): 干净轮 iter2 CV 直接反证 iter1 CV cand 真实不如 parent。污染候选 12064805af 是偏置推上的假阳。
+2. iter2 迄今 0 PROMOTE (QP KEEP/CE LOST/CV KEEP)。若 overlay/expand 也无 → iter2 零晋升, best_skill_iter2 = best_skill_iter1 (污染候选仍 best)。
+3. **若 rep5 零晋升贯穿 (iter2-5 全 KEEP/LOST)**: best_skill_evolved.md = iter1 污染候选。held-out 须标注污染来源, 或考虑用 iter2-5 干净轮 best 替代 (但干净轮若无 PROMOTE 则无新候选可替代)。
+4. 这本身是信号: ON flags 下若干净轮 0 晋升, 说明 flag steer 的 +0.0375 (原 ON-run rescue 门) 可能依赖偏置, 非稳健因果 → 倾向 Direction 2。
+
+关联 [[dir1-step1-rep5-onflag-launch-20261023]] [[dir1-step1-diag1-flag-attribution-20261023]]。
+
+## 2026-10-24 — rep5 全 run 完成 + 权威 deadline 复核 + sha 口径教训
+
+### rep5 完成 (PID 85158 正常退出 @ 03:27)
+
+iters=5 全跑完, 无 Traceback/无全0/无崩溃。final artifacts @ 03:27: archive_iter5.json (16 entries) + best_skill_evolved.md (796B) + archive_final.json + tree_iter5.json + evolver_log.json。evolver.log 末尾 RF §6 Step 3 警告 `overlay(attempted=5, promoted=0), expand(attempted=5, promoted=0)` + 正常 `✅ Facet-Tree done`。
+
+### 权威 deadline/abandoned 全 run 复核 (用 paired_eval_samples.jsonl 的 iter 字段)
+
+教训#9.7补4: 统计 paired_eval 必须用 `python3 -c` + `json.loads` parse-then-filter, 禁裸 grep JSON 字面量。本次复核:
+
+| iter | abandoned | total_samples | base/cand 明细 |
+|---|---|---|---|
+| 1 | 38 | 2421 | facet_base 13 / facet_cand 1 / overlay_base 10 / overlay_cand 4 / expand_base 1 / expand_cand 9 |
+| 2 | 24 | 2398 | facet_base 10 / facet_cand 14 |
+| 3 | **0** | 2400 | — (干净轮) |
+| 4 | **0** | 2400 | — (干净轮) |
+| 5 | **0** | 2400 | — (干净轮) |
+
+**总计 62 abandoned, 全在 iter1+2, iter3-5 零 abandoned (每轮 2400 样本全干净)**。与 evolver.log 的 10 行 deadline 警告 (iter1=6 + iter2=4) 完全吻合。
+
+**⚠️ 外部 review 曾报"iter3-5 也有分散丢题"——经 per-sample 权威源 (paired_eval `iter` 字段) 证伪: iter3-5 零 abandoned。** 此判断基于 evolver.log 后半段, 但 iter3-5 的干净轮无 deadline 警告行 (教训#9.7补3: 缺警告行 ≠ 无运行, 但此处是"缺警告行 = 真无丢题")。复核以 paired_eval 为准。
+
+### iter2-5 零晋升的双机制 (非单一"锁死")
+
+iter2-5 零晋升不是单一"parent=+0.104 锁死 → 挑战者过不了门", 而是**双机制叠加**:
+1. **锁死**: iter1 污染 bullet val_delta=+0.104 锁死 parent 过高, 干净挑战者需显著优于 +0.104 才过 NO-CI 门。
+2. **CI 噪声**: iter2-5 全干净轮 (0 abandoned), 但干净轮 CV delta 在 ±0.05 波动 (iter2 −0.054 / iter3 +0.042 / iter4 −0.046 / iter5 −0.029), CI 下界普遍 < 0 → NO-CI 保守门拒。即便 parent 不锁死, 这些干净挑战者也过不了 NO-CI (CI 噪声大)。
+
+即 iter2-5 零晋升 = **锁死 + CI 噪声双因**, 非纯锁死。仍支持 Direction 2 (flag steer 非稳健因果), 但措辞须精确: "iter1 偏置晋升 → parent 锁死 → 后续干净挑战者因 CI 噪声/NO-CI 全拒", 而非纯"锁死"。
+
+### flag 因果效应不稳健 (非"flag 无效", 也非"flag 有效"; review 2026-10-26 措辞收紧)
+
+ON flags (learn_positive+meta_contrast) 确实"起作用"了: flag steer 产出了对应措辞变体 (extreme-value-check), 该措辞在 iter1 借 base-low 偏置过门并锁死 (机制已证, 非"flag 无效")。但"flag 有效"需要 flag 的产物在干净判据下显著正——rep5 held-out (2026-10-26 完成) 仅噪声区间微正 (Δ=+0.0069 < σ≈0.044), 不可称"flag 有效"。判断对象是「flag 是否稳健有益」, 答案否定; 稳妥措辞: **"flag 的因果效应不稳健: 单 run、产物锁死、held-out 微正但处于噪声区间"**。旧措辞"flag 有效但负向锁定"暗示 flag 有效, 已弃用。
+
+### 教训 #9.7 补 6 — sha 口径混淆 (文件 sha1sum ≠ evolver 内部 hash 字段)
+
+落盘时曾把 evolver archive 里的 `hash` 字段值 (如 `12064805af`) 当成"skill 文件指纹"写进 memory, 外部 review 报的却是 OS 级 `sha1sum` 文件指纹 (如 `5164a52e36`)。两者都是"对的", 只是**不同口径**:
+- **evolver 内部 hash 字段**: md5 前 10 位, 标识 skill 内容版本 (archive_iter5.json 里 `12064805af`)。同内容 = 同值, 跨文件可比。
+- **OS 文件 sha1sum**: 整个 .md 文件的 sha1 指纹 (如 rep5 全 6 文件 = `5164a52e36`, OFF-run6d iter1-9 = 8 个不同值)。
+
+**实测对照 (2026-10-24 sha1sum 复核)**:
+- REP5 best_skill_iter{1..5}.md + evolved: **全 IDENTICAL** sha1=`5164a52e36` (sha256=b0f37d8a41, md5=12064805af, size=796) —— 6 文件完全相同。
+- OFF-run6d best_skill_iter{1..9}.md: sha1 链 = `16021442→43538e2b→2c704822→d05a98e7(dup)→5c65daf2→8c94496e→d258a36a(dup)` —— 8 次变化 (iter4=iter5, iter8=iter9)。
+
+**教训**: 落盘"IDENTICAL/变化次数"必须用 `sha1sum` OS 级文件指纹, 且需同时记 hash 算法名 (sha1/sha256/md5)。evolver 内部 hash 字段是内容版本号, 适合 archive 内跨条目比对, 不适合"文件是否相同"判定 (因文件可能含相同内容但不同空白/顺序)。曾凭"hash 字段值相同"推断"文件 IDENTICAL"——本次碰巧也对 (md5=12064805af 对应文件内容确实相同), 但口径不可靠。复核以 `sha1sum` 为准。
+
+### 对照口径修正 — OFF-run6d 非干净基线, 只是无锁死
+
+ON vs OFF 对照成立 (ON 锁死停滞 vs OFF 8 次进化), 但描述须精确: **OFF-run6d 不是"健康基线"**, 其 8 次 sha 变化里也含 rescue 晋升的污染条目 (历史记录: run6d 6/8 晋升走 rescue 门, iter8 有丢题污染)。即"OFF 持续进化" ≠ "OFF 进化得更干净"。对照时只能用"OFF 无锁死、ON 锁死", 不能把 OFF 抬为"干净对照"。两者同口径 (都脏), 唯一真变量 = ON/OFF flags + iters。
+
+### 待办
+
+- [x] ✅ 跑 held-out eval (判据③): `bash .../run_dir1_step1_rep5_heldout_20261023.sh` — **完成 2026-10-26 ~15:40** (PID 77128, 13:40:02 启动, ~2h)。判据: 均值Δ > −0.0056 AND ≥2/3 seed 同向。
+- 判据③只影响"iter1 污染 bullet 本身是否有害", 不影响"Direction 2 是否坐实" (单 run + 锁死 + 零后续晋升已坐实非稳健因果)。
+
+关联 [[dir1-step1-rep5-onflag-launch-20261023]] [[dir1-step1-diag1-flag-attribution-20261023]]。
+
+---
+
+## 2026-10-26 — rep5 held-out 判据③完成: 翻正 (与先验相反) + eval.json 增量写入陷阱
+
+### 症状
+
+rep5 held-out eval (PID 77128) 跑完, 结果**翻正**:
+- s0 (c11d7dc0): mean=0.6194, passes=[0.6375, 0.6250, 0.5958]
+- evolver (12064805af, iter1 污染 bullet): mean=0.6264, passes=[0.6292, 0.6292, 0.6208]
+- Δ (evolver−s0): mean=**+0.0069**, per_seed=[−0.0083, +0.0042, +0.0250]
+- 判据③: ✅ 通过 (均值Δ > −0.0056, 2/3 seed 同向)
+
+**⚠️ 与用户先验假设相反**。先验 (2026-10-26 提出): "in-sample +0.104 是 base 丢 13/30 偏置产物 → held-out 大概率负或接近0"。实际 held-out Δ=+0.0069 (微正)。
+
+### 根因分析
+
+1. **先验方向错误但可解释**: in-sample +0.104 确实是 base-low 偏置抬高 (base 丢 13/30 / cand 只丢 1/30), 但被偏置抬上去的 bullet **本身无害 (不显著负)** — held-out Δ=+0.0069。⚠️ **翻正 ≠ bullet 好**: +0.0069 < 单 seed σ≈0.044, 属噪声区间微正, 与"nothing"不可区分。即"被偏置抬上" ≠ "bullet 有害", 但也证不出 bullet 有增益。偏置抬高的是 in-sample delta 数值, 不是 bullet 质量; held-out 噪声区间既否不掉"无害"也证不出"有增益"。
+2. **交叉验证**: 原 ON-run (iters=2) held-out Δ=+0.0153 2/3正 与 rep5 held-out Δ=+0.0069 2/3正 方向一致, 但**两者都处于噪声区间** (+0.0069<σ≈0.044, +0.0153 亦小)。交叉验证只能说明"该污染 bullet **不是显著负**", **不能**说明"确有微正信号"——两个噪声区间内的正数, 统计上不可称"确有微正"。
+
+### Direction 2 结论是否受影响? — 不变
+
+held-out 翻正**不能救 flag steer** (review 已指出):
+1. 单 run 复现, 样本量不足以下因果结论。
+2. rep5 全程 iter2-5 零后续晋升 (parent 锁死在 iter1 污染 bullet)。
+3. **判据③翻正只影响"污染 bullet 是否有害", 它甚至无法区分"flag steer 的措辞"和"这颗 bullet 里的 extreme-case 自检"谁贡献了微正**。flag 的因果强度被 rep5 锁死 + 零后续晋升 + 单 run 三条独立证据否定。
+4. **措辞收紧 (review 2026-10-26)**: ✅ "flag steer 了候选措辞并导致锁死 (机制已证)"; ❌ "flag 有效但产生中性/微正锁定" (暗示 flag 有效——"flag 有效"需产物在干净判据下显著正, held-out 仅噪声区间微正, 不达标)。稳妥写法: **"flag 的因果效应不稳健: 单 run、产物锁死、held-out 微正但处于噪声区间。Direction 2 坐实。"**
+
+机制层面仍是 iter1 deadline 偏置采样运气 → 锁死。Direction 2 坐实不变。
+
+### 教训 #9.7 补 7 — aime25_eval.json 增量写入陷阱 (文件存在 ≠ 完成)
+
+`eval_aime25_multiseed.py` 输出的 `aime25_eval.json` 是**增量写入**: 每跑完一个 batch (如 `s0 seed1`) 就用当前累积结果重写整个文件。文件出现/存在**不代表 eval 完成** — 中途 json 里 `runs.evolver` 可能是空数组 `[]`, `summary.evolver.passes` 也不全。
+
+**事故经过**: 监控 cron 触发条件写成 "aime25_eval.json 存在 → 完成", 结果 eval 才跑到 batch 1/6 (s0 seed1, evolver 还没开始) json 就已出现 (1658B), 差点用 1/6 batch 的数据 (只有 s0 单 seed) 去判据③下结论。
+
+**修正**: 完成判据 = **PID 退出** AND **json 里 `summary.evolver.passes` 数组长度 = seeds 参数** (用 python json.loads 取值, 非裸 grep)。监控脚本/cron 触发条件永远带 PID 存活检查 + json 字段完整性检查, 不能只看文件存在。
+
+### 解决方案 / 后续
+
+- 监控 cron 已修正重建 (触发条件改为 PID 退出 + evolver.passes 长度=3), eval 跑完后已正常判定并 CronDelete。
+- 结果已归档 `memory/dir1-step1-rep5-onflag-launch-20261023.md` (判据③ held-out 结果 section) + MEMORY.md 索引。
+- 个人工作记忆 `aime25-eval-json-incremental.md` 记录该陷阱 (教训#9.7补7), 与 [[教训#9.7 paired_eval_samples.jsonl 增量]] 同族。
+
+关联 [[dir1-step1-rep5-onflag-launch-20261023]] [[dir1-step1-diag1-flag-attribution-20261023]] [[dir1-step1-heldout-result-20261022]]。
+
+---
+
+## Direction 2 实现: held-out 门控折入 PROMOTE 循环 (2026-10-26)
+
+### 症状
+
+rep5 坐实的核心病灶 (见上条): iter1 "pollution bullet" 因 base-low 采样偏置过了 in-sample 门 (false-positive paired delta +0.1042), 成为 best_skill, 锁死 parent iter2-5 全 0 晋升。held-out 评测只是 post-hoc 测量 (Δ=+0.0069 < σ≈0.044, 噪声区间), 从未喂回循环, 偏置锁死产物无法被 veto。
+
+### 根因
+
+held-out 评测与 PROMOTE 循环解耦 — 它只测不判, 不构成 selection pressure。
+
+### 解决方案 (Direction 2: 把测量变选择压力)
+
+在 `skill_evolver_aime_v2.py` 单文件内实现 (4 flag + loader + helper + 17 PROMOTE 点 wrap + logging)。候选过 in-sample 门 (ci>best_ci_gate) 后, 再过一道 AIME25 held-out paired 门 (cand vs parent 的 bootstrap CI > `held_out_ci_gate`) 才能夺 best_skill。iter1 污染 bullet held-out CI 跨 0 → 被 veto → parent 留 → 树不被锁死。
+
+### 与原计划的 3 处偏差 (设计修正)
+
+1. **17 点非 16**: grep 坐实 `best_val_delta, best_val_ci, best_skill =` 共 17 处 (原计划 16, 漏数 1)。strengthen 3 点在 `_run_strengthen` helper 内, 余 14 在 `_run_facet_tree` 主体。17 处全包 `if _ho_passed:` 守卫, 1:1 对齐。
+2. **fail-closed 删除**: 原计划用 `n_abandoned = len(items) - len(per_item)` 检测超时题做 fail-closed veto (>50% abandoned 直接 veto)。读 `eval_paired` (tf_global_v2_aime.py:436-471) 发现超时题被 backfill 进 per_item (pass_rate=0.0, 悲观), 故 per_item 恒含全部 items → 该差恒 0 (死代码)。删除: 悲观 backfill + strict 门 (`ci > ci_gate`) 已天然 veto 偏置产物 (超时题取 0 pass → paired delta 偏负 → CI<0 → 被 veto)。helper 仍返 `n_abandoned=0` 占位。
+3. **`_run_strengthen` 用 `heldout_state` dict**: strengthen 是独立 helper (非闭包), 不能读写 `_run_facet_tree` loop-local bool。故把 per-iter gate 状态收进可变 dict `_heldout_strengthen_state` (items/by_hash/gates/ho_done/out_dir/run_id/persist_ctx), by-ref 传入 3 个调用点。`ho_done` 一旦置位, 同 iter 后续 strengthen 调用跳过 gate AND 跳过晋升 (≤1 gate/op/iter, 不 cascade, 镜像 review "do NOT cascade to second-best")。
+
+### 零回归验证 (flag off, 静态)
+
+- 17/17 PROMOTE 赋值点全在 `if _ho_passed:` 下; flag off → `_heldout_items=[]` (falsy) → BEST 守卫 `if _heldout_items and not ...:` 短路 → `_ho_passed` 恒 True; RESCUE 守卫 `_ho_passed = (not _heldout_items) or ...` = `not []` = True。两路均原样赋值, 无新 print/eval/archive 字段。
+- import / 签名 (`_run_strengthen` 含 `heldout_state=None`) / argparse (4 flag 默认 off) / loader (flag off 返 [], flag on 返 30 items, ids 无碰撞) 单测通过。
+- 日志条件: archive 按 hash 附字段, evolver_log per-iter/run-level 仅非空才附 → flag off 字节不变。
+- **未做 (需 API key)**: 真实 1-iter flag-off 跑 + diff (API 非确定不可行); veto 实跑 (flag on 构造候选); rep5 复现跑。待 API key 就绪。
+
+### 教训
+
+- `eval_paired` 的 per_item 语义 (超时题 backfill=0.0) 会使任何 "len(items)-len(per_item)" 式的 abandoned 检测恒 0 — 读返回契约再设计 fail-closed, 否则写死代码。
+- grep 数 PROMOTE 赋值点要精确到 `best_val_delta, best_val_ci, best_skill =` 整行, 不能按算子粗估 (原计划 16 漏数 strengthen 1 点)。
+- 独立 helper (非闭包) 不能读写调用方 loop-local 变量, per-iter 共享状态须用可变容器 (dict) by-ref 传入。
+
+### 文件
+
+- 改动: `rl/train/verl1/skill_evolution/skill_evolver_aime_v2.py` (单文件)
+- 复用: `tf_global_v2_aime.py:eval_paired` / `tf_global_v2_math.py:bootstrap_ci_lower` (未改)
+- 记录: `memory/dir2-heldout-gate-launch-20261026.md` (实现完成 + 验证状态已更新)
+
+关联 [[dir1-step1-rep5-onflag-launch-20261023]] (病灶来源) / [[aime25-eval-json-incremental]] (held-out eval 增量陷阱, 嵌入主循环后仍需注意)。
+
+### 运行时验证补记 (2026-10-26): gate 决策逻辑单元测试
+
+无需 API key, 用 `unittest.mock.patch` 替换 `_run_heldout_gate` 内调的 `eval_paired` + `bootstrap_ci_lower`, 实跑真实 gate 函数的决策逻辑。**17/17 通过**:
+
+| T | 场景 | 期望 | 结果 |
+|---|------|------|------|
+| 1 | flag off | loader 返 [], gate 直通 passed=True | ✅ |
+| 2 | flag on | 30 items, ids 0..29 | ✅ |
+| 3 | CI=-0.02 < gate=0.0 | veto (passed=False) — 模拟 rep5 iter1 污染 bullet 偏置产物 held-out CI 跨 0 | ✅ |
+| 4 | CI=+0.05 > 0 | pass, op_label→stage=`heldout_overlay` | ✅ |
+| 5 | ci==gate (0.03==0.03) | veto (strict `>`, 非 `>=`); ci=0.0301→pass | ✅ |
+| 6 | flag-off BEST/RESCUE 守卫短路; ho_done=True 后不 cascade | _ho_passed 语义正确, ≤1 gate/op/iter 成本上界坐实 | ✅ |
+
+覆盖 review 判据 #2 (veto 机制) 的决策核心。剩端到端真实跑 (eval_paired 真调 B/C 模型返回) + rep5 复现待 `QWEN_CHAT_API_KEY` 就绪。
+
+### 运行时验证补记 (2026-10-26, 续): 日志装配端到端测试
+
+追加 15/15 通过的日志装配端到端测试 (monkeypatch 无需 API), 验证 _run_heldout_gate 真实函数 + L4403-4468 真实 per-iter/run-level 装配代码:
+
+| W | 场景 | 结果 |
+|---|------|------|
+| W1 | by-ref 共享: strengthen 经 heldout_state["gates"] append 的事件 → 到达 _heldout_gates (同 list 对象), 顺序保留 [overlay,strengthen,crossover] | ✅ |
+| W2 | per-iter log: heldout_gates 字段附 3 事件, run 累加器 n_gates=3/n_passed=2/n_vetoed=1 | ✅ |
+| W3 | run-level summary: heldout_gate_summary{3,2,1} 落 log (by-ref 持久到终局 dump) | ✅ |
+| W4 | flag-off: 空 _heldout_gates → iter log 无 heldout_gates 字段 (字节不变) | ✅ |
+
+至此无 API 可做的运行时验证全部完成 (gate 决策 17 + 日志装配 15 = **32/32**)。剩余仅端到端真实 eval_paired 调用 (B/C 模型) + rep5 复现跑, 待 `QWEN_CHAT_API_KEY`。
+
+### 真实接口契约核对 (2026-10-27, launch 前, 无需 classifier)
+
+32/32 monkeypatch 测试都 mock 掉了 `eval_paired` / `bootstrap_ci_lower`, 真实调用链的 **返回元组基数 / per_item 格式 / items schema** 未被实跑覆盖。launch 前用只读工具核对真实源码契约 (避免真实 run 因 unpack 炸崩):
+
+| 契约 | 真实源码位置 | 预期 | 核对结果 |
+|------|-------------|------|---------|
+| `eval_paired` 返回元组基数 | tf_global_v2_aime.py:474 `return mean_pass, mean_delta, len(deltas), per_item, base_per_item` | 5-tuple | ✅ gate helper L3129 解包 5 值 `_mean_pass, heldout_delta, _n, per_item, _base_per` 对齐 |
+| `per_item` 格式 | tf_global_v2_aime.py:470 `per_item.setdefault(qid,[]).append(d)` | `{qid:[d]}` | ✅ `bootstrap_ci_lower` (tf_global_v2_math.py:538) 取 `per_item_deltas.values()` 逐题均值, 契约一致 |
+| qid 命名空间 | tf_global_v2_aime.py:413 `qid = str(it["id"])` | AIME25 `"0"`.."29"`, AIME24 `"aime24:NN"` | ✅ aime25.jsonl `id` 为 int 0-29 (30 unique), str 化无碰撞, 永不串扰 AIME24 |
+| items schema | aime25.jsonl item0 | `id/problem/answer/year` | ✅ `run_one` 读 `it["id"]/it["problem"]/it["answer"]` 全命中, 无 KeyError |
+| gate strict 边界 | skill_evolver_aime_v2.py:3134 `passed = heldout_ci > args.held_out_ci_gate` | `>` 非 `>=` | ✅ 与 in-sample ci 门一致 (NO-CI strict) |
+| `bootstrap_ci_lower` 边界 | tf_global_v2_math.py:539 `len(means)<2 return means[0] if means else 0.0` | 单题/空题不炸 | ✅ |
+
+结论: 真实调用链契约全绿, 真实 run 不会因 tuple 基数 / per_item 格式 / items schema 崩。32/32 mock 测试 + 真实接口契约核对 = launch 就绪。
+
+### rep5+gate 复现实跑启动 (2026-10-27 09:30)
+
+**启动**: `bash run_dir2_heldout_gate_rep5_20261027.sh` → PID 61263, run 子目录 `run_20261027_093001/`.
+**配置**: rep5 精确 args (iters=5, K=4, eval_k=8, train_n=18, learn_positive, meta_contrast, facet_tree, 4 facet axes w/ freeze Final Answer, emergent_facets, expand, crossover, overlay, paired_rescore, Kc=4, struct_temp=1.0) + 4 个 held_out_* flag (`--held_out_gate --held_out_split_dir aime25.jsonl --held_out_k 8 --held_out_ci_gate 0.0`).
+**模型**: DeepSeek-V3.2 (aimpapi), RPM=28, max_tokens=16384, temp=0.0, no-thinking.
+**s0_cache**: 复用 run_20261016_140819/s0_cache.json, manifest 校验通过 (k=8, shuffle_seed=0, n=30) — S₀ 不重算.
+**启动确认**: argparse → 防泄漏预检 OK → s0_cache manifest pass → facet_library.json 落盘 (8 facets seeded). 进程 ALIVE, 进入 facet 树候选生成 (LLM rewrite, 尚未到 B-model 评测).
+
+**决定性判据** (run 完成后核):
+1. iter1 污染 bullet (hash `12064805af` / sha1 `5164a52e361c1c63d1569629a96a02449872ab2a`) 在 held-out 上 CI 跨 0 → `evolver_log.json` iter0 `heldout_gates[].passed=false` (被 veto).
+2. `best_skill_iter1.md` sha1 == `b2683538c56d68fab2515356b4071ab048438b74` (init skill, parent 留) 而非 `5164a52e36...` (bullet 锁死).
+3. 树继续进化 iter2-5 (best_skill 跨 iter 变化, 或有非 iter1-bullet 的 promoted).
+4. 成本: `heldout_gate_summary.n_gates` ≤ 4×iters=20.
+
+**对照**: 原 rep5 (无 gate) iter1 bullet 锁死 parent, iter2-5 全 0 晋升 (sha1 全程不变 `5164a52e36`). 本 run 加 gate, 预期 iter1 bullet 被 veto → 树解锁 → 可进化.
+
+**注**: held-out gate ON banner (`🔒 HELD-OUT gate ON: loaded 30 items`) 仅在首次 `_get_heldout_items` 调用时打印 (lazy, 在 `_run_facet_tree` per-iter init L3265, 非 module load 时). S₀ 复用后进 iter0 才会出现.
+
+### iter1 veto 实跑坐实 (2026-10-27, run 进行中到 iter2/5)
+
+run 进 iter2, **核心判据 #1 (veto) + #2 (parent 留) 已验证**, 这是 Direction 2 的胜负手:
+
+**关键事件 (evolver.log)**:
+```
+🔒 HELD-OUT gate ON: loaded 30 items from aime25.jsonl (k=8, ci_gate=0.0)
+Facet-Tree Iter 1/5 ...
+  facet[Quantity Parsing] N=1 cand: best_delta=+0.050 CI=-0.013 | KEEP-PARENT(NO-CI) (parent=+0.004)
+  🚫 HELD-OUT VETO facet_edit iter1: delta=+0.017 CI=-0.042 (gate=+0.000, n=30, k=8)
+  🚫 HELD-OUT VETO facet_edit iter1[Quantity Parsing]: in-sample rescue passed but held-out 门未过; parent 留 best
+```
+
+**机制解读**: iter1 facet_edit 候选 in-sample delta=+0.050, CI=-0.013. Stage2 放宽门 (veto_upper_bound+paired_rescore) 下 `best_ci_gate` 可为负, 候选过了放宽的 in-sample 门 → 触发 held-out gate → held-out paired delta=+0.017, **CI=-0.042 < gate=0.0** → **veto (passed=false)**. parent 留 best.
+
+**判据核对**:
+| # | 判据 | 结果 |
+|---|------|------|
+| 1 | iter1 候选 held-out CI 跨 0 → veto | ✅ `evolver_log.json` iter0 `heldout_gates[0]={op:facet_edit, delta:0.0167, ci:-0.0417, passed:false}` |
+| 2 | parent 留 best (非候选锁死) | ✅ `best_skill_iter1.md` 内容与 init skill **逐字节相同** (normalized sha1 `94d4bca9684a98df290d4a730767883fbfceffe7`; evolver md5 `c11d7dc0c8bf` == `init_skill_hash`) |
+| 3 | 树继续进化 iter2-5 | 🔄 进行中 (iter2/5 跑中, 尚无晋升) |
+| 4 | 成本 n_gates ≤ 20 | 🔄 目前 1 gate (≤1/op/iter 坐实: TREE-BEST gate 设 `_ho_facet_edit_done=True` 后 RESCUE 路径 `_ho_passed=False` 不 cascade) |
+
+**零泄露核对**: `paired_eval_samples.jsonl` 中 held-out items **仅**出现在 `heldout_facet_edit` stage (480 records = 2 batch × 30 items × k=8), 绝不出现在 `evolver_*` (in-sample) stage. 独立缓存, 物理隔离坐实.
+
+**archive 条件字段核对**: archive_iter1.json 5 个 node 中仅 node[3] (被 gate 的 facet_edit 候选) 附 `heldout_gated:True, heldout_delta:0.0167, heldout_ci:-0.0417`; 其余 4 node 无该字段 (flag off 字节不变保证延伸到 per-node).
+
+**基准修正 (踩 [[sha-fingerprint-vs-evolver-hash-field]] 坑)**: 预启动笔记写 init sha1=`b2683538c5...` — 那是**原始文件带尾换行**的 sha1. evolver 哈希前 strip 尾换行, 故 `init_skill_hash` (md5)=`c11d7dc0c8bf`, **非** 原始文件 md5 `735f9e8b71cf`. 正确的"parent 是否留"判据 = `best_skill_iter1.md` normalized 内容的 sha1/md5 vs `init_skill_hash`, **不是** vs 原始文件 sha1. 已用 normalized 逐字节比对坐实, 不依赖单一 hash 字段值.
+
+**结论**: Direction 2 的 veto 机制在真实 run 中**生效** — held-out gate 成功阻止了 in-sample 通过但 held-out 无正信号的候选夺 best_skill, parent 留 best, 树未锁死. 这是对比原 rep5 (无 gate, iter1 bullet 锁死 parent iter2-5 全 0 晋升) 的核心改进. 待 iter2-5 跑完核判据 #3 (树进化) + #4 (成本).
+
+### iter3 进度 (2026-10-27, run 进 iter3/5, etime ~8h37m)
+
+run 推进到 iter3, veto 持续生效, parent 持续未被锁死:
+
+**best_skill 跨 iter 恒为 parent (核心判据 #2 持续坐实)**:
+| iter | best_skill_iter{t}.md md5(normalized) | == init_hash (c11d7dc0c8bf)? |
+|------|----------------------------------------|------------------------------|
+| 1 | c11d7dc0c8bf | ✅ parent 留 |
+| 2 | c11d7dc0c8bf | ✅ parent 留 |
+
+**gate 事件累计** (判据 #4 成本, 目前 n_gates=2 ≤ 20):
+| iter | op | held-out delta | held-out CI | 结果 |
+|------|-----|----------------|-------------|------|
+| 1 | facet_edit | +0.017 | -0.042 | 🚫 VETO |
+| 3 | overlay | +0.013 | -0.037 | 🚫 VETO |
+
+iter2 无 gate (所有候选 in-sample NO-CI, 未触发 TREE-BEST/RESCUE 放宽门 → 不进 held-out gate). iter3 overlay 候选 in-sample 过放宽门 → held-out CI 跨 0 → veto. **对照原 rep5**: iter1 bullet 锁死后 iter2-5 全 0 晋升且 best 恒为 bullet; 本 run best 恒为 parent, 树未锁死.
+
+**iter3 overlay 双候选现象**: log 显示 `overlay iter3: delta=+0.083 CI=+0.037 ... became_best=N` — 该候选 in-sample 信号强 (CI=+0.037>0) 但 `became_best=N` (未夺 best). 这是 overlay 算子内部的次优候选路径, held-out gate 在最优候选 (delta=+0.013, CI=-0.037) 上已 veto 并设 `_ho_overlay_done=True`, 次优不 cascade. 成本上界 (≤1 gate/op/iter) 持续坐实.
+
+**注**: `heldout_gate_summary` run-level 字段目前 ABSENT — 因 run 未结束, 该字段仅在终局 dump 时按 `_heldout_run_gates>0` 条件附. iter0/1 的 `heldout_gates` 已在 per-iter log 落盘.
+
+**待续**: iter3 跑完 → iter4-5. 预计 ~5-6h 后完成 (iter 时长 ~2h45m). 完成后核最终 `heldout_gate_summary` + 判据 #3 (树进化: 是否有任何非 parent 候选最终夺 best) + #4 (总 n_gates ≤ 20).
+
+### ✅ RUN 完成: rep5+gate 最终结果 (2026-10-27 23:08, 5 iter 全跑完, 无 error/traceback)
+
+run 于 09:30 启动, 23:08 完成 (etime ~13h38m, iter 时长 ~2h45m), PID 61263 正常退出. 5 iter 全跑完, 无报错.
+
+**最终 `heldout_gate_summary`: `{n_gates: 3, n_passed: 0, n_vetoed: 3}`**
+
+所有 3 个过了 in-sample 放宽门 (Stage2) 的候选, 在 held-out 上 CI 全跨 0 → 全 veto, 无一夺 best:
+
+| iter | op | held-out delta | held-out CI | 结果 |
+|------|-----|----------------|-------------|------|
+| 0 | facet_edit | +0.017 | **−0.042** | 🚫 VETO |
+| 2 | overlay | +0.013 | **−0.038** | 🚫 VETO |
+| 3 | expand | +0.025 | **−0.008** | 🚫 VETO |
+
+**判据核对 (全 4 项)**:
+
+| # | 判据 | 结果 |
+|---|------|------|
+| 1 | in-sample 过门但 held-out CI 跨 0 的候选被 veto | ✅ 3/3 全 veto, `heldout_gates[].passed=false` |
+| 2 | parent 留 best (非候选锁死) | ✅ `best_skill_iter1..5.md` + `best_skill_evolved.md` 全部 md5=`c11d7dc0c8bf` == `init_skill_hash`, 内容与 init 逐字节相同 |
+| 3 | 树继续进化 iter2-5 | ⚠️ **0 晋升** — 树未进化, 但也未锁死. RF §6 Step3 警告触发 (facet_edit/overlay/expand 全 0 promoted). |
+| 4 | 成本 n_gates ≤ 20 | ✅ n_gates=3, 远 ≤ 20, ≤1 gate/op/iter 坐实 |
+
+**对照原 rep5 (无 gate) — 决定性对比**:
+
+| | 原 rep5 (无 gate) | 本 run (+gate) |
+|---|---|---|
+| 最终 `best_skill_evolved.md` md5 | `12064805afb5` (pollution bullet, 794 chars) | `c11d7dc0c8bf` (init parent, 599 chars) |
+| 最终 best vs init | **不同** (bullet 锁死) | **相同** (parent 保留) |
+| iter1 bullet (md5 12064805af) | iter1 夺 best, 锁死 parent iter2-5 | **从未出现** — 被 gate 拦在门外 |
+| iter1-5 晋升数 | bullet 锁死后 0 真进化 | 0 (全 veto) |
+| best_skill 跨 iter | 恒为 bullet (锁死) | 恒为 parent (未锁死, 但未改进) |
+
+**结论 (Direction 2 胜负手)**:
+
+Direction 2 的核心目标 — **阻止 in-sample 偏置产物 (pollution bullet) 锁死 parent** — **达成**. 原 rep5 的 iter1 bullet (md5 `12064805afb5`, 在无 gate 时锁死 parent iter2-5 全 0 真进化) 在 +gate run 中**从未进入 best_skill**. 最终 best = init parent (干净), 而非被污染的 bullet.
+
+**但要诚实记录的代价**: 本 run **0 晋升, 树未进化**. held-out gate 是保守的: 它成功拦截了假阳性 (false-positive 锁死), 但本次采样下也没放行任何真改进. 即 veto 机制治好了"病" (偏置锁死), 但没产生"药效" (真提升). 这是正确的 trade-off — 原病的危害 (锁死后 5 iter 全废) 远大于"无提升" (至少保住干净 parent 留给下一轮). review 原话"把测量变成选择压力, 比继续调 patch 措辞更对症"在本 run 中得到验证: 选择压力确实把噪声产物挡在门外了.
+
+**下一步建议** (待用户/review 定):
+- (a) 同 config 多 seed 复跑, 看是否有 seed 下 held-out CI>0 的真候选能过门 (本次仅 1 seed, 0 晋升可能采样不足).
+- (b) 降 `held_out_ci_gate` 到负值 (如 -0.02) 放宽门, 看是否放过弱正信号候选 — 但这会削弱 veto 强度, 需谨慎.
+- (c) 接受"veto 保守"为正确行为, 转 Step 2 (staleness 负例) 给 flag steer 干净测的机会.
+
+**零泄露最终核对**: held-out items 全 run 仅出现在 `paired_eval_samples.jsonl` 的 `heldout_*` stage (3 gate × 480 = 1440 records), 绝不出现在 `evolver_*` (in-sample) stage. 独立缓存, 物理隔离全 run 坐实.
+
+**成本最终核对**: 3 gate × 480 API 调用 = 1440 held-out 调用, 远低于 worst-case 9600. gate 仅在 in-sample 放宽门通过的候选上触发 (5 iter 仅 3 个), 多数 iter 0-1 候选过门.
+
+---
+
+## 问题 #10: evolver in-sample 评估存在系统性正偏置 — 25/25 候选 held-out 衰减到 CI<0 (2026-10-28)
+
+**发现来源**: Direction 2 held-out gate run 结束复盘 (`run_dir2_heldout_gate_rep5_20261027/run_20261027_093001/`, 5 iter / 13h38m / 0 晋升). 详见 `memory/dir2-heldout-gate-result-20261027.md`.
+
+### 症状
+
+5 轮 evolver 共 25 次算子尝试 (facet_edit 15 / overlay 5 / expand 5), **0 晋升**; `best_skill_iter1..5.md` + `best_skill_evolved.md` 归一化 sha1 与 init 完全相同 (`94d4bca968`) — 字面停滞. 但同时 in-sample paired_rescore 反复给出正向 delta:
+
+| iter | 算子 | in-sample Δ / CI | held-out Δ / CI | 衰减 |
+|---|---|---|---|---|
+| 1 | facet_edit | +0.050 / −0.013 (rescue 后过门) | +0.017 / **−0.042** | 1/3, CI 转负 |
+| 3 | overlay | **+0.083 / +0.037** (唯一 CI>0 且 admitted=Y) | +0.013 / **−0.038** | **1/6.4, CI 转负** |
+| 4 | expand | (rescue-reject 过门) | +0.025 / **−0.008** | 离门仅差 0.008 |
+
+### 根因分析 (已定位的部分)
+
+1. **最严重的一例是结构性的, 不是统计的**: iter3 overlay 候选的 `cand_hash = c11d7dc0c8` — **这个 hash 就是 init skill 的 evolver hash**. 即 `n_axes=0` 时容器把"无轴新增的整体拼接"当作候选提交评审, in-sample 上 paired_rescore 给出 Δ=+0.083 / CI=+0.037, 但**在 held-out 上这个"候选"与 parent 内容等价**, 差异只剩采样噪声 → Δ=+0.013 / CI=−0.038. 即 in-sample 测出的 +0.083 有相当部分不来自候选内容, 而来自 **in-sample 批次的采样波动被 paired_rescore 误判为信号**.
+2. **deadline abandoned 计 0 的偏置**: iter1 与 iter3 各出现 `deadline(900s) hit: 1/30 tasks abandoned (treated as 0 pass)`. 候选与 parent 分两批评, 若 abandoned 落在 parent 侧而候选侧恰好无, 会单侧抬高候选 Δ. 这与原 rep5 iter1 的 13/30 abandoned 是同一机制 (只是量级小得多). **尚未量化**.
+3. **in-sample 与 held-out 样本规模不同**: in-sample paired 用 train_n=18/select=30, held-out 30 题, 两者都小, 单 seed σ≈0.044. +0.013 与 0 在统计上不可区分 — 但 3/3 全负说明偏置是**单向**的, 不只是噪声.
+
+### 结论
+
+**held-out gate 是干净的筛子 (3/3 拦对, 零误判, 零泄露, 成本 1440 ≪ 9600), 但继续调门 (放宽/收紧) 不会产生进化** —— 因为甜点区不存在: 当前 evolver 产出的所有正向信号都是 in-sample 局部现象. **病灶在 in-sample 评估本身.**
+
+反面教训: **不要用"held-out 微正"为任何产物背书**. 原 rep5 的 +0.1042 pollution bullet held-out 仅 +0.0069, 本次 overlay +0.083 held-out +0.013 — 两条独立路径给出同样的 1/6~1/10 衰减比, 说明这是 in-sample 评估的**系统性**属性, 不是个例.
+
+### 解决方案 (待执行, 按优先级)
+
+- **(c) 首选 — 偏差归因**: 对现存 3 个被 veto 的候选, 从 `paired_eval_samples.jsonl` 逐 item 比对 in-sample 与 held-out 的 per-item 分数差, 回答: (i) 偏置是集中在少数 item 还是弥散? (ii) 与 `deadline` abandoned 计 0 的关系有多大 (量化剔除 abandoned 后的 Δ 变化)? (iii) in-sample 的 parent 侧分数是否被系统性低估? 这一步零 API 成本 (数据已在盘上).
+- (a) 多 seed 复跑: 理论价值低 — 25/25 全灭且偏置单向, 多采样只会重复.
+- (b) 降 `held_out_ci_gate` 到负值: **不推荐** — 会放过 Δ=+0.013/CI=−0.038 这类候选, 等于把噪声当信号, 重演 rep5 锁死. 且最接近 0 的是 −0.008, 放宽到 −0.02 也才放过 1 个.
+- (d) 转 Step 2 (staleness 负例): 正交, 不解决本问题.
+
+### 教训
+
+**当筛选机制 100% 拦截且拦截理由一致时, 先怀疑被筛选的输入生成过程, 不要怀疑筛子.** 本 run 3 次 veto 的 held-out CI 全为负且量级相近 (−0.042/−0.038/−0.008), 这个一致性本身就是"上游在系统性产出噪声"的证据, 而不是"门太严".
+
+---
+
+### 修订 (2026-10-28, 执行 (c) 偏差归因后): 根因是 winner's curse, 不是"系统性正偏置"
+
+执行 (c) 逐 item 归因后, **本 issue 标题与"系统性正偏置"结论需修正为更精确的"选择即噪声 (winner's curse)"**. 证据:
+
+**全 17 个去重候选的 in-sample `val_delta` 分布** (archive 累积, 同 hash+facet 的 delta 跨 iter 不变):
+
+| delta 区间 | 个数 | 备注 |
+|---|---|---|
+| +0.05 ~ +0.083 | 2 | 含 overlay identity (+0.083, cand_hash==parent, 真效应=0) |
+| +0.008 ~ +0.025 | 6 | 含 3 个 parent-identity (+0.0042, 真效应=0) |
+| −0.008 ~ −0.046 | 5 | **负向候选存在** — 若 eval 对每个候选系统性正偏置, 负向不该出现 |
+
+**9 正 / 5 负, 围绕 ~0 大致对称** (3 个 +0.0042 是 parent-identity 噪声). 全体均值 +0.0088, 但 17 个估计的 SE ≈ 0.046/√17 = 0.011, 故均值 +0.0088 < 1 SE, **不显著偏正**. 即: **eval 本身对单个候选无系统正偏置**, 否则 17 个候选应全部被抬高、负向不该出现.
+
+**真正的偏置在 Stage2 选择规则**: 每轮 argmax 选 delta 最大的候选. 在真效应全 ≈ 0 (无候选实质性优于 parent) 时, 一组无偏噪声估计的最大值被结构性抬高 (顺序统计量), E[max] > E[单个]. held-out 用独立样本复测该 winner → 回归 ~0 → CI 跨 0 → veto. 这是**选择即噪声 / winner's curse**, 不是 per-candidate 偏置.
+
+**identity overlay 是干净证明**: cand 内容 == parent 内容 (hash 同为 `c11d7dc0c8`), 真效应精确 = 0, 但 in-sample 给 +0.083 (≈1.8 SEM 上尾抽取并恰好被 argmax 选中), held-out 回归 +0.013. 纯噪声赢了一次.
+
+**与原结论的关系**: 原"病灶在 in-sample 评估本身"方向对, 但归因到"系统性正偏置"过粗. 精确版: 病灶在 **in-sample 评估噪声 + argmax 选择规则的交互**. 这改变修复方向:
+- 旧归因("eval 系统性正偏置") → 修复 eval (逐 item 归因/debias) — 但 (c) 逐 item 已查, 偏置不集中在少数 item, 而是弥散的 argmax 效应, debias eval 无靶可打.
+- 新归因("winner's curse") → 修复**选择规则**: (i) 选择时即做多重检验校正 (M 个候选要求 delta > z_{1−α/M}×SEM, M=5 时阈值 ~0.106, 17 个全不过); (ii) split-half (in-sample 分 A 选 B 确认, 独立性消 argmax 抬高); (iii) 直接用 held-out 做 Stage2 准则 (Direction 2 已是此方向的保守版, 即 held-out veto).
+
+**重要推论**: 既然真效应全 ≈ 0, **0 晋升是正确答案, 不是 gate 太严**. 病灶更上游一层的证据: operators (facet_edit/overlay/expand) 没产出实质性优于 parent 的 skill — overlay 甚至提交了 n_axes=0 的 identity 候选 (operator bug). 即 generation 层也需追责, 不只是 eval/selection 层.
+
+---
+
+## 问题 #11: overlay 算子在 donors 空+无 carry-forward 时生成 identity 候选 (winner's curse 之源, 已修 2026-10-28)
+
+**症状**: Direction 2 run iter3 的 overlay 候选 `cand_hash=c11d7dc0c8` == init hash, 经文本逐字节核对 (`IDENTICAL CONTENT? True`, 599 chars 全同) 候选内容==parent. 该 identity 候选被 in-sample eval_paired 给出 +0.083/CI+0.037 (纯采样噪声), 过 Stage2 门触发 held-out gate, held-out 回归 +0.013/CI−0.038 被 veto. 这是 winner's curse 最干净的一例 (真效应精确 0 却进 eval).
+
+### 慢性扩查 (2026-10-28): overlay 在所有 run 都是 identity, 且 facet_edit 也产 identity
+
+逐字节核对 (`skill == init_stripped`, 非 hash 字段) 全部历史 archive 后, bug 范围远超 iter3:
+
+| 算子 | identity / 总数 | 跨 run | identity 的 delta/CI | 危害 |
+|---|---|---|---|---|
+| **overlay** | **5/5 (100%)** | dir1_20261022 iter1-2, dir2_gate iter3-5 | +0.075/+0.025, +0.0833/+0.0375 (全正全过门) | 🔴 **实害**: dir1_20261022 iter1 overlay identity 被 **admitted+promoted**, `best_skill_iter1.md` = init (md5 `c11d7dc0c8bf`). 噪声赢了一轮. |
+| facet_edit (Quantity Parsing) | 12/40 | 三 run 全部 iter | −0.0083~−0.067, **CI 全负 (−0.05~−0.117)** | 🟡 浪费一次 eval, 但 CI<0 永不被选中 → 实际无害 |
+| facet_edit (Case Enumeration) | 12/39 | 同上 | 同上 | 🟡 同上 |
+| facet_edit (Computation & Verification) | 12/36 | 同上 | 同上 | 🟡 同上 |
+| expand | 0/2 | — | — | ✅ 结构上无法重建 parent (expand 创新段) |
+
+**关键区分**: overlay identity 全部 CI>0 且过门 → 真实 winner's curse 入口; facet_edit identity 全部 CI<0 → 永不入选, 只是生成层浪费 (LLM rewrite 返回了与 parent 等价的内容, 仍被评了一次). **rep5 (污染弹 run) 的 overlay 节点数 = 0** — overlay 根本没在那 run 触发; 污染弹 `12064805af` 是 facet_edit 的真实变异 (内容≠parent, delta +0.1042), 与 overlay identity bug 是**两个独立病灶**.
+
+**结论**: overlay 算子**从未产出过真实 graft** (5/5 = parent 重建). 我的 guard 准确命中唯一触发过的情形 (donors 空 + 无 carry-forward), 零回归风险比初始评估更低 — 历史上从未存在过"该保的真 graft 被 skip"的情况. facet_edit identity 也需类似 guard (rewrite 返回==parent 时 skip), 但优先级低 (CI<0 无害).
+
+**根因** (`skill_evolver_aime_v2.py` 算子E, ~L3899-3916):
+- `select_section_donors` 要求 donor `val_ci>0` 且段 md5≠root 段. 当 archive 里所有节点 val_ci≤0 (本 run iter3 前 facet_edit/expand 全 ci<0) → 返回 `{}` → `donors={}`.
+- `best_node` 在无晋升时 == root, `best_node.slots` keys ⊆ `root_slots` keys → 无 carry-forward.
+- `_overlay_assemble` (L2731-2739) 在此条件下: `overlay_slots = dict(root_slots)` (无 graft 无 carry) → `facet_compose(title, root_slots)` = parent 逐字节重建.
+- 该 identity skill 进 `eval_paired` vs parent → 纯采样噪声, 偶尔 CI>0 → admitted → 触发 Stage2/gate.
+
+**修复** (已落地, L3913-3923 插入 guard):
+```python
+_has_carryforward = any(k not in root_slots for k in best_node.slots)
+if not donors and not _has_carryforward:
+    iter_counts["overlay"]["identity_skip"] += 1
+    print(f"  ⏭️ OVERLAY-SKIP iter{t}: no mutated donor + no carry-forward → identity; skipped")
+    ov_ok = False
+    overlay_slots, overlay_skill, ov_slots_chk = {}, best_skill, {}
+else:
+    overlay_slots, overlay_skill, ov_slots_chk, ov_ok = _overlay_assemble(...)  # 原逻辑
+```
+- 新增 `identity_skip` 计数器 (入 `_new_operator_counts` init + `_accumulate_counts` 汇总键), 追踪该 skip.
+- skip 时 `ov_ok=False`, 下游所有 `if ov_ok:` 内的 eval/admit/promote 全不触发 (已验证 sed 无 ov_ok=False 分支的越界引用). `overlay_event` 留 None (同 compose-guard-reject 语义).
+
+**零回归保证**: guard 仅在 `not donors and not _has_carryforward` 时改变行为 — 该情形下旧行为是生成 identity 候选 (bug), 新行为是 skip. 其余情形 (有 donor 或有 carry-forward) 走原 `_overlay_assemble` 路径, 逐字节不变. **慢性扩查坐实零回归更可信**: 历史上 5/5 次 overlay 全是 identity, 从未有过该保的真 graft — 不存在"guard 误杀真候选"的可能.
+
+**模拟验证**: 对实际 iter3 archive 复算 — `best_node.slots` keys == root_slots keys (carry-forward=False), iter3 overlay 运行前所有节点 ci≤0 (donors 必空) → guard 会 skip, identity 候选不再生成, +0.083 噪声消失, 省掉一次 held-out gate 调用.
+
+**后续缺口**: facet_edit 也有 identity 路径 (rewrite 返回==parent), 但 CI 全负从未入选 → 优先级低. 若要彻底封死 winner's curse 生成层入口, 应在 facet_edit 的 eval 前加 `md5(child_skill)==md5(parent_skill)` 的 identity_skip guard (与 overlay 同模式). 暂记为待办, 不阻塞当前 Direction 2 结论.
+
+**教训**: **operator 在"无事可做"时应显式 no-op 并计数, 不能静默退化成"对 parent 做零变换再当候选评"** — 后者把 eval 噪声注入选择池, 是 winner's curse 的生成层入口. 与 [[dir2-winners-curse-diagnosis-20261028]] 一致. **额外教训 (2026-10-28 慢性扩查)**: 一个算子的"某次输出==parent"看似个例, 但若该算子历史 5/5 全 identity, 说明该算子**结构性失效**而非偶发 — 修 bug 后必须回扫全部历史 run 确认范围, 不能只修触发实例.
+
+---
+
+**问题 #12: 1a 先验校准推翻 σ≈0.044 — 真实 S₀@k=8 测量 SE≈0.018, 且日志中有 6 处父本复用 (2026-10-28)**
+
+- **症状**: 1a 离线核查发现三点与既有记录不符。
+  1. `evolver_*_paired_base` stage 的持久化记录确实只有 2 条 (`facet` iter1 / `overlay` iter3 各 1), 但**这不是父本未重测**——父本样本写在了 `stage` 本身 (非 `stage+"_base"`)。`eval_paired` 只有 `stage+"_base"` 会发出 `evolver_facet_paired_base` 这种键；实际持久化数据里 base_role 记录与 cand 同 stage 齐量 (每 iter 240/720/240)。故"母本用缓存、配对名不副实"的判断**不成立**。
+  2. 那 2 条 `evolver_*_paired_base` 记录也不是混淆: 是 `eval_paired` 的 **deadline 超时兜底路径** (`tf_global_v2_aime.py` `_run_batch` 内 `if qid not in out:` 分支), 它按 `batch_stage` 写 `parse_status="abandoned"` 的空记录。两条都是 `aime24:62` (iter1 facet / iter3 overlay), `raw_response=""`, `score=0.0`。**评测本身无 bug**, 只是审计日志里 abandoned 记录的 stage 名与正常记录不同 (正常记录用外层 `stage`)。
+     - 实际影响: `aime24:62` 在 base 侧 iter1/iter3 被计 0 pass, 而该题真实 base pass≈0 (facet base 8 seeds 全 0) → **无污染**。但若发生在高 pass 题上, 这 1 个 abandoned 会把 base 拉低最多 1/30≈0.033, 直接把 Δ 抬高 0.033 — 应在修复清单里。**偏置方向按臂不同, 不是一概"单向正"**: `eval_on` (baseline) 与 `eval_paired` 的 base 侧 abandoned 拉低 base → 抬高 Δ (正偏置); `eval_paired` 的 **cand 侧** abandoned 拉低 cand → 压低 Δ (负偏置)。
+  3. **最要紧**: 用 `evolver_*_paired` 中 `skill_role=base` 的 15 份 `S₀@k=8` 重复测量 (facet 5 iter + overlay 5 iter + expand 5 iter) 做重复性分析, **题目级 sd=0.078, 均值级 sd=0.023, pooled SE=0.018**。之前写在 F6 的 σ≈0.044 来自 **3 个 run 各 8 seeds 的 baseline 汇总**, 不是 k=8 同协议复测; k=8 真值是 SE≈0.018–0.025。
+- **根因**: 之前把"跨 run 三次 baseline 汇总"误当作"同协议 k=8 的 σ"。两者口径不同 (前者含 run 间漂移 + 缓存差异, 后者只含采样), 且这里恰好有 15 份同协议复测可直接用, 无需跨 run。
+- **解决方案**: 全用 15 份 base 复测 + paired 落盘的 cand, 算出真实可检区间 (详见下方"1a 真值")。**不调用任何 API, 不新建 run**。
+- **教训**: "σ 从哪来"必须问清楚 (哪批样本、k 几、seed 几、是否同协议)。"跨 run 汇总"与"同协议重复测量"不是同一把尺子, 混用会把检出下限高估一个档。
+
+### 1a 真值 (2026-10-28, 纯离线)
+
+| 量 | 值 | 口径 |
+|---|---|---|
+| S₀@k=8 均值级 sd (15 份复测) | **0.0228** | 同协议真实噪声 |
+| S₀@k=8 题目级 sd | 0.0777 | 同协议真实噪声 |
+| pooled SE (30 题) | **0.0183** | sqrt(mean(item_sd²)/30) |
+| paired Δ per-item sd (facet, k=8/120 samples) | 0.1387 | 真效应≈0 的候选 |
+| SE (n=30) / SE (n=19) | **0.0253 / 0.0318** | naive sqrt V/n |
+| 均匀 19 题随机子集 SE | 均值 0.0315 (p5 0.0229 / p95 0.0380) | 1000 次重采样 |
+| 去饱和 (base 全对或全零 8 题) 后 keep=22 的 SE | 0.0345 | 口径 = "单臂全对或全零 ⇒ 无区分度" |
+
+**结论**:
+1. **F1 的 "σ≈0.044" 是错的 (高估约 2x)**。真值 SE≈**0.018–0.025**, 检出下限 (95% CI 下界>0) 应在 **+0.04~+0.05** 量级; 原写"只能检出 +0.13"是误判 (单 seed n=30, **不是** k=8 口径)。同时 `docs/phase2_issues.md` 中多处引用 "σ≈0.044" 的结论 (rep5 污染弹判定等) 需要按同一口径重核。
+2. **去饱和不降 SE (反升)**: 因为去掉了"全对/全零"题 (贡献 0 方差) 的同时 n 也减; 保留的高方差中间题占比升高 → SE 略升。若目标是把 SE 压下去, 应该在**保留饱和题**的前提下扩 n (饱和题对分母有利), 而不是删它们。
+3. **饱和题二值口径**: 单臂 all-correct (k=8) = 5; 单臂 all-wrong = 3; 并集 (任一臂全对/全零) 各候选 11~18 题。三口径差异合理, 无 `4 vs 11` 矛盾——**该数字随 k 变化**, 不能跨 run 比。
+4. **可执行修复**: 在 30 题约束下, SE≈0.018–0.025; 按 80% power 粗估, 检出下限≈**+0.05** (不是 F1 的 +0.13)。held-out 三候选的 Δ 都 <+0.03, 仍属不可区分。**但"原理上完全测不出"这个强说法不成立**——候选真效应若 ≥+0.05, 现协议有机会测出。故 D2 的 "0 产出" 正确表述为: **"检出下限 +0.05; 候选 held-out Δ 均 <+0.05, 与 0 不可区分。方法可能无效, 也可能有 +0.02~+0.04 真效应被噪声淹没 — 当前协议下二者不可分。"** (2026-10-29 修正: 原写"维持方法无效判断"过强, 已撤回 — 3 个候选不可区分 + 1 个 identity 例子不足以外推到全部 25 次尝试, 违反 review F1 "0 admit 应解读为测量上限"。换 Direction 1 的理由是 ROI, 不是"已证否"。)
+
+---
+
+## 问题 #13: abandoned / 全异常题计 0 实现缺陷 — 修复 (2026-10-29, 1′)
+
+**症状**: `eval_on` / `eval_paired` 把 deadline 超时 (abandoned) 的题按 `pass_rate=0.0` 计入 delta。
+单题影响 ≈1/n≈0.033, 且**偏置方向随臂不同**: `eval_on` (baseline) 与 paired-base 侧 → 抬高 Δ;
+paired-cand 侧 → 压低 Δ。D2 run 的 2 条 abandoned (`aime24:62`) 恰好落在真值 0 的题上, 未污染, 但属隐藏偏置源。
+
+**根因 (两处)**:
+1. **计 0 而非剔除**: `tf_global_v2_aime.py:313-314` (eval_on) 与 `_run_batch` 尾部 (eval_paired) 对未完成题
+   直接写 `pass_rate=0.0`。在 paired 模式下两臂各自超时 → 配对失去对齐语义。
+2. **eval_on 无任何持久化**: 只 `print` 一条告警。baseline (`evolver_base`) 与所有非配对 `evolver_*_val`
+   的 abandoned 事件在盘上**完全不可见** —— 这比计 0 更严重, 因为偏置无法事后检出。
+3. **附带**: `run_one` 在采样级异常 (API 挂/超时) 时 `except` 后继续, 若 k 次全异常 → `last_ev=None` →
+   `pass_rate=-3.0` → 调用方 `>=0` 判定后按 0 计, 与 abandoned 同质但**不带任何标记**。
+
+**修复**:
+- `run_one`: 新增 `k_err` 计数, 返回 `n_error`。
+- `eval_on` 签名加 `persist_ctx=None` (默认行为不变)。abandoned 与 `n_error>=k` 的题**从 delta 中剔除**
+  (打印 + 落 `out_dir/eval_audit.jsonl`)。
+- `eval_paired`: 任一侧 abandoned / 全异常 → **整对剔除** (两臂对齐), 并打印 `N/M pairs dropped`。
+- `skill_evolver_aime_v2.py`: 8 处 `eval_on` 调用点注入 `_eval_audit_ctx` (含 out_dir)。
+
+**验证**: stub `run_one` 冒烟 — eval_on 3 题中 1 题全 4 采样异常 → 分母 3→2, audit 落 1 行;
+eval_paired cand 侧 1 题全异常 → `1/3 pairs dropped`, 分母 3→2, 两臂同剔。`ast.parse` 双文件通过。
+
+**未解决 / 权衡**: 选"剔除"而非"重排队"。剔除使分母随超时变化 (n=30 下 1 题 = −3.3% 分母, 会**抬高**
+该题误差权重); 重排队则单 iter 时长不可控。当前选剔除 + `eval_audit.jsonl` 可见, 待观察审计频次
+(若 eval_audit 频繁出现, 说明 900s deadline 过紧, 应改 deadline 而非改打分策略)。
+
+**教训**: "兜底计 0" 是一类**静默数据污染**——它让缺失数据伪装成真实观测, 且方向不可预知。
+凡"超时/失败 → 填默认值"的兜底, 必须同索取: (a) 持久化事件, (b) 区分"默认"与"实测", (c) 让下游能选择排除。
+
+---
+
+## 问题 #14: _test_eval_paired.py stale mock — capture_cb 转发 + abandoned-drop 语义未同步 (2026-10-29)
+
+**症状**: 跑 `_test_eval_paired.py` (零 API unit test) 报两个错:
+1. `TypeError: _mock_run_one() got an unexpected keyword argument 'capture_cb'`
+2. `AssertionError: 超时后 n 仍应=3, got 0` (Test B)
+
+**根因 (两个独立 stale, 均非 A2 引入)**:
+1. **capture_cb mock stale**: `tf_global_v2_aime.py:456` `eval_paired._run_batch` **无条件**转发 `capture_cb=cb`
+   (真 `run_one` 有该形参, 10-20 加, 默认 None=零回归)。但 `_test_eval_paired.py` 的 3 个 mock
+   (`_mock_run_one`/`_slow_run_one`/`_ident_run_one`, mtime 2026-10-19) 仍是 4 参数签名 `(it, skill, stage, k)`。
+   `git blame -L 455,456` 显示转发行是 commit `1e10ce3` (2026-10-22) 加的 —— 早于 1′(10-29) 与 A2(10-29)。
+   **`git diff` 验证**: working tree 在 `run_one`/`capture_cb` 行上与 HEAD 零差异 → A2/1′ 都没碰这些行。
+   这是 10-22 转发改动留下的一份 stale 测试, 碰巧和 1′ 一起被 `1e10ce3` "全量同步工作区"冻结进版本库。
+2. **abandoned-drop 断言 stale**: Test B 旧断言 `n2==3` + `md2==0` + `per_item2[q]` 存在, 反映 1′ **之前**
+   "超时计 0 pass" 语义。1′ (问题 #13) 改为 abandoned **整对剔除** (`_run_batch` L511-515 标记 → L513 `continue` 不进 deltas)。
+   全超时 → `deltas=[]` → `n=len(deltas)=0`, `per_item={}`, `base_per={}`, `mean_pass=0/1=0.0`。
+   旧断言与新语义冲突。**这是 1′ 正确改动的连带副作用, 非 bug**。
+
+**修复**:
+- 3 个 mock 全部加 `capture_cb=None` 形参 (零 API 测试不消费 cb, 仅兼容转发签名)。注释标根因。
+- Test B 断言改为新语义: `n2==0` + `per_item2=={}` + `base_per2=={}` + `md2==0`/`mp2==0` (空 deltas 兜底)。
+
+**验证**: `python _test_eval_paired.py` → 3/3 全通过 (Test A 正常配对 delta 代数; Test B abandoned-drop 语义; Test C identity CI≈0)。
+`py_compile` 4 文件 (evolver + tf_global + 两测试) 全 pass。A2 单测 `_test_make_staleness_negatives.py` 6/6 全过, 未受影响。
+
+**教训**: 语义改动 (如 #13 abandoned 计 0→剔除) 必须连带回扫依赖该语义的测试断言。
+"全量同步工作区"式 commit (`1e10ce3`) 容易把已破测试和正确改动一起冻结 —— 应在 commit 前跑一遍测试套件而非信任"同步"。
+
+---
+
+## 问题 #15: 1a 校准 SE=0.0253 低估 ~2x — 单题真值跨 run 漂移证伪"题间独立+题真值固定"双重假设 (2026-10-29)
+
+**症状**: B4 否证 cross_q_consistency 后追查一个连带问题: rep5 的判据"held-out Δ 是否在噪声区间"用的是 1a 的 SE≈0.0253 / 检出下限 +0.05。若 1a 低估了真实噪声, rep5 判据就标低了。复算 identity 候选 (`c11d7dc0c8`, cand==base, 真效应精确 0) 5 次独立重测的 mean-delta 跨次展幅:
+
+| 量 | 值 |
+|---|---|
+| (A) naive SE (sd_item/√30, 1a 口径, 题间独立) | **0.0265** (正好对上 1a 的 0.0253 ✅) |
+| (B) block bootstrap SE (按题重采样, 保留题级结构) | 0.0215–0.0328 (与 naive 比值 0.97–0.99) |
+| (C) 跨 5 次重测经验展幅 (真值=0 的 mean-delta, 无假设) | **0.0587** (naive 的 **2.22x**) |
+
+**根因 (机制更精确, 修正 B4 文件的"题间相关"表述)**:
+1. **1a 的 0.0253 是"题间独立 + 题真值固定"双重假设下的口径**。(A) 复算证实 (sd_item/√30=0.0265≈1a)。
+2. **block bootstrap (B) ≈ naive (A) 不构成反驳**: block bootstrap 按题重采样单次 iter 的 30 个题级 delta, 检验的是"这 30 个已聚合 delta 的方差"; 相关结构在"delta 怎么产生"(k=8 采样) 那层, 不在"30 个 delta 怎么组合"那层 → (B) 看不见相关, 定义性地≈(A)。
+3. **真实来源是"单题真值跨 run 漂移", 不是题间相关**。逐题诊断: 同一 skill(identity) 同 k=8, 单题 base 臂通过率跨 5 rep 大幅跳动 — `aime24:65` base=[0.625,0.25,0.125,0.5,0.5] (sd=0.205), `aime24:66`=[0.5,1.0,0.625,0.875,0.375] (sd=0.259)。k=8 下 p=0.5 的单次理论 sd≈0.18, 跨 5 次应收窄到 ~0.08; 实测 0.21 远超 → **模型/解码非平稳性**: 同 prompt+温度, DeepSeek-V3.2 实际通过率在 run 间漂移。这比"题间相关"更严重 (相关→block bootstrap 可修; 真值漂移→只能增 k 或跨 run 平均)。
+
+**三重自检 (排除 n=5 抖动假象)**:
+1. n=5 经验 SE 的 95% CI (chi-square, df=4) = [0.0352, 0.1688], **下界 0.0352 > 1a 的 0.0253** → "1a 低估"稳健, 非 n=5 抖动。
+2. outlier 不致命: 去掉最大正值 iter3 后 SE=0.0412 (仍 1.6×naive), 去掉 iter3+4 后 0.0402 → 非单点拉大。
+3. 反向证伪: 若 1a 的 0.0253 对, 观测到 0.0587 展幅的概率仅 **0.02%** (200000 次蒙特卡洛) → p<5% 否定 1a 口径。
+
+**影响 (检出下限上调)**:
+- 1a 的检出下限 +0.05 = 2×naive_SE。真实 SE≈0.04–0.06 → **检出下限上调到 ~+0.10–0.12** (1.96×0.0587≈0.115)。
+- **对 rep5 判据**: rep5 那 3 个 held-out Δ (+0.017/+0.013/+0.025) 不仅 < +0.05, **更 < +0.10** → 在真实噪声区间下更彻底不可区分。方向判断 (仍"不可区分") 不变, 但论文不能写 +0.05 当检出下限, 应写 ~+0.10。
+- **对 D2 "0 产出"**: 检出下限从 +0.05 上调到 +0.10, "0 产出"的不确定性**变大**而非变小 — 候选可能有 +0.02~+0.09 真效应被淹没, 这个区间比 1a 估的更宽。
+
+**未解决 / 权衡**:
+- n=5 太小, 0.0587 是真实 SE 的一个点估计 (95% CI 跨 [0.035, 0.169]); 精确值需更多重测。但"1a 低估约 2x" 这个**方向性结论**稳健 (下界仍超 1a)。
+- 题间相关 vs 真值漂移的进一步分离需更细诊断 (跨 run 同题 base 方差 vs 单 run 内题间协方差)。
+- 修复方向: 不要用题间独立假设的 sd/√N 估 SE; 应 (i) 增加重测次数估真实跨 run 噪声, 或 (ii) 用 identity 候选作"过程空白"标定每次 run 的实际噪声 (它天然是真值 0)。
+
+**教训**: 测量精度校准若只在单次 run 内做 (sd_item/√N), 会把"题真值跨 run 漂移"这个误差源完全漏掉 — 它在单 run 数据里不可见, 只有用"同真值多 rep"对照才能暴露。**identity 候选 (cand==base) 是天然的测量空白对照**, 应常态化用作噪声标定。关联 [[dir2-winners-curse-diagnosis-20261028]] (identity +0.083 winner's curse) 与 [[measurement-calibration-1a-20261028]] (1a 原口径)。
+验证某改动是否引入 bug 的判据: `git diff` 看该改动是否动了出错行, 而非凭时间先后归因。
+
+## 问题 #16: 1′ 的 _eval_audit_ctx 定义在 _run_facet_tree 内, main() 中 3 处引用 → NameError 启动即崩 (2026-10-29)
+
+**症状**: 1′-fixed rep5 重跑 (PID 56860) 启动后 ~90s 崩溃:
+```
+File ".../skill_evolver_aime_v2.py", line 5021, in main
+    eval_deadline_s=EVAL_DEADLINE_S, persist_ctx=_eval_audit_ctx)
+NameError: name '_eval_audit_ctx' is not defined
+```
+崩点在 **baseline `eval_on`** (stage="evolver_base"), 即 `_run_facet_tree` 之前, 一次 API 都还没发。
+
+**根因**: 1′ 的 `_eval_audit_ctx = {"out_dir": out_dir, "cand_hash": "", "iter": t}` 只定义在
+`_run_facet_tree()` 内 (`L3311`), 而 `main()` 里 (L5021 baseline `eval_on`, L5374 非 facet-tree
+路径) 也引用了这个名字。facet-tree 路径 (L5299 等) 不受影响, 因为它们跑在 `_run_facet_tree` 里。
+→ **A2 的单测只覆盖了 `eval_paired` 与 `main()` 的入口**, 没覆盖 `main()` 内 `eval_on` 的 baseline
+分支, 所以 6/6 通过但实际起不来。
+
+**另一个隐患 (同一处)**: `_eval_audit_ctx` 在循环内定义且 `cand_hash=""` 从不更新 →
+即使不崩, 审计行也分不出是哪个候选, 判据① ("审计证实 13 题被剔") 无法逐候选核对。
+
+**修复**: ① 在 `main()` 计算 `out_dir` 之后全局定义一次
+`_eval_audit_ctx = {"out_dir": out_dir, "cand_hash": "", "iter": 0}` (main 侧引用取 iter=0);
+② `_run_facet_tree` 内改为**新建 dict 并带上 `cand_hash`** (identity hash 或候选 md5), 不再用空串;
+③ 回归: 加 `py_compile` + `inspect.getsource(main)` 断言两个名字在 main 体内有定义 → 任何
+"定义在子函数、被 main 引用" 的同类错误在单测层就拦下。
+
+**教训**: 单元测试通过 ≠ 能启动。跨函数作用域的符号引用必须做**入口级冒烟**
+(`python -m ... --help` 不够, 要跑到第一次 `eval_on` 前), 或静态断言。关联问题 #14。
+
+## 问题 #17: eval_paired 剔除的 pair 不写 eval_audit.jsonl — 审计只覆盖 main 侧 eval_on (2026-10-29 发现于 1′-fixed rep5 结果核对)
+
+**症状**: 1′-fixed rep5 run (`run_dir1_step1_onflags/rep5_fixed_20261029/run_20261029_182501/`) 结束时
+`eval_audit.jsonl` 只有 **8 行**, 全部是 `stage=evolver_base` 的 `eval_on` abandoned
+(`item_id=aime24:85` × 8, `fail_reason="deadline hit"`)。而日志里实际发生的 paired 剔除有:
+- iter2 facet QP: **base 臂 13/30 超时** → 该分支只剩 17 对 (delta −0.051)
+- iter1 expand / iter2 expand: 各有 **7/30 cand 侧超时** → 只剩 23 对
+
+这些剔除**一条都没进审计文件**, 只有 `evolver.log` 里的文字。
+
+**根因**: 1′ 的 `persist_ctx` 只接入了 `eval_on` 路径 (baseline / probe / val 的未配对评测)。
+`eval_paired` (paired_rescore) 内部判定 "任一侧 abandoned → 整对丢弃" 时**没有把 drop 事件写回
+`persist_ctx["out_dir"]/eval_audit.jsonl`**, 只在内存里缩减配对集合。
+
+**影响**:
+- 预登记判据①本来要 "audit 证实 13 题被剔", 实际上只能对 main 路径核验, paired 路径的剔除
+  **不可事后审计** — 只能回放 67MB 的 `paired_eval_samples.jsonl` 自己数。
+- 更隐蔽的后果: 部分采样时的 Δ 不稳定。iter1 expand 的 delta 在后续 pair 补齐前是 +0.025,
+  补齐后变 **+0.004**, 排序翻转。若中途读日志会得出反结论。
+
+**修复方向** (未实施):
+1. `eval_paired` 在 drop 时对每个被剔 pair 写一行审计
+   `{"stage", "iter", "cand_hash", "item_id", "side": "base"|"cand"|"both", "fail_reason", "parse_status"}`;
+2. 在 audit 行里加 `n_pairs_used` 字段, 使 Δ 的分母可核验;
+3. 结果汇总脚本应以 `n_pairs_used / n_total` 作为该候选 Δ 的**可信度标记**, 缺失 >20% 时 Δ 不参与选择
+   (iter2 QP 43% 缺失那种分支应直接标 invalid)。
+
+**教训**: "审计" 只覆盖一条代码路径就等于没有审计。凡是会改变统计分母的点 (drop / retry / 重算),
+都必须落一条带分母的记录 —— 否则无法区分"效应小"和"样本被吃掉了"。关联问题 #15 (噪声)、#16 (同类
+"只测了一条路径")。
+
+---
+
+## 问题 #18: F7 截断 bug — `run_one` 硬编码 4096, AIME evolver 全程跑在 4096 (F7 修复路径未覆盖, 2026-10-30 发现)
+
+**触发**: 用户要求核实 "F7 修复是否真的在 rep5-fixed 生效" (会话级疑问, 非实验报错)。
+查 1′-fixed rep5 run `run_dir1_step1_onflags/rep5_fixed_20261029/run_20261029_182501/`。
+
+**症状**: 三层证据链:
+1. `evolver_log.args` **无任何 max_tokens 字段** → cap 完全由环境变量 / setdefault / 硬编码决定。
+2. `paired_eval_samples.jsonl` 无 `max_completion_tokens` / `finish_reason` 字段 (9607 条全空) → 截断**不可从审计文件直接核验**, 只能回放 `raw_response` 长度间接推断。
+3. `raw_response` 长度分布出现硬天花板: max=**16501 chars** (≈4096 tokens×4), 尾部被从句子中间切断
+   (`...So`), score=0.0。270 条 >14000 chars, p99=14739。这是 4096 上限的签名。
+
+**根因 (三层错配, 而非单一 setdefault)**:
+1. **env 层正确**: `rep5_fixed_launch.sh` L17 `export QWEN_CHAT_MAX_TOKENS="16384"`, 且刻意不 source
+   `_env.sh` (其 L6 `export 4096` 会覆盖)。env 层是 16384, 注释也写明 "F7 后口径"。— **之前担心的
+   "_env.sh 4096 覆盖" 实际未发生**。
+2. **AIME evolver 没加载 F7 修复**: F7 修复 (`tf_global_v2_math.py:47` setdefault 16384) 写在
+   *math* 通用层。但 AIME evolver `skill_evolver_aime_v2.py:57` 导入的是 **`tf_global_v2_aime`**,
+   后者 L35 只从 `tf_global_v2_math` 复用 `llm/set_temp/md5/...`, **不触发** math 层的 setdefault。
+   → F7 的 env 层修复对 AIME 路径**根本没加载**。
+3. **真正的截断源 = `tf_global_v2_aime.py:run_one` L119 硬编码**:
+   ```python
+   response, _ = chat_target(system=system, user=user, max_completion_tokens=4096, ...)
+   ```
+   `eval_on` (L298) / `eval_paired` / `precompute_s0` 全部经 `run_one` 评测 → evolver 主路径
+   **逐字硬编码 4096**, 与 env 16384 无关 (chat_target 收到显式实参时 env 默认值不生效)。
+4. **F7 在 evaluate_aime 的修复也是空转**: `eval_aime24_multiseed.py:178-200` 的 F7 把
+   `evaluate_aime` 的 max_tokens 提到 16384 —— 但 `run_one` L121 调 `evaluate_aime(response, ...)`
+   时传的是**已被 4096 截断的 response**, `evaluate_aime` 只做**解析**, 不再请求。给一个早已被切
+   断的 response 再设上限毫无作用。F7 修错了对象。
+
+**结论: rep5-fixed 全部 9607 次评测跑在 4096, env 的 16384 从未生效。**
+
+**对 D1 结案结论的影响判定 (关键 — 不是混淆因子)**:
+查 `paired_eval_samples.jsonl` 量化截断→失败, 与对 delta 的偏置方向:
+- 99.8% (9586/9607) `parse_status=parsed`, no_int 类仅 21 条 (0.2%, 全是空 response=API 失败非截断)。
+  → **没有 "截断致抽不到答案" 的样本** (AIME 答案 0-999 整数, 出现在正文即抽得到, 尾部截断不影响)。
+- 270 条 >14000 里 0 条 no_int, 262 条 score=0、8 条 score=1。
+- **cand vs base 长度无系统差异**: cand mean=7657 / base mean=7666 (差 ~9 chars)。
+- 长样本 score=0 在 cand/base 两侧: cand=116 / base=146 — **双向, 非单边**。
+- 长输出**集中在 2-3 道题** (aime24:73/89/81), 同一题 cand 和 base 都长 (aime24:73
+  cand_max=16177 / base_max=16501) → "长" 是**题目属性** (天然长推理题), 非 skill 造成。
+
+→ delta = cand_pass − base_pass 里, 截断项在两臂**对称抵消**, 不单向抬高或压低 **+0.044**。
+  **+0.044 不是被截断压出来的假信号; D1 "干净信号 < +0.10" 结论站得住。**
+  F7 是独立于 D1 结论的潜在隐患, 而非本次 run 的混淆因子。
+
+**修复方向 (未实施)**:
+1. `tf_global_v2_aime.py:run_one` L119 把硬编码 `4096` 改为读 `os.environ.get("QWEN_CHAT_MAX_TOKENS","16384")`,
+   或直接传 `16384`。这是唯一真正生效的改动点。
+2. 删除 `skill_evolver_aime_v2.py:38` 的 `setdefault("4096")` (误导: 给人 env 层可调的假象, 实际被 L119 实参覆盖)。
+3. F7 在 `evaluate_aime` 的修复是无效的 (空转), 可保留无害, 但不应记为 "F7 已修复截断"。
+4. `paired_eval_samples.jsonl` 应加 `finish_reason` 字段 (chat_target_messages 已支持, 见
+   `eval_aime24_multiseed.py:178` 注释), 否则截断不可审计 — 关联 #17 同类审计缺口。
+
+**教训**:
+- "改了 setdefault" ≠ "修复生效"。setdefault 在 env 已 export 时是 no-op, 在被显式实参覆盖时也是 no-op。
+  修复截断的唯一可靠方式是改**真正发请求处的硬编码实参**。
+- 修复要顺着**实际调用链**改, 不能只改最靠近 env 的那一层。F7 改了 math 通用层 setdefault +
+  evaluate_aime 的 max_tokens, 但 AIME evolver 走的是 `run_one` (硬编码 4096) 这条没被碰的路径。
+  追根因时**先画调用链图再改**, 否则改的是死代码。
+- "bug 存在" ≠ "混淆了结论"。F7 客观存在且必须修, 但 cand/base 对称截断使 delta 中性 —
+  本次 D1 结论不受影响。但若未来某候选 skill **系统性改变输出长度** (如 prompt 让模型更啰嗦/更简短),
+  对称性会破裂, 截断会变成方向性偏置。→ 修复应优先于引入任何会改变输出长度的 skill 变体。
+
+**关联**: #15 (SE 低估, 噪声地板) / #17 (审计缺口, 同类不可核验) / [[dir1-rep5-fixed-result-20261029]]
+(D1 结案 +0.044) / [[dir1-rep5-fixed-launch-20261029]] (cap 16384 口径, 实际未生效) /
+[[measurement-calibration-1a-20261028]] (检出下限 +0.10)。

@@ -41,7 +41,7 @@ metadata:
   - 3.3.2 Skill Library 与结构化 skill 格式
   - 3.3.3 Self-Debug 外部编排循环
   - 3.3.4 逐条测试详细反馈机制
-- 3.4 C 模型: 评判+奖励信号
+- 3.4 （原 C 模型 30% 评判 — 已停用，见 c-model-and-grpo-reward-status-20261030）
 - 3.5 训练流程: 从参数空间到上下文空间
 
 ### 4. Experiments

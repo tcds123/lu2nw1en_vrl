@@ -23,7 +23,7 @@ python -u rl/train/verl1/skill_evolver_math.py \
 - 起点: V2_SKILL_DEFAULT (run_20260728_131934, 与 multiseed baseline 同源)
 - split: livemathematicianbench_1-3-6 (train18/val53/test106, select=train+val=71)
 - s0_cache: s0_cache_math_1-3-6_k5.json (k=5 连续值固定快照)
-- LiveMath=MCQ, pass=精确匹配, **无 C 模型 LLM 评判** → 每轮 ~852 B-call @28RPM ≈ 30min, 6 iter ≈ 4h
+- LiveMath=MCQ, pass=精确匹配, **纯精确匹配无 LLM 评判** → 每轮 ~852 B-call @28RPM ≈ 30min, 6 iter ≈ 4h
 - background task id: belbxy8zl
 
 ## 对照基准 (已坐实)

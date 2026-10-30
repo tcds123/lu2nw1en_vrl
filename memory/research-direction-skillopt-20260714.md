@@ -83,7 +83,7 @@ related: [p0-focused-injection-20260714.md, trace2skill-diff-analysis.md, ../dat
 # 基础设施现状
 
 - 本机：无 Docker、无 uv。⇒ SkillsBench 标准协议暂不可跑；SkillOpt（pip + Qwen 后端 + 随仓数学数据）可跑。
-- 我们有：DeepSeek-V3.2（B）/ DeepSeek-V4-Flash（C）API（core.py / c_interface.py 中，**勿外泄**）。
+- 我们有：DeepSeek-V3.2（B）/ DeepSeek-V4-Flash（C）API（core.py / c_interface.py 中，**勿外泄**；c_interface.py 属早期 GRPO reward，已停用）。
 - GRPO 框架：verl（rl/train/verl1/），A=Qwen3-4B。
 
 # 待确认

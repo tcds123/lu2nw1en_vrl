@@ -36,7 +36,7 @@ metadata:
 ## 精确断点 (README §5 核心)
 10/10 轮 expand 的 `target_type` 全部 = `Equation / setup errors (wrong variable, wrong formula, misread constraint)`。根因链三层：
 1. focus 选最高频未覆盖 failure type
-2. C 模型把大量几何失败归入该泛化桶 (每轮 Computation&Verification facet 内 1-3 次)，几何专属类型 (Structure Misidentification/Chain Setup/Parallel Extension/Tangent Setup) 被拆散成低频
+2. facet 分类（早期 C 模型 / 现 LLM 分类器）把大量几何失败归入该泛化桶 (每轮 Computation&Verification facet 内 1-3 次)，几何专属类型 (Structure Misidentification/Chain Setup/Parallel Extension/Tangent Setup) 被拆散成低频
 3. target 既无几何语义 → SECTION_EXPAND_PROMPT 只能生成泛化「方程验证」section
 
 ## 状态

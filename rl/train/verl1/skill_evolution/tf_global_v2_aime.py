@@ -109,6 +109,7 @@ def run_one(item: dict, skill_content: str, stage: str = "tf_v2_aime_b", k: int 
     system = _build_system(skill_content)
     user = _build_user(item)
     n_pass = 0
+    k_err = 0  # 1′: 采样级异常计数 (见函数尾部 n_error)
     last_ev = None
     last_resp = ""
     s_idx = 0
@@ -136,6 +137,7 @@ def run_one(item: dict, skill_content: str, stage: str = "tf_v2_aime_b", k: int 
                     pass  # 持久化失败不影响评测主链
         except Exception as e:
             res["fail_reason"] = f"exception: {e!r}"
+            k_err += 1
             if capture_cb is not None:
                 try:
                     capture_cb({
@@ -156,6 +158,9 @@ def run_one(item: dict, skill_content: str, stage: str = "tf_v2_aime_b", k: int 
                     "predicted_label": str(last_ev.get("predicted_answer", "")),
                     "correct_label": str(last_ev.get("correct_answer", "")),
                     "fail_reason": "" if n_pass == 0 and k == 1 else res.get("fail_reason", "")})
+    # 1′ (2026-10-29): 区分 "真 0 次通过" 与 "k 次采样全部异常" (API 挂/解析崩). 后者 pass_rate 被计 0
+    # 与 abandoned 同病: 进 delta 即单向拉低该题 (eval_on 侧抬高 Δ). 调用方据此排除而非计 0.
+    res["n_error"] = k_err
     res["n_pass"], res["n_samples"] = n_pass, max(1, k)
     return res
 
@@ -277,8 +282,12 @@ def compose_global_skill_append(s0, experiences):
         return s0
 
 
-def eval_on(items, skill_content, s0_cache, stage="tf_v2_aime_val", k=1, eval_deadline_s=None):
+def eval_on(items, skill_content, s0_cache, stage="tf_v2_aime_val", k=1, eval_deadline_s=None,
+            persist_ctx=None):
     """评测: 每题 k 次采样投票 (EVAL_TEMP), pass_rate=通过次数/k. delta 对位 s0_cache 固定快照.
+
+    persist_ctx (1′, 2026-10-29, 默认 None=行为不变): 提供 out_dir 时, abandoned / k 次全异常题
+        落 out_dir/eval_audit.jsonl 审计 (原仅 print, 偏置不可见).
 
     eval_deadline_s: 整批墙钟上限 (秒). 超时后未完成的 future 取消并按 0 分计入 (不阻塞死锁).
         镜像 math 版同款护栏 (治 urllib socket.read 无超时死锁, PID 53188 根因).
@@ -310,8 +319,40 @@ def eval_on(items, skill_content, s0_cache, stage="tf_v2_aime_val", k=1, eval_de
         ex.shutdown(wait=False)
     # 超时放弃的 item 计 0 pass (delta = -s0_pass, 保守悲观).
     done_qids = {qid for qid, _ in results}
-    results.extend((str(it["id"]), {"pass_rate": 0.0, "n_pass": 0, "n_samples": k})
-                   for it in items if str(it["id"]) not in done_qids)
+    results = [(qid, dict(r, abandoned=False)) for qid, r in results]
+    _ab = [(str(it["id"]), {"pass_rate": 0.0, "n_pass": 0, "n_samples": k, "n_error": 0,
+                            "abandoned": True})
+           for it in items if str(it["id"]) not in done_qids]
+    results.extend(_ab)
+    # 1′ (2026-10-29): 全 q 异常 (API 挂/解析崩) 的题与 abandoned 同质 — 排除而非计 0 (原计 0
+    # 单向拉低该题, eval_on 侧抬高 Δ). 全排除会改变分母, 故仅在启用时排除, 并落审计日志.
+    _err = [(qid, r) for qid, r in results
+            if not r["abandoned"] and k > 0 and r.get("n_error", 0) >= k]
+    _exclude = bool(_err) or bool(_ab)
+    if _err:
+        for qid, r in _err:
+            print(f"   ⚠ eval_on[{stage}] {qid}: all {k} samples errored ({r.get('fail_reason','')[:80]}) "
+                  f"→ excluded from delta", flush=True)
+    if (_ab or _err) and persist_ctx and persist_ctx.get("out_dir"):
+        try:
+            _p = os.path.join(persist_ctx["out_dir"], "eval_audit.jsonl")
+            _ts = datetime.now().isoformat(timespec="seconds")
+            with open(_p, "a", encoding="utf-8") as _fp:
+                for qid, r in _ab:
+                    _fp.write(json.dumps({"ts": _ts, "stage": stage, "item_id": qid,
+                                          "skill_version": persist_ctx.get("cand_hash", ""),
+                                          "parse_status": "abandoned",
+                                          "fail_reason": "deadline hit"}, ensure_ascii=False) + "\n")
+                for qid, r in _err:
+                    _fp.write(json.dumps({"ts": _ts, "stage": stage, "item_id": qid,
+                                          "skill_version": persist_ctx.get("cand_hash", ""),
+                                          "parse_status": "exception",
+                                          "fail_reason": r.get("fail_reason", "")}, ensure_ascii=False) + "\n")
+        except Exception as _e:  # noqa: BLE001  审计失败不影响评测主链
+            print(f"   ⚠ eval_audit 写入失败: {_e!r}", flush=True)
+    if _exclude:
+        _drop = {qid for qid, _ in _ab} | {qid for qid, _ in _err}
+        results = [(qid, r) for qid, r in results if qid not in _drop]
     deltas, per_item = [], {}
     for qid, r in results:
         pr = r["pass_rate"] if r["pass_rate"] >= 0 else 0.0
@@ -436,7 +477,8 @@ def eval_paired(items, cand_skill, base_skill, stage="tf_v2_aime_paired", k=1, e
         for it in items:
             qid = str(it["id"])
             if qid not in out:
-                out[qid] = {"pass_rate": 0.0, "n_pass": 0, "n_samples": k}
+                out[qid] = {"pass_rate": 0.0, "n_pass": 0, "n_samples": k,
+                            "abandoned": True}  # 1′: 标记, 聚合时排除而非计 0
                 # 超时题也记一条持久化 (parse_status=abandoned), 保留审计完整性.
                 if _persist_fp is not None:
                     rec = {
@@ -460,15 +502,27 @@ def eval_paired(items, cand_skill, base_skill, stage="tf_v2_aime_paired", k=1, e
             _persist_fp.close()
         except Exception:
             pass
+    # 1′ (2026-10-29): 任一侧 abandoned / k 次全异常 → 该配对无有效观测, 排除而非计 0.
+    # 排除后两臂对齐 (同题同剔), 配对语义不变; per_item 仍按 qid 聚 (bootstrap 按题均值, 缺该题则少一题).
     deltas, per_item, base_per_item = [], {}, {}
+    _n_drop = 0
     for qid, cr in cand_res.items():
+        br = base_res.get(qid, {})
+        _bad = (cr.get("abandoned") or br.get("abandoned")
+                or (k > 0 and cr.get("n_error", 0) >= k) or (k > 0 and br.get("n_error", 0) >= k))
+        if _bad:
+            _n_drop += 1
+            continue
         cpr = cr["pass_rate"] if cr["pass_rate"] >= 0 else 0.0
-        bpr = base_res.get(qid, {}).get("pass_rate", 0.0)
+        bpr = br.get("pass_rate", 0.0)
         bpr = bpr if bpr >= 0 else 0.0
         d = cpr - bpr
         deltas.append(d)
         per_item.setdefault(qid, []).append(d)
         base_per_item[qid] = bpr
+    if _n_drop:
+        print(f"   ⚠ eval_paired[{stage}] {_n_drop}/{len(cand_res)} pairs dropped "
+              f"(abandoned or all-k-exception) — not counted as 0", flush=True)
     mean_pass = sum(cr["pass_rate"] for cr in cand_res.values() if cr["pass_rate"] >= 0) / max(1, len(deltas))
     mean_delta = sum(deltas) / max(1, len(deltas))
     return mean_pass, mean_delta, len(deltas), per_item, base_per_item

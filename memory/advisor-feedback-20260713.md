@@ -43,7 +43,7 @@ metadata:
   - #3 ACP：§4 补推迟备注（依赖 #2，故 P3 远期），维持"低优先"
   - #4 综述：修正"全部已核验"过度声明（独立复核：SkillOpt 已验、SkillsBench/Blind Curator 此前已验、5 个决策性 ID 待 arXiv 限流解除后复核），新增 §4.1 focused-injection 首实验提案
 - [x] 从 SkillBench 调研中选 2-3 个 benchmark：SkillsBench(首选)/SkillLens/SkillLearnBench，并界定评测目标 A/B/C（见 `data/skill_benchmarks/README.md` §3.0）
-- [x] 从综述提取强化 5 项改造的 idea：GraSP"2-3 聚焦 skill" -> focused-injection 消融（§4.1）；Blind Curator -> C 模型 defect-injection 审计
+- [x] 从综述提取强化 5 项改造的 idea：GraSP"2-3 聚焦 skill" -> focused-injection 消融（§4.1）；Blind Curator -> defect-injection 审计（C 模型已停用，见 [[c-model-and-grpo-reward-status-20261030]]）
 - [~] 多 agent 起步框架：技术选型保留 smolagents/LangGraph，但执行冻结至 P1（先证 single-agent 有效）
 
 ## 优先级重排（导师 7/14 认可）
@@ -52,4 +52,4 @@ metadata:
 
 ## 待办（下轮，实验类）
 
-见 [[research-direction-20260714]] §六下轮行动项：focused-injection 消融、SkillsBench 目标 A、C 模型 defect-injection 审计。
+见 [[research-direction-20260714]] §六下轮行动项：focused-injection 消融、SkillsBench 目标 A、defect-injection 审计（C 已停用）。

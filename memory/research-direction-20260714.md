@@ -36,7 +36,7 @@ A (Qwen3-4B, GRPO 训练) -> 系统提示词 / context curation -> B (DeepSeek-V
 
 1. **试验台选错**：HumanEval+/MBPP+/BigCodeBench 是通用编程题，我们的 402 条通用 skill（"检查边界/加 assert"）改变不了代码正确性；只有在 **skill-specific 基准**（任务为特定 skill 设计 + 确定性验证器）上才能测出 skill 边际效应。详见 `data/skill_benchmarks/README.md` §1.3。
 2. **全量注入稀释信号**：Step 1 注 50 条（含 70% 有害）不如不注；GraSP（待复核）证据指向"2-3 条 per-task 聚焦 skill 优于全量"。见 `agent/b_agent/skill_optimization_survey_2026.md` §4.1。
-3. **评判器偏置会静默瘫痪退役**：Blind Curator 证明 false-pass 偏置会让 contribution-based DELETE 永不触发且不暴露在任何聚合指标。我们的 reform #2/#3 依赖 C 模型奖励，部署前必须做 defect-injection 审计。见 [[phase2_issues]] 末条。
+3. **评判器偏置会静默瘫痪退役**：Blind Curator 证明 false-pass 偏置会让 contribution-based DELETE 永不触发且不暴露在任何聚合指标。早期 reform #2/#3 依赖 C 模型奖励，部署前须做 defect-injection 审计（C 已停用，见 [[c-model-and-grpo-reward-status-20261030]]）。见 [[phase2_issues]] 末条。
 4. **方法 vs 内容可分离**：我们的 skill 优化**方法**（GRPO+ATE+ADD/UPDATE/DELETE 闭环）与 skill **内容**（402 条通用指南）是两回事。402 条内容无效不代表方法无效--应在 skill-specific 基准上用**自带的高质量 task-specific skill** 测方法（`data/skill_benchmarks/README.md` §3.0 目标 A）。
 
 ## 四、重定位方向（因果链，不可跳步）
@@ -45,7 +45,7 @@ A (Qwen3-4B, GRPO 训练) -> 系统提示词 / context curation -> B (DeepSeek-V
 P0  先证明 skill 优化方法在 skill-specific 基准上有效
       ├─ #1 SkillsBench：用其自带 task-specific skill 跑我们的优化闭环（目标 A）
       ├─ #4 focused-injection 消融：2-3 条聚焦 vs 全量 50（验证 GraSP 假说）
-      └─ #4 C 模型 defect-injection 审计（Blind Curator 前置）
+      └─ #4 defect-injection 审计（Blind Curator 前置；C 停用后仅重启时适用）
         ↓ （得到 p<0.05 正效应）
 P1  在 BAgent 上复现稳定正效应（通用基准 + skill-specific 基准一致为正）
         ↓
@@ -80,7 +80,7 @@ P3  工程化：ACP 协议作为多 agent 共享 skill 库的通信层（#3，�
 ### 下轮（实验类，需 API/算力，按因果链）
 1. **#4 focused-injection 消融**（P0，~1-2h API）：MBPP_pro n=100 跑 4 组（Baseline/Full50/Random3/Focused3），判读 GraSP 假说
 2. **#1 SkillsBench 目标 A**（P0）：获取 SkillsBench，用其自带 skill 跑我们的优化闭环，配对评测优化前后
-3. **#4 C 模型 defect-injection 审计**（P0 前置）：构造故意写错的代码，测 C 模型 false-pass 率
+3. **#4 defect-injection 审计**（仅重启 C 时前置）：构造故意写错的代码，测 C 模型 false-pass 率
 4. （P0 通过后）P1：BAgent 上复现稳定正效应
 5. （P1 通过后）P2：smolagents 适配器 + 跨 agent 验证
 6. 待复核：arXiv 限流解除后复核 GraSP/SkillLens/HDSO/SkillComposer/SLIM 5 个 ID

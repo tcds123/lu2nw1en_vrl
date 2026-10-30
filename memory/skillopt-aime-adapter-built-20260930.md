@@ -21,7 +21,7 @@ metadata:
 - `/data/zhuldz/lunwen/rl/train/verl1/skill_evolution/launch_skillopt_aime.sh` — export QWEN_CHAT_* (DeepSeek-V3.2, key 仅本地不提交) → `python scripts/train.py` (train AIME24) → `python scripts/eval_only.py` (held-out AIME25)。MODE=train/eval/both。
 
 **公平性契约** (匹配我方算法):
-- backend = DeepSeek-V3.2 (qwen_chat, 同 lunwen B/C 模型)
+- backend = DeepSeek-V3.2 (qwen_chat, 与 lunwen B 模型同源)
 - train = AIME24 (30 题, ratio 18 train/6 val/6 gate-test)
 - held-out = AIME25 (30 题, eval_only.py 独立评测最终 evolved skill)
 - **已知协议差异**: skillopt 用 temp=0.0; 我方 evolver 用 EVAL_TEMP=0.3 k-voting。已记录, 是有意差异。

@@ -39,7 +39,7 @@ metadata:
 
 2. **SelfDebug 也不再显著** (p=0.131 vs 旧记录 p<0.05): 但注意旧 SelfDebug 结果受 "skill 静默未注入" bug 影响 (实际是 self-debug 无 skill), 不可直接比较。新结果才是 "self-debug + 全量注入" 的真实表现。
 
-3. **Pass rate 全线负值** (-0.65~-0.53): BigCodeBench 极难, 多数代码执行失败 (pass_rate<0 表示编译/运行错误)。只有 SelfDebug 组 pass_rate 为正 (0.09), 说明 self-debug 的 fix loop 确实能把一些代码修到能跑, 但 composite 仍不显著 (C-judge 没跟上)。
+3. **Pass rate 全线负值** (-0.65~-0.53): BigCodeBench 极难, 多数代码执行失败 (pass_rate<0 表示编译/运行错误)。只有 SelfDebug 组 pass_rate 为正 (0.09), 说明 self-debug 的 fix loop 确实能把一些代码修到能跑, 但 composite 仍不显著。(早期结论归因于 C-judge；C 现已不在当前方法中，见 [[c-model-and-grpo-reward-status-20261030]])
 
 ## 可能根因 (待验证, 非定论)
 

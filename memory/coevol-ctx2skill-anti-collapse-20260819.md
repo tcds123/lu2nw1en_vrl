@@ -29,7 +29,7 @@ metadata:
 
 ### 对本项目的直接启示（已写入相关工作稿 §4.1 两段「对本项目的启示」）
 
-- **CoEvoSkills→C 模型设计**：本项目 C=70%单测+30%LLM 评判 与 CoEvoSkills 同构——单测即「不透明 oracle」（A 看不到测试内容，只能让 B 生成的代码真过），LLM 评判即 surrogate 软判别。防 hack 命门=单测权重够大**且单测有区分度**（否则某子集全过→30%主观评判主导→该子集退化为无锚点 verifier→合谋风险复现，呼应 Task #9「C 区分度不足」）。escalation 启示：surrogate 全过但 oracle 仍败时应**加难测试**而非降阈值。
+- **CoEvoSkills→reward 设计**：早期 GRPO reward（70%单测+30%LLM 评判）与 CoEvoSkills 同构——单测即「不透明 oracle」，LLM 评判即软判别。当前主线已改为纯 EM 单测（见 [[c-model-and-grpo-reward-status-20261030]]）。防 hack 命门=单测权重够大**且单测有区分度**（否则某子集全过→30%主观评判主导→该子集退化为无锚点 verifier→合谋风险复现，呼应 Task #9「C 区分度不足」）。escalation 启示：surrogate 全过但 oracle 仍败时应**加难测试**而非降阈值。
 - **Ctx2Skill→evolver 过拟合**：本项目 evolver 的 CI 门控（val delta 显著正才 ACCEPT）= loop 内 reward 信号，同样面临 val 过拟合→test 不泛化的 collapse 风险（Task3/Task4 已实证：val delta 正但 test 退步）。**应在 val/test 之外维护固定代表性 probe 集（跨题源/跨难度），每轮候选 skill 在其上回放，选跨 probe 平衡最好而非 val 最高**——这正是当前 evolver 缺失的外部校准锚点。**这是 evolver 改进的一个具体可落地方向**。
 
 **产物**：相关工作稿 §4.1 CoEvoSkills/Ctx2Skill 两段已用核实机制重写（含「对本项目的启示」），引用表两行描述精化；临时讨论笔记已删。与 [[related-work-survey-fidelity-20260819]] 同属相关工作稿本轮核实工作。

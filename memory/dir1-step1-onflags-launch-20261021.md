@@ -40,6 +40,7 @@ metadata:
 1. **evolver 正常产出** `best_skill_iter1.md` + `best_skill_iter2.md` + `evolver_log.json` (迭代正常, 无崩溃)
 2. **flag 确实生效**: log banner 应含 `🔧 opt-flags ON: dir5:learn_positive, 路径B:meta_contrast` (L4368-4369 `_flags.append`)
 3. **核心科学判据** (需后续 held-out 测): 产出的 best_skill 在 AIME25 held-out (16384, k=8, seeds=3) 上 vs init 的 Δ. 对照 16384 基线: run6d iter2 Δ=−0.0056 (噪声水平). **Step 1 正向 = ON 候选 held-out Δ 明显 > −0.0056 (趋正或至少 CI 更靠正)**.
+   - ⚠️ **方向一致率维度 (DeepSeek 补充, 2026-10-22)**: 不只看均值 Δ, 必须看**每 seed 方向一致率** (seeds=3 中几 seed 同向). "均值微正但方向混乱"≠正向 — 真跨题信号应在多 seed 上方向一致. 判正向需: 均值 Δ 明显 > −0.0056 **且** 方向一致率 ≥ 2/3 seed 同向.
 
 ## 失败模式 (设计文档 §5)
 

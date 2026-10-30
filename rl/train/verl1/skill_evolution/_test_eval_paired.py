@@ -14,7 +14,9 @@ _CAND = {"q1": 0.875, "q2": 0.500, "q3": 0.000}   # k=8 → 7/4/0 pass
 _BASE = {"q1": 0.500, "q2": 0.500, "q3": 0.125}   # k=8 → 4/4/1 pass
 # 期望 paired delta: q1=+0.375, q2=0.0, q3=−0.125 → mean = (0.375+0−0.125)/3 = 0.0833...
 
-def _mock_run_one(it, skill, stage, k):
+def _mock_run_one(it, skill, stage, k, capture_cb=None):
+    # capture_cb: eval_paired L456 无条件转发 capture_cb=cb (10-22 改动), 真 run_one 有该形参
+    # (10-20 加, 默认 None); mock 必须收下该 kw 否则 TypeError. 零 API 测试不消费 cb.
     qid = str(it["id"])
     if skill.startswith("C"):
         pr = _CAND.get(qid, 0.0)
@@ -51,27 +53,28 @@ print(f"✅ Test A (正常配对): mean_pass={mp:.4f}, mean_delta={md:+.4f}, n={
 
 # ---- Test B: 超时放弃 (mock run_one sleep → deadline 触发) ----
 import time
-def _slow_run_one(it, skill, stage, k):
+def _slow_run_one(it, skill, stage, k, capture_cb=None):
     time.sleep(5.0)   # 远超 deadline
     return _mock_run_one(it, skill, stage, k)
 tfa.run_one = _slow_run_one
 mp2, md2, n2, per_item2, base_per2 = tfa.eval_paired(
     ITEMS, cand_skill="C-skill", base_skill="B-skill",
     stage="test_paired_timeout", k=K, eval_deadline_s=2)
-# 超时放弃 → 两 skill 全计 0 → delta 全 0, mean_pass=0
-assert n2 == 3, f"超时后 n 仍应=3, got {n2}"
-assert abs(md2) < 1e-9, f"超时放弃后 mean_delta 应=0 (两 skill 都 0), got {md2}"
-assert abs(mp2) < 1e-9, f"超时放弃后 mean_pass 应=0, got {mp2}"
-for q in ("q1", "q2", "q3"):
-    assert abs(per_item2[q][0]) < 1e-9, f"超时后 {q} delta 应=0, got {per_item2[q]}"
-    assert abs(base_per2[q]) < 1e-9, f"超时后 {q} base_per 应=0, got {base_per2[q]}"
-print(f"✅ Test B (超时放弃): mean_pass={mp2:.4f}, mean_delta={md2:+.4f}, 全部计 0 OK")
+# 1′ (2026-10-29) 语义: 超时放弃的题不再计 0, 而是整对剔除 (abandoned flag → _n_drop).
+# 全超时 → deltas 空 → n=0, per_item={}, base_per={}. mean_pass/mean_delta 用 max(1,len)=0 兜底 → 0.0.
+# (旧行为是计 0 + n=3, delta=0; 新行为是 n=0. 这是 1′ 修 abandoned/全异常拉偏 baseline→抬 Δ 偏置的正确改动.)
+assert n2 == 0, f"全超时后所有配对应被剔除 (1′ abandoned-drop), n 应=0, got {n2}"
+assert abs(md2) < 1e-9, f"空 deltas 兜底 mean_delta 应=0, got {md2}"
+assert abs(mp2) < 1e-9, f"空 deltas 兜底 mean_pass 应=0, got {mp2}"
+assert per_item2 == {}, f"全剔除后 per_item 应空 dict, got {per_item2}"
+assert base_per2 == {}, f"全剔除后 base_per 应空 dict, got {base_per2}"
+print(f"✅ Test B (超时放弃, 1′ abandoned-drop 语义): n={n2} (全剔除), mean_pass={mp2:.4f}, mean_delta={md2:+.4f}")
 
 # ---- Test C: identity 候选 (cand==base, 纯函数级) ----
 # 不用真实 API: mock 下 cand==base → pass_rate 相同表 → delta 恒 0
 tfa.run_one = _mock_run_one
 _SAME = {"q1": 0.625, "q2": 0.375, "q3": 0.875}
-def _ident_run_one(it, skill, stage, k):
+def _ident_run_one(it, skill, stage, k, capture_cb=None):
     qid = str(it["id"]); pr = _SAME.get(qid, 0.0)
     return {"id": it["id"], "pass_rate": pr, "n_pass": round(pr*k), "n_samples": k}
 tfa.run_one = _ident_run_one

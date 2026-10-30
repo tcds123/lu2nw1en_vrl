@@ -26,7 +26,7 @@ metadata:
 
 ### C. 换模型（★ 跨模型泛化设计已存在，非从零开始）
 - **B 模型（★★★ 有价值，现成设计）**：跨模型泛化测试**已设计**——`training_free_grpo_fusion_design.md:491-514` 含完整 `evaluate_cross_model_generalization()` 代码（B 池=Qwen2.5-Coder-7B/DeepSeek-V3.2/Qwen3-Coder-7B）+ 核心洞察原话"只在某模型有效=作弊"。`multi_agent_validation_plan.md:612` 还有 Qwen2.5-72B 可选扩展。对接方式=同一 ON 臂 best_skill_evolved.md（hash 7beb2884a8，DeepSeek 上 test 0.5873）换 B 模型重跑 test，保持→泛化坐实，回落→过拟合"作弊"。**复用已演化 skill，仅重跑 test ~103min/模型**（非 8h evolver）。
-- C 模型/A 模型：对 facet-tree 演化线**无验证价值**（演化 fitness 是纯 EM 判卷不含 C；facet-tree 不用 A 模型梯度），除非改 fitness 引入 LLM judge。
+- A 模型：对 facet-tree 演化线无验证价值（facet-tree 不用梯度），除非改 fitness 引入 LLM judge。（C 模型已停用，见 [[c-model-and-grpo-reward-status-20261030]]）
 - **⚠️ 前置阻塞**：现成设计里 Qwen2.5-Coder-7B/Qwen3-Coder-7B 是本地模型需确认部署；API 路径上 `msk-bf2324...` 只授权 DeepSeek+Qwen3-235B，走 Qwen2.5-72B 需先确认 key 权限。
 
 ## 新建议（未整理）

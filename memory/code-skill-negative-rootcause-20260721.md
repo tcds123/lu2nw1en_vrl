@@ -28,7 +28,7 @@ metadata:
 ## 根因诊断: 为什么我们负, 他们正?
 
 ### 我们的方法学差异 (负结果根因)
-1. **skill 是 system-prompt 文本, 不含可执行代码**: 我们的 skill 是注入 B 模型 system prompt 的 Markdown 指导文本。Skills-Coach/Microskill 的 skill 含**可执行代码变体**, 优化直接作用在代码上, 信号短路径、确定性。我们 skill → B 生成代码 → C 评判 → reward, 长路径高噪声。
+1. **skill 是 system-prompt 文本, 不含可执行代码**: 我们的 skill 是注入 B 模型 system prompt 的 Markdown 指导文本。Skills-Coach/Microskill 的 skill 含**可执行代码变体**, 优化直接作用在代码上, 信号短路径、确定性。早期设计为 skill → B 生成代码 → C 评判 → reward（C 已停用，现用 EM）, 长路径高噪声。
 
 2. **任务太"纯"**: 我们用 stdin/stdout 单文件竞赛题 (LCB/mbpp/appsplus)。这类题:
    - 无可复用工具/API/多文件结构 → skill 无"执行策略 π"可编码 (综述 §2 skill 定义 C/π/T/R 中的 π 缺失)
