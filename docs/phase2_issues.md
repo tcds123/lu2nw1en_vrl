@@ -5289,3 +5289,44 @@ NameError: name '_eval_audit_ctx' is not defined
 **关联**: #15 (SE 低估, 噪声地板) / #17 (审计缺口, 同类不可核验) / [[dir1-rep5-fixed-result-20261029]]
 (D1 结案 +0.044) / [[dir1-rep5-fixed-launch-20261029]] (cap 16384 口径, 实际未生效) /
 [[measurement-calibration-1a-20261028]] (检出下限 +0.10)。
+
+---
+
+## 问题 #19: `tf_global_v2_aime.py` 的 `S0_DEFAULT` 指向旧 2-段 skill — v2 facet 框架对不上 (2026-11-02 发现并修复)
+
+**症状**: `tf_global_v2_aime.py:47` 的 `S0_DEFAULT = ".../data/skill_aime_initial.md"` (旧版, 2 段:
+`## Approach` / `## Self-check before committing`)。但 v2 线 evolver 的整个 facet 框架 (4 段 facet_axes、
+freeze "Final Answer"、self_test fixture、xo_section_guard) 都基于 `skill_aime_initial_v2.md` 的 4 段
+结构 (`## Quantity Parsing` / `## Case Enumeration` / `## Computation & Verification` / `## Final Answer`)
+构建。`skill_evolver_aime_v2.py:118` 的 `S0_DEFAULT` 已正确指向 v2 skill, `tf_global_v2_aime.py` 是漏改。
+
+**根因**: `tf_global_v2_aime.py` 早期从 `tf_global_v2_math.py` 复制, `S0_DEFAULT` 默认值未随 v2 facet
+重写一并更新。属遗漏, 非设计。
+
+**影响判定 (关键 — 未触发)**:
+查 memory 全部历史 run 启动记录, **所有** tf_global_v2_aime run 均显式传 `--s0 data/skill_aime_initial_v2.md`:
+- `aime-full-onoff-launched-20260930` / `aime-v2-ga-smoke-pass-20260930` / `aime-on-skillopt-launched-20261008`
+  / `aime-skel-fallback-launched-20261009` 的启动命令都含 `--s0 data/skill_aime_initial_v2.md`。
+- `group-admit-gate-implemented-20261014:94` 明确记录 "显式 --init_skill/--s0 → skill_aime_initial_v2.md (hash c11d7dc0c8)"。
+
+→ **默认值错误从未实际触发**: 没有任何一次 run 依赖默认值跑出旧 2-段 skill 的结果。
+  所有落盘 json 结果口径均基于 v2 4-facet skill, 修默认值**不影响任何历史结论**。
+  修复是纯防御性的: 消除 "将来有人不传 --s0 就用错 2-段旧 skill → facet 分解对不上 → 静默退化" 的隐患。
+
+**依赖面排查**: grep `from tf_global_v2_aime import` 的 8 处 importer (`eval_aime*_multiseed.py` /
+`skill_evolver_aime*.py` / `step3_rerun_iter2.py` / `_smoke_*.py`) 均**只导入** `set_temp` / `EVAL_TEMP` /
+`md5` / 函数, **无一处 import S0_DEFAULT**。改动零副作用。
+
+**修复** (2026-11-02, 已实施): `tf_global_v2_aime.py:47`
+`S0_DEFAULT = ".../data/skill_aime_initial_v2.md"` + 注释说明为何不能用旧版。
+
+**教训**:
+- 复制重构文件时, 默认值常量 (`*_DEFAULT` / `*_DATA` / `*_DIR`) 是漏改高发区 — 它们不报错, 只在
+  "没显式传参" 时静默生效。重写逻辑层时须单独过一遍所有 `*_DEFAULT` 常量。
+- "默认值错" 与 "默认值被用到" 是两回事: 前者是代码 bug (必须修), 后者才影响结果。判断修复是否
+  改变历史口径, 要查**实际启动命令是否依赖默认值**, 不能只看代码。本次因历史 run 全部显式传参,
+  修复不污染历史 — 与 [[historical-snapshot-leave-as-is-20261030]] 的口径一致 (旧结论不被回填)。
+
+**关联**: [[aime-v2-evolver-built-20260930]] (v2 4-facet S0) / [[cross-model-configs-aimp-20261030]]
+(flash 接入时发现此不一致) / #18 (同文件的另一处硬编码漏改 — run_one 4096)。
+

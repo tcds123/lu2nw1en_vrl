@@ -44,7 +44,7 @@ from experience.templates_aime import (  # noqa: E402
     FAILURE_MODE_TEMPLATE_AIME, FAILURE_MERGE_TEMPLATE_AIME, COMPOSE_APPEND_TEMPLATE_AIME,
 )
 
-S0_DEFAULT = "/data/zhuldz/lunwen/data/skill_aime_initial.md"
+S0_DEFAULT = "/data/zhuldz/lunwen/data/skill_aime_initial_v2.md"  # v2 4-facet skill (与 skill_evolver_aime_v2.py 一致); 旧 skill_aime_initial.md 是 2-段 math 版, facet 框架对不上
 AIME24_DATA = "/data/zhuldz/lunwen/data/aime24.jsonl"
 OUT_DIR = "/data/zhuldz/lunwen/rl/train/verl1/outputs/tf_skill_aime_v2"
 
