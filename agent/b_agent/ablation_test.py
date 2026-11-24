@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Phase 3 消融实验 — 对比四种 B 模型配置下的代码质量
+消融实验 — 对比多种 skill/agent 配置下的代码质量
 
 配置:
-  A. Baseline (NO skills):      B 模型直接用 A 的 system prompt, 无 skill
-  B. Random skills:              B 模型随机注入 N 条 skill
-  C. Curated skills (Phase 2):   BAgent 根据任务检索 top-k 相关 skill
-  D. Self-Debug (Phase 3):       BAgent 带 self-debug 循环 (execute_code tool)
+  A. Baseline (NO skills):      推理模型直接用 system prompt, 无 skill
+  B. Random skills:              推理模型随机注入 N 条 skill
+  C. Curated skills:             BAgent 根据任务检索 top-k 相关 skill
+  D. Self-Debug:                 BAgent 带 self-debug 循环 (execute_code tool)
 
 支持的数据集:
   opencode    — OpenCodeInstruct (原始, 简单)

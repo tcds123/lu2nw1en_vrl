@@ -1,7 +1,7 @@
 """
-经验因果效应估计器 — Improvement A: Empirical Experience Scoring (v3: 跨题稳定性)
+经验因果效应估计器 (v3: 跨题稳定性)
 
-从 GRPO trace 日志中估计每条经验的因果效应 (ATE):
+从 trace 日志中估计每条经验的因果效应 (ATE):
   ATE(g) = E[R | g present] - E[R | g absent]
 
 v3 新增:

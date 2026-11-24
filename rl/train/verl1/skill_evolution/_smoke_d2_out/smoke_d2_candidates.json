@@ -1,0 +1,86 @@
+{
+  "qid": "6937",
+  "g": 2,
+  "variant_temps": [
+    0.7,
+    0.7999999999999999
+  ],
+  "variants": [
+    {
+      "i": 0,
+      "skill": "# Competitive Programming Heuristics (stdin/stdout)\n\n## Read the problem before touching the keyboard\n- Identify the input shape precisely: here the first token is `T`, then for each case a string `s`, a 26-char mask string, and an integer `k`. Do not assume line boundaries — read all tokens once and index them. A common bug: the mask and `k` get swapped or the mask is consumed as part of `s`.\n- Pin down what \"distinct\" means: **distinct substring contents**, not distinct (l,r) positions. Two oc...",
+      "skill_len": 3931,
+      "pass_rate": 0.0,
+      "hard": 0,
+      "delta": 0.0,
+      "temp": 0.7,
+      "real": true,
+      "rewriter_fail_reason": null
+    },
+    {
+      "i": 1,
+      "skill": "# Competitive Programming Heuristics (stdin/stdout) — Distinct-Substring Counting Focus\n\n## Read the Problem, Then Re-Read the Constraints\n- Identify what is being counted: here it's **distinct substrings** satisfying a predicate (≤ k bad chars). \"Distinct\" is the trap — a naive `O(n^2)` loop counting *occurrences* overcounts. You must deduplicate by string content.\n- Pin down the exact input order per test case: **string s, then the 26-char good/bad mask, then integer k**. Note the mask is a *s...",
+      "skill_len": 4072,
+      "pass_rate": 0.0,
+      "hard": 0,
+      "delta": 0.0,
+      "temp": 0.7999999999999999,
+      "real": true,
+      "rewriter_fail_reason": null
+    }
+  ],
+  "verdict": {
+    "1_real_api_calls": {
+      "pass": true,
+      "n_real": 2,
+      "g": 2,
+      "note": "≥1 真实 rewriter 候选 (非 TypeError 静默回退 S₀); 全失败会被 abort 拦截, 不会到这"
+    },
+    "2_temperature_matched": {
+      "pass": true,
+      "applied_temps": [
+        {
+          "req": 0.7,
+          "applied": 0.7,
+          "saved": 0.0
+        },
+        {
+          "req": 0.7999999999999999,
+          "applied": 0.7999999999999999,
+          "saved": 0.0
+        }
+      ],
+      "expected": [
+        0.7,
+        0.7999999999999999
+      ],
+      "note": "每个候选 applied==req (温度真生效), 且 saved==0.0 (原值正确保存)"
+    },
+    "3_validity_check": {
+      "pass": true,
+      "all_real": true,
+      "all_nonempty": true
+    },
+    "4_downstream_eval": {
+      "pass": true,
+      "pass_rates": [
+        0.0,
+        0.0
+      ],
+      "hards": [
+        0,
+        0
+      ],
+      "deltas": [
+        0.0,
+        0.0
+      ]
+    },
+    "5_config_restored": {
+      "pass": true,
+      "restored_temp": 0.0,
+      "expected": 0.0
+    }
+  },
+  "all_pass": true
+}

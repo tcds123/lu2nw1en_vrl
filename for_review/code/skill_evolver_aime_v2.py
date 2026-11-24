@@ -22,23 +22,10 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
-_SKILLOPT = "/data/zhuldz/skillopt"
-if _SKILLOPT not in sys.path:
-    sys.path.insert(0, _SKILLOPT)
-_LUNWEN = "/data/zhuldz/lunwen"
-if _LUNWEN not in sys.path:
-    sys.path.insert(0, _LUNWEN)
-
-os.environ.setdefault("TARGET_BACKEND", "qwen_chat")
-os.environ.setdefault("OPTIMIZER_BACKEND", "qwen_chat")
-os.environ.setdefault("QWEN_CHAT_API_KEY", os.environ.get("QWEN_CHAT_API_KEY", ""))
-os.environ.setdefault("QWEN_CHAT_BASE_URL", "https://aimpapi.midea.com/t-aigc/aimp-deepseek/v1")
-os.environ.setdefault("QWEN_CHAT_MODEL", "/model/DeepSeek-V3.2")
-os.environ.setdefault("QWEN_CHAT_AIGC_USER", "zhuldz")
-os.environ.setdefault("QWEN_CHAT_MAX_TOKENS", "4096")
-os.environ.setdefault("QWEN_CHAT_TEMPERATURE", "0.0")
-os.environ.setdefault("QWEN_CHAT_MAX_RPM", "28")
-os.environ.setdefault("QWEN_CHAT_BURST", "2")
+_HERE = os.path.dirname(os.path.abspath(__file__))
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
+import _env  # noqa: E402,F401  (standalone: 路径锚定 + .env/API key 加载; 必须在后端 import 之前)
 
 from skillopt.model import chat_target  # noqa: E402
 
@@ -56,11 +43,11 @@ from skillopt.model import chat_target  # noqa: E402
 # 其余代码字节不变); AIME 无 meta-option 概念, meta 路径不触发.
 from tf_global_v2_aime import (  # noqa: E402
     run_one, eval_on, precompute_s0, bootstrap_ci_lower,
-    set_temp, EVAL_TEMP, GEN_TEMP, md5, load_aime_split,
+    set_temp, EVAL_TEMP, GEN_TEMP, md5, load_aime_split, budget_signal, harness_signal,
 )
 from tf_global_v2_math import (  # noqa: E402
     per_item_counts, beta_binomial_lcb,
-    load_s0_cache_with_manifest, check_skill_leakage, is_meta_item,
+    load_s0_cache_with_manifest, check_skill_leakage, is_meta_item, build_cache_manifest,
 )
 
 
@@ -83,14 +70,15 @@ def load_split(split_dir, split, shuffle_seed=None):
     return load_split._cache[split]
 
 
-S0_DEFAULT = "/data/zhuldz/lunwen/data/skill_aime_initial_v2.md"
-# 起点改为与 multiseed 的 v2 baseline 同源 (run_20260728_131934), 统一对比基准.
-V2_SKILL_DEFAULT = "/data/zhuldz/lunwen/rl/train/verl1/outputs/tf_skill_aime_v2/run_LATEST/tf_global_skill_v2_aime.md"
+S0_DEFAULT = _env.data_path("skill_aime_initial_v2.md")
+# 起点 skill 默认 = S₀ (从 S₀ 从头进化). 也可 --init_skill <已有的 best skill> 做续跑式进化.
+V2_SKILL_DEFAULT = S0_DEFAULT
 # split: AIME24 (30 题) 确定性划分 train(18)+val(12); AIME25 (30 题) held-out test
 # (eval_aime25_multiseed.py). load_split 走 AIME 后端 load_aime_split, select=train+val=30.
-SPLIT_DEFAULT = "/data/zhuldz/lunwen/data/aime24.jsonl"
-S0_CACHE_DEFAULT = "/data/zhuldz/lunwen/rl/train/verl1/outputs/tf_skill_aime_v2/s0_cache_aime_k3.json"
-OUT_DIR_DEFAULT = "/data/zhuldz/lunwen/rl/train/verl1/outputs/skill_evolver_aime_v2"
+SPLIT_DEFAULT = _env.data_path("aime24.jsonl")
+# S₀ cache: 不存在则首轮现场 precompute (额外 ~30 题 x eval_k 次调用), 并写到 <out_dir>/s0_cache.json
+S0_CACHE_DEFAULT = os.path.join(_env.OUTPUTS_DIR, "s0_cache_aime.json")
+OUT_DIR_DEFAULT = os.path.join(_env.OUTPUTS_DIR, "skill_evolver_aime_v2")
 
 # M3-gate 容差: consolidate 后 re-eval, 若 delta 下降超此阈值则回退原 skill (治盲压缩损质).
 # 设 0.03 ≈ eval_k=3 下 delta 采样噪声的一半, 容忍噪声抖动但拦截真实退化.
@@ -144,6 +132,283 @@ def llm(system: str, user: str, *, max_tokens=4096, stage="evolver") -> str:
     return resp
 
 
+def dump_token_usage(out_dir: str) -> None:
+    """把本轮进程累计的 API token 用量写进 <out_dir>/token_usage.json (每轮覆盖写, 中断也可用).
+    用于估算成本/配额: {stage: {calls, prompt_tokens, completion_tokens, total_tokens}, "_total": {...}}"""
+    try:
+        from skillopt.model import get_token_summary
+        json.dump(get_token_summary(), open(os.path.join(out_dir, "token_usage.json"), "w",
+                                            encoding="utf-8"), ensure_ascii=False, indent=2)
+    except Exception as e:  # 统计失败不影响主流程
+        print(f"   ⚠ token usage dump failed: {e!r}", file=sys.stderr, flush=True)
+
+
+def build_analysis(out_dir: str) -> None:
+    """把本目录所有产物整理进 <out_dir>/analysis/ (软链 + 自动 REPORT.md). 零 API, 失败不影响主流程."""
+    try:
+        sys.path.insert(0, _HERE)
+        import analysis_bundle
+        r = analysis_bundle.build(out_dir, with_report=True)
+        print(f"📁 分析入口: {os.path.join(out_dir, 'analysis')}"
+              + (f"  (报告 {os.path.basename(r['report'])})" if r.get("report") else ""))
+    except Exception as e:  # noqa: BLE001
+        print(f"   ⚠ analysis bundle failed: {e!r}", file=sys.stderr, flush=True)
+
+def _write_manifest(out_dir: str, args, init_skill: str, best_skill: str,
+                    base_delta: float, best_val_delta: float, best_val_ci: float) -> None:
+    """run_manifest.json: 一屏看清「这次跑的是什么」— 完整参数/环境/模型/数据指纹/skill hash/token/版本.
+    便于对方跑完后不用翻代码就能复现或对照 (key 从不写入)."""
+    try:
+        import platform
+        from skillopt.model.qwen_backend import TARGET_CONFIG
+        man = {
+            "argv": sys.argv, "args": {k: v for k, v in vars(args).items()},
+            "env": {k: os.environ.get(k, "") for k in (
+                "DEEPSEEK_MODEL", "QWEN_CHAT_MODEL", "TARGET_DEPLOYMENT",
+                "QWEN_CHAT_BASE_URL", "DEEPSEEK_BASE_URL",
+                "QWEN_CHAT_MAX_TOKENS", "QWEN_CHAT_MAX_RPM", "QWEN_CHAT_TEMPERATURE",
+                "B_MAX_COMPLETION_TOKENS", "TRACE_DIR")},
+            "model_live": {"deployment": TARGET_CONFIG.deployment, "base_url": TARGET_CONFIG.base_url,
+                           "temperature": TARGET_CONFIG.temperature, "max_tokens": TARGET_CONFIG.max_tokens,
+                           "timeout_s": TARGET_CONFIG.timeout_seconds},
+            "gen_temp": GEN_TEMP, "eval_temp": EVAL_TEMP,
+            "data_md5": {n: md5(open(os.path.join(_env.DATA_DIR, n), "rb").read().decode("utf-8", "replace"))
+                         for n in ("aime24.jsonl", "aime25.jsonl") if os.path.exists(os.path.join(_env.DATA_DIR, n))},
+            "init_skill_hash": md5(init_skill), "init_skill_len": len(init_skill), "init_skill_text": init_skill,
+            "best_skill_hash": md5(best_skill), "best_skill_len": len(best_skill),
+            "changed": md5(best_skill) != md5(init_skill),
+            "val": {"init_delta": base_delta, "best_delta": best_val_delta, "best_ci": best_val_ci},
+            "python": platform.python_version(), "platform": platform.platform(),
+            "finished_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        try:
+            from skillopt.model import get_token_summary
+            man["tokens"] = get_token_summary()
+        except Exception:
+            pass
+        json.dump(man, open(os.path.join(out_dir, "run_manifest.json"), "w", encoding="utf-8"),
+                  ensure_ascii=False, indent=2)
+    except Exception as e:  # noqa: BLE001
+        print(f"   ⚠ run_manifest failed: {e!r}", file=sys.stderr, flush=True)
+
+
+def dump_iter_candidates(out_dir: str, t: int, current_hash: str, scored: list,
+                         winner_hash: str | None, winner_kind: str, reject_reason: str | None,
+                         focus: str = "", admissible=None) -> None:
+    """<out_dir>/candidates/iter{t:02d}.json: 本轮每个候选可分析的完整记录 (零 API, 事后分析用).
+    含: 变异来源/是否 novel/通过数/delta/CI/长度/是否被选/被拒原因 + 逐题 delta + 改动 diff 摘要 (与当前最佳 skill 的行级差异).
+    skill 全文不重复写 (已按 hash 存在 eval_items/<tag>.json), 只写 hash + 长度."""
+    try:
+        d = os.path.join(out_dir, "candidates")
+        os.makedirs(d, exist_ok=True)
+        rec = {"iter": t, "focus": focus, "current_hash": current_hash,
+               "winner_hash": winner_hash, "winner_kind": winner_kind, "reject_reason": reject_reason,
+               "n_candidates": len(scored), "candidates": []}
+        for s_ in scored:
+            pi = s_.get("per_item") or {}
+            flat = [x for ds in pi.values() for x in (ds or [])]
+            item_mean = {q: (round(sum(ds) / len(ds), 4) if ds else 0.0) for q, ds in pi.items()}
+            rec["candidates"].append({
+                "idx": s_.get("idx"), "hash": s_.get("hash"), "kind": s_.get("kind", "") or "",
+                "novel": s_.get("hash") != current_hash,
+                "pass": s_.get("pass"), "delta": s_.get("delta"), "ci": s_.get("ci"), "len": s_.get("len"),
+                # winner 是「最佳 novel 候选」; 门控没通过时它并未真正入选, 单独标 admitted
+                "selected": winner_hash is not None and s_.get("hash") == winner_hash,
+                "admitted": admissible(s_.get("hash")) if admissible else None,
+                "n_items": len(item_mean),
+                "n_items_improved": sum(1 for v in item_mean.values() if v > 0),
+                "n_items_hurt": sum(1 for v in item_mean.values() if v < 0),
+                "mean_of_item_deltas": round(sum(item_mean.values()) / len(item_mean), 4) if item_mean else 0.0,
+                "sample_delta_mean": round(sum(flat) / len(flat), 4) if flat else 0.0,
+                "eval_items_ref": f"eval_items/iter{t:02d}_cand{s_.get('idx'):02d}_{str(s_.get('hash'))[:8]}.json",
+                "per_item_mean_delta": item_mean,
+                # issue #81: 截断轴证据随候选落盘 (否则截断门只能看整体率, 逐题配对证据丢在内存).
+                # 只写非空字段 → 无 harness 的旧路径字节不变.
+                **{k: s_.get(k) for k in ("n_gen_samples", "n_truncated", "n_truncated_rate",
+                                          "per_item_trunc") if s_.get(k) is not None},
+            })
+        json.dump(rec, open(os.path.join(d, f"iter{t:02d}.json"), "w", encoding="utf-8"),
+                  ensure_ascii=False, indent=2)
+    except Exception as e:  # noqa: BLE001
+        print(f"   ⚠ dump_iter_candidates(iter{t}) failed: {e!r}", file=sys.stderr, flush=True)
+
+
+def dump_rejected_patches(out_dir: str, rejected_patches: list, args=None) -> None:
+    """<out_dir>/rejected_patches.json: 「反面教材」全文 — 被否决的方案 + 拒绝原因 + 当轮门控数值.
+    rejected_patches 当前为字符串 (iterate 时回灌给 patcher); 这里额外把结构化信息 (解析 iter/focus/reason) 落盘,
+    并附 args 中的门控阈值, 便于事后判断「是生成不行还是门控太严」."""
+    try:
+        out = []
+        for rp in rejected_patches:
+            rp = str(rp)
+            it = None
+            try:
+                it = int(rp.split("iter", 1)[1].split(":", 1)[0].strip().split(" ")[0])
+            except Exception:
+                pass
+            out.append({"text": rp, "iter": it,
+                        "reason": rp.split(":", 1)[1].strip() if ":" in rp else rp})
+        gates = {}
+        if args is not None:
+            gates = {k: v for k, v in vars(args).items()
+                     if any(s in k for s in ("gate", "lost", "ci", "lcb", "margin", "patience", "admit"))}
+        json.dump({"n": len(out), "gates": gates, "patches": out},
+                  open(os.path.join(out_dir, "rejected_patches.json"), "w", encoding="utf-8"),
+                  ensure_ascii=False, indent=2)
+    except Exception as e:  # noqa: BLE001
+        print(f"   ⚠ dump_rejected_patches failed: {e!r}", file=sys.stderr, flush=True)
+
+
+# 双门基准必须沿 accept 滚动的字段. 含 clean_tok_list —— 截尾均值要用逐样本长度,
+# 只滚标量会让下轮退回普通均值, 口径前后不一致.
+_HARNESS_KEEP = ("n_truncated_rate", "clean_pass_tokens", "mean_out_tokens",
+                 "clean_tok_list", "clean_tok_q50", "clean_tok_q90",
+                 # issue #81: 截断门基准 (需要分母 + 逐题配对, 只有 rate 无法判)
+                 "n_truncated", "n_gen_samples", "per_item_trunc")
+
+
+def _trimmed_mean(xs, trim: float):
+    """去掉最高的 trim 比例后取均值 (截尾均值, 单侧). trim=0 → 普通均值.
+    实测依据 (run2 evolver_val): 基线 skill 的干净样本 mean 2169 / median 1278 / max 14388,
+    均值由少数超长轨迹主导 → 长度比较必须能剔除尾部, 否则"变短"要靠偶发长尾抽签."""
+    if not xs:
+        return None
+    s = sorted(xs)
+    if trim > 0:
+        keep = max(1, int(round(len(s) * (1.0 - trim))))
+        s = s[:keep]
+    return sum(s) / len(s)
+
+
+def dual_gate_decision(cand: dict, best: dict, base_pass: float, enabled=True,
+                       acc_max_drop=0.02, token_min_drop=0.20, use_token=True,
+                       trim: float = 0.10):
+    """长度轴双门 (issue #69 / #80 Step 3). 纯函数, 零副作用, 可单测.
+
+    背景: 旧门 `delta > best_val_delta and ci > 0` 只看准确率 —— "变短"既得不到正反馈也得不到
+    负反馈 (issue #69)。但反过来直接要求"不许变长"会诱导模型**写少** (少推理 = 少思考), 所以约束
+    放在两侧:
+      准确率侧  cand.pass >= base_pass − acc_max_drop   (方案六预登记: 相对 baseline 跌落 ≤2pp)
+      token 侧  trim(cand.clean_tok_list) <= trim(best.clean_tok_list) × (1 − token_min_drop)
+                (方案六预登记: 干净完成样本的 token 降幅 ≥20%; trim 默认去掉最长 10%)
+    返回 (ok, reason). 缺 harness 数据时: 准确率侧仍可判; token 侧**不可判 → 判失败并说明**
+    (不乱放行 —— 没有证据就不给长度奖励, 避免"缺数据"变成新的捷径)。
+    长度口径回退: 有 clean_tok_list 才用截尾均值; 只有 clean_pass_tokens (旧 run 落盘的标量)
+    时退回该标量 —— 保证 `--resume` 老目录 / 回放脚本仍可判, 但日志里会标 `(mean)`。
+    """
+    if not enabled:
+        return True, "dual_gate OFF"
+    if cand.get("pass") is not None and cand["pass"] < base_pass - acc_max_drop:
+        return False, (f"acc_drop: pass {cand['pass']:.3f} < base {base_pass:.3f}"
+                       f"−{acc_max_drop:.3f} (允许跌落 {acc_max_drop:.0%})")
+    if not use_token:
+        return True, "token_gate ablated"
+
+    def _len_of(d):
+        tl = d.get("clean_tok_list")
+        if tl:
+            return _trimmed_mean(tl, trim), f"trim{trim:.0%}={len(tl)}样本"
+        v = d.get("clean_pass_tokens")
+        return v, "mean"
+
+    ck_c, src_c = _len_of(cand)
+    ck_b, src_b = _len_of(best)
+    if not ck_c or not ck_b:
+        return False, (f"token_unknown: clean len cand={ck_c} best={ck_b}"
+                       f" (无可判长度证据 → 不放行长度奖励)")
+    need = ck_b * (1.0 - token_min_drop)
+    if ck_c > need:
+        return False, (f"token_not_shorter: clean {ck_c:.0f}[{src_c}] > best {ck_b:.0f}[{src_b}]"
+                       f"×(1−{token_min_drop:.2f})={need:.0f} (需降 ≥{token_min_drop:.0%})")
+    return True, (f"dual_gate OK: clean {ck_c:.0f}[{src_c}] vs best {ck_b:.0f}[{src_b}]"
+                  f" (−{1 - ck_c / ck_b:.1%})")
+
+
+def _added_trunc_rate(per_item_trunc):
+    """逐题截断率 {qid: n_tr/n} (只留有 harness 的题). 供 trunc_gate 配对."""
+    out = {}
+    for q, v in (per_item_trunc or {}).items():
+        try:
+            n_tr, n_s = int(v[0]), int(v[1])
+        except (TypeError, IndexError, ValueError):
+            continue
+        if n_s > 0:
+            out[str(q)] = n_tr / n_s
+    return out
+
+
+def trunc_gate_decision(cand: dict, best: dict, enabled=True,
+                        trunc_max_increase=0.01, paired_max=0.25, min_paired=3):
+    """防截断门 (issue #81 建议1: 每轮进化都做一次防截断检验). 纯函数, 零副作用.
+
+    为什么不复用 dual_gate 的 token 侧: 那个门的判据是「本次晋升必须比 best 短 ≥20%」—— 那是
+    **奖励方向**; 本门判的是「不许把截断搞坏」—— 是**不许退化**。两条轴独立:
+      · 一轮候选可能"长度没降但截断率也没涨" → dual_gate BLOCK, trunc_gate PASS (不该因截断拒)
+      · 一轮候选可能"trim 长度降了但截断率从 3% 涨到 9%" → dual_gate PASS, trunc_gate BLOCK
+                                    (变短是因为更多轨迹被砍断, 不是想得更紧 —— 假缩短)
+
+    判据 (两道, 各自可关):
+      整体门  候选 n_truncated/n_gen_samples <= best × (1+trunc_max_increase) + 1/gen_samples
+              (加一个样本的容差, 避免 n 小 (30~90) 时 0/90→1/90 就判"退化 100%")
+      配对门  截断率上升的题数 <= paired_max × 有配对证据的题数, 且这些题平均上升 ≤25pp
+              (整体率被少数长题稀释; 配对才看得到"两题被救、一题被弄坏")
+    缺 harness 证据 → 不拦 (与 dual_gate 相反: 那个门的缺证据 = 没理由给长度奖励;
+    本门的缺证据 = 没有截断证据 ≠ 截断变差. 旧 run 目录必须仍能 resume).
+    返回 (ok, reason, detail). detail 落盘进 evolver_log, 供事后复核门是否真的在看数据.
+    """
+    if not enabled:
+        return True, "trunc_gate OFF", {}
+    c_s, c_t = cand.get("n_gen_samples"), cand.get("n_truncated")
+    b_s, b_t = best.get("n_gen_samples"), best.get("n_truncated")
+    if not c_s or not b_s or c_t is None or b_t is None:
+        return True, f"trunc_unknown: cand {c_t}/{c_s} best {b_t}/{b_s} — 无证据不拦", {}
+    cr, br = c_t / c_s, b_t / b_s
+    allow = br * (1.0 + trunc_max_increase) + 1.0 / c_s
+    detail = {"cand_rate": round(cr, 4), "best_rate": round(br, 4), "allow": round(allow, 4),
+              "cand_n": [int(c_t), int(c_s)], "best_n": [int(b_t), int(b_s)]}
+    if cr > allow:
+        return False, (f"trunc_rate_up: {c_t}/{c_s}={cr:.1%} > best {b_t}/{b_s}={br:.1%}"
+                       f" (容差 +{trunc_max_increase:.0%}+1样本 → 上限 {allow:.1%})"), detail
+
+    cp = _added_trunc_rate(cand.get("per_item_trunc"))
+    bp = _added_trunc_rate(best.get("per_item_trunc"))
+    common = [q for q in cp if q in bp]
+    if paired_max is not None and len(common) >= min_paired:
+        worse = [q for q in common if cp[q] - bp[q] > 0.01]
+        mean_up = (sum(cp[q] - bp[q] for q in worse) / len(worse)) if worse else 0.0
+        frac = len(worse) / len(common)
+        detail.update({"paired_q": len(common), "paired_worse": len(worse),
+                       "paired_frac": round(frac, 3), "paired_mean_up": round(mean_up, 4)})
+        if frac > paired_max and mean_up > 0.25:
+            return False, (f"trunc_paired_up: {len(worse)}/{len(common)} 题截断率上升"
+                           f" ({frac:.0%} > {paired_max:.0%}), 平均 +{mean_up*100:.0f}pp"), detail
+    return True, (f"trunc_gate OK: {c_t}/{c_s}={cr:.1%} vs best {br:.1%}"
+                  f" (配对 {detail.get('paired_worse', 0)}/{detail.get('paired_q', 0)} 变差)"), detail
+
+
+def dump_eval_items(out_dir: str, tag: str, skill: str, per_item: dict,
+                    items: list | None = None, harness: dict | None = None) -> None:
+    """逐候选逐题记录: <out_dir>/eval_items/<tag>.json.
+    per_item: {qid: [delta_k...]} (eval_on 第 4 返回值); items: 对应题面 (缺省只用 qid).
+    用于事后分析「哪一题被 skill 救了 / 被 skill 弄坏」, 以及 delta 分布 — 不只写 mean.
+    harness (issue #80 Step 1): 候选级截断率 / 干净完成长度, 与 items 并列写入, 使
+    「准确率没掉但 token 降了」这类结论可以从磁盘证据直接读出, 不必重跑."""
+    try:
+        qmap = {str(it["id"]): it for it in (items or [])}
+        d = os.path.join(out_dir, "eval_items")
+        os.makedirs(d, exist_ok=True)
+        rec = {"tag": tag, "skill_hash": md5(skill), "skill": skill,
+               "items": {q: {"id": q, "deltas": ds, "mean_delta": (sum(ds) / len(ds) if ds else 0.0),
+                             "problem": qmap.get(q, {}).get("problem", qmap.get(q, {}).get("question", ""))}
+                         for q, ds in per_item.items()}}
+        if harness:
+            rec["harness"] = harness
+        json.dump(rec, open(os.path.join(d, f"{tag}.json"), "w", encoding="utf-8"),
+                  ensure_ascii=False, indent=2)
+    except Exception as e:  # noqa: BLE001
+        print(f"   ⚠ dump_eval_items({tag}) failed: {e!r}", file=sys.stderr, flush=True)
+
+
 PATCHER_SYSTEM = (
     "You are an expert System Prompt Engineer for a mathematical-reasoning LLM solving AIME-style "
     "competition problems (numerical answers, integers 0-999). You make SMALL, SURGICAL edits to an "
@@ -164,6 +429,189 @@ def _format_choices(choices):
 def _excerpt(text: str, n: int = 700) -> str:
     t = (text or "").strip()
     return t if len(t) <= n else t[:n] + " …[truncated]"
+
+
+# ===================================================================
+# 行为归因 (2026-11-12, issue #53 追加3): 让 patcher 看见 "输出过程病态",
+# 而不只是 "答案错". 原来 diagnostics 只给前 600 字符 excerpt → 一个跑 65k token
+# 反复重来的轨迹在 patcher 眼里等于一段正常开头, 归因无从谈起, 只能在 skill 里
+# 补"题目内容类"规则. 这里把行为特征显式写进诊断, 让 skill 进化器自己去归纳.
+# 观测依据 (流式 60 次探针): none 组 3 题 fr=length; 62/88 答案在末尾但前面
+# 无限枚举; 73 在 Step 120 后同一段原样重复 ~39 次、无 <answer>.
+# ===================================================================
+_ANSWER_TAG_RE = re.compile(r"<answer>.*?</answer>", re.DOTALL | re.IGNORECASE)
+_REPEAT_WINDOW = 120   # 段落块判定窗口 (字符)
+_REPEAT_MIN = 5        # 同一块连续出现 >= 5 次记为复读
+
+
+def find_tail_loop(text: str, window: int = _REPEAT_WINDOW, min_reps: int = _REPEAT_MIN) -> int:
+    """检测结尾复读: 末尾 window 字符连续重复 >= min_reps 次则返回重复次数, 否则 0.
+
+    只看结尾, 因为病态复读的特征就是 "再也走不出来", 中途的正常重复 (如求和符号) 不误报。
+    """
+    t = text or ""
+    if len(t) < window * min_reps:
+        return 0
+    blk = t[-window:]
+    reps = 0
+    i = len(t)
+    while i >= window and t[i - window:i] == blk:
+        reps += 1
+        i -= window
+    return reps if reps >= min_reps else 0
+
+
+def find_cycle(text: str, s_len: int = 160, min_reps: int = 3) -> str:
+    """检测中途复读: 返回重复次数最多的、长度 s_len 的子串 (无重复段落则空串).
+
+    按字符滑动 (不按固定窗口对齐, 因为保存的轨迹常丢失换行 → 任意 chunk 都可能被拆断),
+    取出现 >= min_reps 次的 s_len 长子串, 再贪心向左/右扩到最大且重复次数不变的边界。
+    O(len * reps)。文本短于 s_len*min_reps 则直接返回空串 (不可判).
+    """
+    t = text or ""
+    if len(t) < s_len * min_reps:
+        return ""
+    seen: dict[str, list[int]] = {}
+    for i in range(0, len(t) - s_len + 1):
+        k = t[i:i + s_len]
+        pos = seen.get(k)
+        if pos is None:
+            seen[k] = [i]
+        else:
+            pos.append(i)
+    best = max(seen.items(), key=lambda kv: len(kv[1]))
+    blk, pos = best
+    if len(pos) < min_reps:
+        return ""
+    n = max(len(pos), t.count(blk))
+    lo, hi = pos[0], pos[0] + s_len
+    # 右扩: 所有出现处共同延续同一位且重复次数不掉, 就继续纳入 (得到完整循环段)
+    while hi < len(t):
+        c = t[hi]
+        if all(p + (hi - lo) < len(t) and t[p + (hi - lo)] == c for p in pos) and len(pos) >= n:
+            hi += 1
+        else:
+            break
+    return t[lo:hi]
+
+
+def behavior_signature(text: str) -> dict:
+    """把一条轨迹的 "过程行为" 归一成特征 dict, 零 API, 供 collect_failures 和诊断渲染共用.
+
+    字段:
+      n_chars        轨迹长度 (字符)
+      n_steps        出现的 "Step N" 编号最大值 (0 = 无编号)
+      n_answer_tags  <answer> 出现次数 (0 = 没交卷; >1 = 反复改口)
+      answer_pos     首个 <answer> 的相对位置 0~1 (1.0 = 只在结尾交卷, 0 = 开头就交)
+      tail_loop      结尾复读次数 (find_tail_loop)
+      cycle_reps     全文中重复最多的段落块次数 (-1 = 未检出)
+      cycle_block    上面那段的样本 (用于给 patcher 看它究竟在哪卡住)
+    """
+    t = text or ""
+    tags = _ANSWER_TAG_RE.findall(t)
+    steps = [int(x) for x in re.findall(r"Step\s+(\d+)", t)]
+    reps = find_tail_loop(t)
+    cyc = find_cycle(t)
+    return {
+        "n_chars": len(t),
+        "n_steps": max(steps) if steps else 0,
+        "n_answer_tags": len(tags),
+        "answer_pos": round(t.find(tags[0]) / len(t), 2) if tags and len(t) else 1.0,
+        "tail_loop": reps,
+        "cycle_reps": _repeat_count(t, cyc) if cyc else -1,
+        "cycle_block": _excerpt(cyc, 300) if cyc else "",
+    }
+
+
+def _repeat_count(text: str, blk: str, window: int = _REPEAT_WINDOW) -> int:
+    if not blk:
+        return -1
+    return text.count(blk)
+
+
+def render_behavior(sig: dict) -> str:
+    """把 behavior_signature 渲染成 patcher 可读的一行诊断 (英文, 与模板一致)."""
+    flags = []
+    if sig.get("n_answer_tags", 0) == 0:
+        flags.append("NEVER EMITTED <answer> (no final answer -> automatically wrong)")
+    elif sig.get("answer_pos", 1.0) > 0.9 and sig.get("n_chars", 0) > 12000:
+        flags.append("only emitted <answer> at the very end of a very long trace")
+    if sig.get("n_answer_tags", 0) > 1:
+        flags.append(f"emitted <answer> {sig['n_answer_tags']} times (kept second-guessing)")
+    if sig.get("tail_loop", 0):
+        flags.append(f"tail repetition: last block repeated {sig['tail_loop']}x")
+    if sig.get("cycle_reps", -1) >= _REPEAT_MIN:
+        flags.append(f"mid-trace loop: the same {_REPEAT_WINDOW}-char block repeated {sig['cycle_reps']}x")
+    if not flags:
+        flags.append("clean termination")
+    s = (f"trace_len={sig.get('n_chars', 0)} chars, max_step={sig.get('n_steps', 0)}, "
+         f"answer_tags={sig.get('n_answer_tags', 0)}; " + "; ".join(flags))
+    if sig.get("cycle_block"):
+        s += f"\n  repeated block sample: {sig['cycle_block']!r}"
+    return s
+
+
+# ================================================================
+# Harness / 完成度 信号因子 (2026-11-12, issue #53 追加7)
+# ----------------------------------------------------------------
+# 动机: 失败的"形状"分两类 — 模型**行为**(循环/不交卷/冗长) 与 **预算**(length 截断).
+# 只靠答案文本 + behavior_signature 无法区分后者 (截断的残文往往同样"没交卷"), 会把
+# "预算不足" 学成一条 skill 规则, 换数据集/换模型就失效. 故把调用层过程信号
+# (finish_reason / n_truncated / max_tokens_used / 输出 token) 作为**信号因子**归一进失败记录,
+# 让 (a) 归因区分 BUDGET 与 BEHAVIOR, (b) patcher 看到量化的完成度.
+# 数据集无关: 只看调用过程, 不看题型.
+# ================================================================
+_BUDGET_FAILURE_LABEL = "Budget-Exhausted (truncated before completion)"
+# harness 故障标签 (issue #53 追加7): 与 facet_library.HARNESS_FAILURE_LABEL 同义, flat 路径用.
+# 这类失败不能进 patcher (写规则修不了 API 异常), 由 generate_candidates 显式跳过.
+_HARNESS_FAILURE_LABEL = "Harness Failure (API error / eval abandoned, not model behavior)"
+
+
+def build_harness_summary(harness_list) -> dict:
+    """把若干条 run_one harness 归一成一个跨题聚合 (零 API, 确定性).
+    truncated_ratio = 截断样本数 / 有效样本数; completion = 平均 输出token / 预算."""
+    hs = [h for h in (harness_list or []) if isinstance(h, dict)]
+    n_samp = sum(int(h.get("n_samples") or 0) for h in hs)
+    n_tr = sum(int(h.get("n_truncated") or 0) for h in hs)
+    n_exc = sum(int(h.get("n_exceptions") or 0) for h in hs)
+    # n_out_tokens 在 run_one 里是**每题的 k 次采样累计和** (k=1 时即单次). 误差贡献可忽略 (≤ 1/k).
+    # completion = 平均每题输出token / (采样数 × 单次预算) —— 用总预算做分母, k>1 时不会 >100%.
+    toks = [int(h.get("n_out_tokens") or 0) for h in hs if h.get("n_out_tokens")]
+    budgets = [int(h.get("max_tokens_used") or 0) for h in hs if h.get("max_tokens_used")]
+    avg_tok = sum(toks) / len(toks) if toks else 0.0
+    budget = max(budgets) if budgets else 0
+    samp_per_fail = (n_samp / len(hs)) if hs else 0.0
+    total_budget = budget * samp_per_fail
+    return {
+        "n_failures": len(hs), "n_samples": n_samp,
+        "truncated_ratio": round(n_tr / n_samp, 3) if n_samp else 0.0,
+        "n_truncated": n_tr, "n_exceptions": n_exc,
+        "avg_out_tokens": int(avg_tok), "avg_completion": round(avg_tok / total_budget, 3) if total_budget else 0.0,
+        "budget": budget,
+    }
+
+
+def summarize_harness(h: dict) -> str:
+    """一行渲染, 给 patcher / tally 表用. 空/全零 → '' (不污染提示)."""
+    if not h or not h.get("n_failures"):
+        return ""
+    if h.get("n_truncated"):
+        # 有截断: 分母 = 实际生效预算 (调用层 meta['max_tokens'], 已|未加倍), completion 恒≈100%.
+        bits = [f"completion~{h.get('avg_completion', 0):.0%} of {h.get('budget', 0)}tok (hit limit)"]
+        bits.append(f"{h['n_truncated']}/{h.get('n_samples', 0)} samples truncated")
+    elif h.get("budget"):
+        # 无截断: 该题没被预算卡住 (finish_reason=stop), 只报输出规模, 不渲染误导性的百分比.
+        bits = [f"finished within budget ({h.get('budget', 0)}tok), ~{h.get('avg_out_tokens', 0)} output tok"]
+    if h.get("n_exceptions"):
+        bits.append(f"{h['n_exceptions']} API exception(s)")
+    return ", ".join(bits)
+
+
+def harness_is_budget_failure(failure: dict) -> bool:
+    """单条失败是否 budget 型: 该题任一采样被截断 (finish_reason=length) → 是.
+    这类失败与题面/模型推理无关, 交卷格式再严也修不了, 不该走行为/题型归因."""
+    h = failure.get("harness") or {}
+    return int(h.get("n_truncated") or 0) >= 1
 
 
 def clean_skill(s: str, fallback: str) -> str:
@@ -202,6 +650,12 @@ def classify_failure_type(failure: dict) -> str:
     None (off) → 下方原关键词梯逐字节执行 (0.462 路径)."""
     if _EFL is not None:
         return _EFL.classify(failure)
+    if budget_signal(failure):
+        # 预算信号 (issue #53 追加7): finish_reason=length 的失败与题面/推理无关, 单列一类,
+        # 不被关键词梯或 answer-form 兜底吞掉 (deterministic, 不进 seed 八维).
+        return _BUDGET_FAILURE_LABEL
+    if harness_signal(failure):
+        return _HARNESS_FAILURE_LABEL   # harness 故障 (全异常/deadline): 非推理失败, 不进 patcher
     it = failure.get("item", {}) or {}
     q = (str(it.get("problem", "")) + " " + str(it.get("answer", ""))).lower()
     is_meta = any(sig in q for sig in _META_Q_SIG)
@@ -710,6 +1164,28 @@ _TYPE_COVERAGE_SIG = {
     FAILURE_FOCI[7]: ("equation setup", "equation", "variable", "unknown", "introduce variables"),
 }
 
+# ---------------------------------------------------------------------------
+# Budget 轴 (issue #76, 2026-11-16): 让"跑不完/截断"成为可被优化的 focus.
+# 背景: classify_failure_type 早就有 _BUDGET_FAILURE_LABEL 单列, budget_advisory 也早已把
+# "两次校验一致就交卷"喂给 patcher, 但 budget 不占 focus 名额 —— 它被设计成"永远未覆盖"的哨兵,
+# 只能靠别的 focus 顺手蹭到, 于是 evolver 从未被要求降低截断 (run1 4 iter focus 全是答错轴,
+# 手写预算纪律段的收益被误当成"进化成果"). 本轴只在 --budget_focus ON 时参与 focus 选择.
+# 零回归: OFF 时 _efl_majority / find_uncovered_type 行为与改前逐字节一致.
+_BUDGET_COVERAGE_SIG = ("commit discipline", "commit checkpoint", "running total",
+                        "stop and submit", "token budget", "hard commit")
+_BUDGET_FOCUS_ON = False   # 由 --budget_focus 置位
+
+# 注入给 patcher 的诊断块: 隐性失败轴 (无题面关键词、无法自愈) 要怎么写成决策程序.
+_IMPLICIT_AXIS_MANDATE = {
+    _BUDGET_FAILURE_LABEL: (
+        "This axis is INVISIBLE from problem statements (a model that never finishes any problem "
+        "shows up here), so no keyword cue can self-fix it. You MUST write an explicit decision "
+        "program: a pre-reasoning budget plan, an anti-repetition test, and a hard commit "
+        "checkpoint that forces a single `<answer>\\boxed{N}</answer>` before the token limit. "
+        "Keep the added text tight (<=5 bullets) and do NOT delete existing sections."
+    ),
+}
+
 
 # ================================================================
 # EFL guard helpers (2026-10-13) — 零回归解耦层
@@ -720,8 +1196,12 @@ _TYPE_COVERAGE_SIG = {
 # 核心解耦: "meta" 从位置索引 FAILURE_FOCI[5] 变成显式 is_meta flag.
 def _coverage_sig(lbl: str):
     """替换 _TYPE_COVERAGE_SIG.get(lbl, ()).
-    OFF → 静态 8 入口 dict; ON → EFL facet 的 keyword_signature (涌现 facet 也参与覆盖检查)."""
+    OFF → 静态 8 入口 dict; ON → EFL facet 的 keyword_signature (涌现 facet 也参与覆盖检查).
+    issue #76: --budget_focus ON 时 Budget 轴也有签名, 故它可以是"已覆盖" (不再永远未覆盖);
+    OFF 时 Budget 不在 dict 里 → 返回 () → 行为与改前一致."""
     if _EFL is None:
+        if _BUDGET_FOCUS_ON and _is_budget_label(lbl):  # issue #88: 用宽松匹配 (兼容 EFL-ON/EFL-OFF 标签名差异)
+            return _BUDGET_COVERAGE_SIG
         return _TYPE_COVERAGE_SIG.get(lbl, ())
     return _EFL.get_signature(lbl)
 
@@ -760,9 +1240,18 @@ def _efl_majority(counts: dict) -> str:
     OFF → max(counts, key=(counts[lbl], -FAILURE_FOCI.index(lbl))) (逐字节复现);
     ON → 同语义但 tiebreak 用 EFL id 序 (FAILURE_FOCI.index 对涌现 label 会抛 ValueError)."""
     if _EFL is None:
-        return max(counts, key=lambda lbl: (counts[lbl], -FAILURE_FOCI.index(lbl)))
+        # issue #77: nan-safe 无条件生效 —— Budget 标签即便在 OFF 路径也可能进 counts
+        # (某个 skill 恰好整题截断时), 原式 `FAILURE_FOCI.index(lbl)` 会直接 ValueError 崩掉整轮.
+        # OFF 路径的语义不变: 只在答错轴之间按 FAILURE_FOCI 序 tiebreak; Budget 排最后.
+        # issue #88: fix tiebreak direction — _is_budget_label 为 True 时 budget 应在
+        # tiebreak 中排最后 (False=0 > True=-1, max prefers larger), 反之前是 +1 让其优先.
+        return max(counts, key=lambda lbl: (counts[lbl],
+                                            (-1 if _is_budget_label(lbl) else 0) if _BUDGET_FOCUS_ON else 0,
+                                            -FAILURE_FOCI.index(lbl) if lbl in FAILURE_FOCI else -10 ** 6))
     order = {fc.name: i for i, fc in enumerate(_EFL.all)}
-    return max(counts, key=lambda lbl: (counts[lbl], -order.get(lbl, 10 ** 9)))
+    return max(counts, key=lambda lbl: (counts[lbl],
+                                        (-1 if _is_budget_label(lbl) else 0) if _BUDGET_FOCUS_ON else 0,
+                                        -order.get(lbl, 10 ** 9)))
 
 
 def _efl_end_of_iter(args):
@@ -774,6 +1263,11 @@ def _efl_end_of_iter(args):
     成本: 1 次 merge LLM call/轮 (无 candidate 时直接 return)."""
     if _EFL is None:
         return
+    # 行为归因 (2026-11-12): 本轮预算耗尽时暂存的行为失败 → 并入已命名的行为 facet, 并清预算.
+    _n_beh = _EFL.drain_deferred()
+    if _n_beh:
+        print(f"🧬 EFL: merged {_n_beh} deferred behavior failure(s) into existing behavior facet(s)")
+    _EFL.reset_round_budget()
     _EFL.merge_candidates()
     _EFL.promote_candidates(k_min=getattr(args, "efl_min_failures", 2),
                             p_min=getattr(args, "efl_min_problems", 2))
@@ -782,9 +1276,28 @@ def _efl_end_of_iter(args):
 
 def find_uncovered_type(counts, skill_content):
     """在分布中出现且当前 skill 尚未覆盖 (无签名关键词) 的类型里, 选最高频的一个 (先填最大的洞).
-    全已覆盖则返回 None -> 调用方回退多数类型 (Task3 行为)."""
+    全已覆盖则返回 None -> 调用方回退多数类型 (Task3 行为).
+    harness 故障 (issue #53 追加7): 不是推理失败, skill 里写什么都不影响 → 永远不选 (不占焦点);
+    budget 类有意例外 (哨兵签名 → 永远"未覆盖") —— 它需要一条收尾纪律, 且 patcher 会拿到完成度旁注.
+    issue #76: --budget_focus ON 时 budget 轴改为有签名 → 能"已覆盖" (写了收尾纪律就不再占焦点),
+    并在未覆盖时优先于其他类型 (它是唯一从题面看不见的轴, 且是 0 分失败而非答错)."""
     sc = skill_content.lower()
-    for lbl in sorted(counts, key=lambda l: -counts[l]):
+    # issue #76: budget 轴是"隐性轴" —— 题面里没有任何词能让模型自己想到"该交卷了", 所以它是
+    # 唯一可以越过"最高频优先"的类型: 只要还缺一条收尾纪律, 就先补它 (0 分失败 > 答错).
+    # 它一旦被写进 skill (签名命中) 就不再占焦点, 交给其他轴.
+    # issue #88: EFL-ON 下 budget 标签是 facet 名 ("Budget Exhausted"), EFL-OFF 是
+    # _BUDGET_FAILURE_LABEL ("Budget-Exhausted (truncated before completion)") — 用 _is_budget_label
+    # 宽松匹配统一, 否则 EFL-ON 下 budget 的"优先选中"早退分支永不执行.
+    if _BUDGET_FOCUS_ON:
+        _budget_lbl = next((l for l in counts if _is_budget_label(l)), None)
+        if _budget_lbl is not None:
+            sigs = _coverage_sig(_budget_lbl)
+            if sigs and not any(s in sc for s in sigs):
+                return _budget_lbl
+    for lbl in sorted(counts, key=lambda l: (-counts[l],
+                                            not (_BUDGET_FOCUS_ON and _is_budget_label(l)))):
+        if lbl == _HARNESS_FAILURE_LABEL:
+            continue
         sigs = _coverage_sig(lbl)
         if sigs and not any(s in sc for s in sigs):
             return lbl
@@ -969,6 +1482,10 @@ def collect_failures(val_items, skill_content, s0_cache, n_diag=8, k=1, n_win=4,
                 "pred": r.get("predicted_label", ""),
                 "correct": r.get("correct_label", ""),
                 "response_excerpt": _excerpt(r.get("response", ""), 600),
+                "behavior": behavior_signature(r.get("response", "")),
+                "harness": r.get("harness") or {},
+                "response_head": _excerpt(r.get("response", ""), 400),
+                "response_tail": _excerpt((r.get("response") or "")[-1200:], 1200),
                 "s0_pass": s0p,
             })
         else:
@@ -979,6 +1496,7 @@ def collect_failures(val_items, skill_content, s0_cache, n_diag=8, k=1, n_win=4,
                     "pred": r.get("predicted_label", ""),
                     "correct": r.get("correct_label", ""),
                     "response_excerpt": _excerpt(r.get("response", ""), 600),
+                    "behavior": behavior_signature(r.get("response", "")),
                     "s0_pass": s0p, "skill_pass": r["pass_rate"],
                 })
             if r["pass_rate"] > 0 and s0p < 1.0:
@@ -990,6 +1508,7 @@ def collect_failures(val_items, skill_content, s0_cache, n_diag=8, k=1, n_win=4,
                         "pred": r.get("predicted_label", ""),
                         "correct": r.get("correct_label", ""),
                         "response_excerpt": _excerpt(r.get("response", ""), 600),
+                        "behavior": behavior_signature(r.get("response", "")),
                         "s0_pass": s0p, "skill_pass": r["pass_rate"], "gain": gain,
                     })
     # 取最多 n_diag 个, 优先 S0 也错的 (真 headroom)
@@ -1014,6 +1533,7 @@ The CURRENT skill is below. It already works well on many problems but STILL FAI
 Rules:
 1. Do NOT rewrite the skill. Keep its structure. Add at most ONE new short subsection (or replace/extend one existing bullet) that addresses the failure mode.{modify_clause}
 2. The new content must be a CONCRETE, OPERATIONAL decision procedure anchored to the diagnostic cases — e.g. "For off-by-one boundary errors, test both endpoints explicitly: is the boundary inclusive or exclusive? Plug in the boundary value and the value just before/after it, and confirm which the problem's wording selects." NOT "check boundaries carefully".
+   If a diagnostic shows a TRACE BEHAVIOR problem (e.g. "NEVER EMITTED <answer>", "mid-trace loop", "tail repetition", excessive trace length), treat the BEHAVIOR as the failure mode and write a procedure that would prevent it — e.g. a stopping/commit rule ("when a computation cannot distinguish two candidate configurations after one attempt, state the assumption, run it to a single numeric answer, and emit <answer> once; do not restart the derivation"), or a length/commitment rule for problems with finitely many cases. Ground it in the repeated block shown in the diagnostic.
 3. Keep total skill under ~5000 chars. If near the limit, compress redundant existing bullets rather than appending.
 4. Do NOT reference specific problem answers, labels, or this problem's constants.
 5. Focus area this round: {focus}
@@ -1038,8 +1558,10 @@ PATCH_TEMPLATE_COVERAGE = """You are improving a system prompt (skill) for a mat
 The CURRENT skill is below. It already works well on many problems but STILL FAILS on the diagnostic cases shown. Below is the FULL failure-type distribution over the select set (not just the hardest 8), with each type marked COVERED (the skill already has a decision procedure for it) or UNCOVERED (gap to fill). Your job: make SMALL, SURGICAL edits to fix an UNCOVERED failure type — add a concrete DECISION PROCEDURE (a step-by-step test the model can run), not a generic checklist.
 
 Rules:
+0. The CURRENT skill may ALREADY contain a section for the FOCUS type — that is expected (the gap is measured on behavior, not on the presence of prose). In that case a surgical edit means SHARPENING or REPLACING the weakest part of that existing section (e.g. make a vague rule measurable, add the one missing trigger, reorder it earlier) — do NOT restate it in a new subsection.
 1. Do NOT rewrite the skill. Keep its structure. Add at most ONE new short subsection (or replace/extend one existing bullet) that addresses the UNCOVERED failure type marked FOCUS.{modify_clause}
 2. The new content must be a CONCRETE, OPERATIONAL decision procedure anchored to the representative failures shown — e.g. "For off-by-one boundary errors, test both endpoints explicitly: is the boundary inclusive or exclusive? Plug in the boundary value and the value just before/after it, and confirm which the problem's wording selects." NOT "check boundaries carefully".
+   If a diagnostic shows a TRACE BEHAVIOR problem (e.g. "NEVER EMITTED <answer>", "mid-trace loop", "tail repetition", excessive trace length), treat the BEHAVIOR as the failure mode and write a procedure that would prevent it — e.g. a stopping/commit rule ("when a computation cannot distinguish two candidate configurations after one attempt, state the assumption, run it to a single numeric answer, and emit <answer> once; do not restart the derivation"), or a length/commitment rule for problems with finitely many cases. Ground it in the repeated block shown in the diagnostic.
 3. Keep total skill under ~5000 chars. If near the limit, compress redundant existing bullets rather than appending.
 4. Do NOT reference specific problem answers, labels, or this problem's constants.
 5. Focus area this round (an UNCOVERED gap, not the majority): {focus}
@@ -1092,6 +1614,7 @@ The CURRENT skill is below. Make a SMALL, SURGICAL edit to improve it - add a co
 Rules:
 1. Do NOT rewrite the skill. Keep its structure. Add at most ONE new short subsection (or replace/extend one existing bullet) that addresses the focus area.
 2. The new content must be a CONCRETE, OPERATIONAL decision procedure - e.g. "For off-by-one boundary errors, test both endpoints explicitly: is the boundary inclusive or exclusive? Plug in the boundary value and the value just before/after it, and confirm which the problem's wording selects." NOT "check boundaries carefully".
+   If a diagnostic shows a TRACE BEHAVIOR problem (e.g. "NEVER EMITTED <answer>", "mid-trace loop", "tail repetition", excessive trace length), treat the BEHAVIOR as the failure mode and write a procedure that would prevent it — e.g. a stopping/commit rule ("when a computation cannot distinguish two candidate configurations after one attempt, state the assumption, run it to a single numeric answer, and emit <answer> once; do not restart the derivation"), or a length/commitment rule for problems with finitely many cases. Ground it in the repeated block shown in the diagnostic.
 3. Keep total skill under ~5000 chars. If near the limit, compress redundant existing bullets rather than appending.
 4. Do NOT reference specific problem answers, labels, or this problem's constants.
 5. Focus area this round: {focus}
@@ -1113,9 +1636,79 @@ def make_diagnostics(failures):
             f"Problem: {str(it.get('problem') or '(n/a)')[:500]}\n"
             f"Correct answer: {str(it.get('answer',''))[:100]}\n"
             f"Model predicted: {f['pred']!r} | Correct: {f['correct']!r}\n"
-            f"Model reasoning excerpt:\n{f['response_excerpt']}"
+            + (f"Trace behavior: {render_behavior(f['behavior'])}\n" if f.get("behavior") else "")
+            + f"Model reasoning excerpt:\n{f['response_excerpt']}"
+            + (f"\n... [trace tail] ...\n{f['response_tail']}"
+               if f.get("response_tail") and f["behavior"]["n_chars"] > 1500 else "")
         )
     return "\n\n".join(parts)
+
+
+def _is_budget_label(lbl) -> bool:
+    return isinstance(lbl, str) and (lbl == _BUDGET_FAILURE_LABEL or lbl.lower().startswith("budget"))
+
+
+def budget_diagnoses(bundle) -> list:
+    """从 coverage_bundle 里挑出 budget 类失败 (issue #53 追加7).
+    返回 [(problem_id, harness_summary_dict)], 支持 dict (focus 用) 或 str (模板需 str) 两种形态."""
+    if not bundle:
+        return []
+    try:
+        reps, counts, _ = bundle
+    except Exception:  # noqa: BLE001
+        return []
+    out, seen = [], set()
+    for lbl in counts or {}:
+        if not _is_budget_label(lbl):
+            continue
+        for f in (reps.get(lbl) or [])[:3]:
+            if f.get("id") in seen:
+                continue
+            seen.add(f.get("id"))
+            out.append((str(f.get("id")), build_harness_summary([f.get("harness") or {}])))
+    out.sort(key=lambda x: x[1].get("avg_completion", 0), reverse=True)
+    return out
+
+
+def budget_advisory(bundle) -> str:
+    """渲染给 patcher 的"完成度/预算"旁注. 无预算失败 → ''. (模板里用 str, 故用 replace 注入而非 format.)"""
+    d = budget_diagnoses(bundle)
+    if not d:
+        return ""
+    lines = [
+        "## Completion / budget signal (harness-level, dataset-independent)",
+        "The failures below are NOT reasoning errors — the model's output hit the token budget "
+        "before it finished (finish_reason=length), so no answer could be scored. "
+        "A rule about the math will not fix them. Add a hard completion discipline: bound the "
+        "derivation, re-check rather than re-derive, and commit the final answer within a short "
+        "budget (e.g. 'if two checks of the same case agree, stop and submit').",
+    ]
+    for pid, h in d[:5]:
+        lines.append(f"  - Problem {pid}: completion ~{h.get('avg_completion', 0):.0%} of "
+                     f"{h.get('budget', 0)} tokens; {h.get('n_truncated', 0)}/{h.get('n_samples', 0)} samples truncated")
+    return "\n".join(lines)
+
+
+def _implicit_axis_block(label: str, failures: list) -> str:
+    """issue #76: 隐性轴 (budget) 作为 focus 时给 patcher 的诊断块 — 失败样本 + 必须写成决策程序.
+    与 budget_advisory 的区别: advisory 是"旁注" (coverage 路径顺带), 本块是"本轮焦点" (要出稿).
+
+    issue #87 (增量 B): 原版只渲染 n_truncated/n_samples 抽象计数 + 通用 mandate, patcher 看不到
+    "残文里到底发生了什么" → 写不出针对性的收尾纪律. 现对每条失败注入 render_behavior (tail_loop、
+    cycle_reps、answer_pos 等), 让 patcher 看到"残文死循环 8 次"而非"3/90 截断". 仅 `behavior` 字段
+    非空时渲染 (key error-safe, 旧 trace 无此字段时跳过)."""
+    lines = [f"## Focus: {label} ({len(failures)} diagnostic failure(s))"]
+    for f in failures[:5]:
+        it = f.get("item", {}) or {}
+        h = f.get("harness") or {}
+        line = (f"  - Problem {it.get('id', '?')}: s0_pass={f.get('s0_pass', '?')}, "
+                f"{h.get('n_truncated', 0)}/{h.get('n_samples', 0)} samples hit the token limit")
+        beh = f.get("behavior")
+        if beh and isinstance(beh, dict):
+            line += f"\n    Trace behavior: {render_behavior(beh)}"
+        lines.append(line)
+    lines.append(_IMPLICIT_AXIS_MANDATE.get(label, ""))
+    return "\n".join([ln for ln in lines if ln])
 
 
 def make_coverage_diagnostics(reps, counts, uncovered, skill_content, max_per_type=3):
@@ -1123,21 +1716,30 @@ def make_coverage_diagnostics(reps, counts, uncovered, skill_content, max_per_ty
     关键: 复用已算 run_one 结果, 零额外 API; 丢弃 600-char response_excerpt (bloat 源),
     只保留 problem/answer/pred/correct 各截断 ~200 char, 控制 patcher prompt 体积.
     reps 已是每类型 up-to-3 最难样本 (compute_failure_distribution 排序保证)."""
+    def _harness_of(lbl):
+        hs = [f.get("harness") or {} for f in reps.get(lbl, [])]
+        return build_harness_summary(hs) if hs else {}
+
     sc = skill_content.lower()
     # tally 表: 每类型一行, 标注 count + covered/uncovered
     tally_lines = []
     for lbl in sorted(counts, key=lambda l: -counts[l]):
+        if lbl == _HARNESS_FAILURE_LABEL:
+            continue   # 仪器故障: 不进 patcher prompt (写规则修不了 API 异常), 也不影响 FOCUS
         sigs = _coverage_sig(lbl)
         covered = bool(sigs) and any(s in sc for s in sigs)
         flag = "COVERED" if covered else "UNCOVERED"
         focus_mark = "  <- FOCUS" if (uncovered and lbl == uncovered) else ""
-        tally_lines.append(f"  [{flag}] ({counts[lbl]:2d}x) {lbl}{focus_mark}")
+        hsum = summarize_harness(_harness_of(lbl))
+        tally_lines.append(f"  [{flag}] ({counts[lbl]:2d}x) {lbl}{focus_mark}" + (f"   | {hsum}" if hsum else ""))
     tally = "\n".join(tally_lines) if tally_lines else "  (no failures)"
 
     # 分层样本: 喂所有未覆盖类型 (covered 的已有内容, 不重复喂), 每类最多 max_per_type
     parts = []
     uncovered_types = []
     for lbl in sorted(counts, key=lambda l: -counts[l]):
+        if lbl == _HARNESS_FAILURE_LABEL:
+            continue
         sigs = _coverage_sig(lbl)
         if sigs and not any(s in sc for s in sigs) and lbl in reps:
             uncovered_types.append(lbl)
@@ -1149,6 +1751,14 @@ def make_coverage_diagnostics(reps, counts, uncovered, skill_content, max_per_ty
                 f"Problem: {str(it.get('problem') or '(n/a)')[:200]}\n"
                 f"Correct answer: {str(it.get('answer',''))[:100]}\n"
                 f"Model predicted: {f['pred']!r} | Correct: {f['correct']!r}"
+                + (f"\nTrace behavior: {render_behavior(f['behavior'])}"
+                   if f.get("behavior") and f["behavior"].get("n_answer_tags", 0) == 0
+                   or (f.get("behavior") or {}).get("cycle_reps", -1) >= 5
+                   or (f.get("behavior") or {}).get("tail_loop", 0) >= 5
+                   or (f.get("harness") or {}).get("n_truncated", 0) >= 1
+                   else "")
+                + (f"\nHarness signal: {summarize_harness(build_harness_summary([f.get('harness') or {}]))}"
+                   if (f.get("harness") or {}).get("finish_reason") == "length" else "")
             )
     stratified = "\n\n".join(parts) if parts else "(all failure types already covered - make a diversifying exploratory edit)"
     return tally, stratified
@@ -1239,6 +1849,9 @@ def generate_candidates(current_skill, failures, focus, rejected, K, explore=Fal
                                                       modify_clause=MODIFY_CLAUSE if allow_modify else "",
                                                       positive_section=pos_sec,
                                                       meta_contrast_section=meta_sec)
+            _bud = budget_advisory(coverage_bundle)
+            if _bud:
+                base_user = base_user.rstrip() + "\n\n" + _bud + "\n"
         else:
             diag = make_diagnostics(failures) if failures else "(no diagnostic failures this round - make a diversifying exploratory edit)"
             base_user = PATCH_TEMPLATE.format(skill=current_skill, diagnostics=diag,
@@ -1246,6 +1859,12 @@ def generate_candidates(current_skill, failures, focus, rejected, K, explore=Fal
                                               modify_clause=MODIFY_CLAUSE if allow_modify else "",
                                               positive_section=pos_sec,
                                               meta_contrast_section=meta_sec)
+            # issue #76: 非 coverage 路径但 focus 落到隐性轴 (budget) → 同样注入该轴诊断块,
+            # 否则 patcher 只看到 "focus=Budget-Exhausted" 却看不到失败样本, 会写含糊的"be efficient".
+            # 注意必须在 PATCH_TEMPLATE.format() **之后** 追加 (第 1707 行原版写在其前面 →
+            # UnboundLocalError, run2 首轮即崩, issue #77)。
+            if _BUDGET_FOCUS_ON and focus in _IMPLICIT_AXIS_MANDATE and failures:
+                base_user = base_user.rstrip() + "\n\n" + _implicit_axis_block(focus, failures) + "\n"
     else:
         base_user = GENERIC_PATCH_TEMPLATE.format(skill=current_skill, focus=focus)
     # per-candidate 角度提示: 让不同候选侧重不同诊断维度, 增大候选池多样性.
@@ -1417,6 +2036,27 @@ Rules:
 """
 
 
+_BEHAVIOR_RULE_HINT = ("do not restart", "commit", "emit <answer>", "once you have",
+                       "stop", "terminate", "length", "concise", "do not enumerate",
+                       "single final answer", "no second-guess", "budget", "restart")
+
+
+def _behavior_rules_ratio_ok(skill: str, max_ratio: float = 0.25) -> bool:
+    """保守估计输出过程类规则占比: 含 _BEHAVIOR_RULE_HINT 关键词的 bullet 行字符数 / 总长.
+
+    用于 consolidate 兜底, 防止进化方向退化为"只压长度、不修推理"。
+    """
+    total = len(skill or "")
+    if not total:
+        return True
+    hinted = 0
+    for line in (skill or "").splitlines():
+        ll = line.lower()
+        if any(h in ll for h in _BEHAVIOR_RULE_HINT):
+            hinted += len(line)
+    return hinted / total <= max_ratio
+
+
 def consolidate(skill):
     set_temp(GEN_TEMP)
     try:
@@ -1424,6 +2064,10 @@ def consolidate(skill):
                   max_tokens=4096, stage="evolver_consolidate")
         c = clean_skill(out, skill)
         if len(c) < len(skill) * 0.7:  # 防过度删减
+            return skill
+        # 行为规则不得超过 skill 总长的 1/4: 防"省 token/收尾"类输出过程规则挤掉题目求解规则,
+        # 只教模型"快交卷"而不教"怎么解" (2026-11-12 行为归因接入时加).
+        if not _behavior_rules_ratio_ok(c):
             return skill
         return c
     except Exception:
@@ -3826,6 +4470,10 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                          "slots": nd.slots, "skill": nd.skill} for nd in archive]
         json.dump(archive_dump, open(os.path.join(out_dir, f"archive_iter{t}.json"), "w",
                                      encoding="utf-8"), ensure_ascii=False, indent=2)
+        # 本轮被评测的全部候选逐题 delta — 仅在非 facet_tree 路径可用 (scored 变量定义
+        # 于 main() 的 data_driven_focus 路径, _run_facet_tree 的 _ArchiveNode 不存 per_item).
+        # facet_tree 路径已有独立落盘: tree_iter{t}.json + archive_iter{t}.json + best_skill_iter{t}.md.
+        # 这段仅用于标注"后续在 main 里统一追加", 本函数不执行 (issue #88.5 scored NameError).
         # best skill 单独存 md (直接可用, 无需解析 archive)
         open(os.path.join(out_dir, f"best_skill_iter{t}.md"), "w", encoding="utf-8").write(best_skill)
         _accumulate_counts(run_total, iter_counts)  # 跨轮汇总 → 终局 0-promoted 告警 (F08/Q6/RF §6 Step 3)
@@ -3851,6 +4499,7 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                              "stagnation_fb": stag_fb})
         json.dump(log, open(os.path.join(out_dir, "evolver_log.json"), "w",
                             encoding="utf-8"), ensure_ascii=False, indent=2)
+        dump_token_usage(out_dir)
     # archive 落盘 (终局 probe-replay 的素材池)
     json.dump([{"facet": nd.facet_label, "parent": nd.parent, "hash": md5(nd.skill),
                 "val_delta": round(nd.val_delta, 4), "val_ci": round(nd.val_ci, 4),
@@ -3866,7 +4515,7 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
 
 def main():
     ap = argparse.ArgumentParser(description="Skill 自进化迭代器 (免训练, 超 SkillOpt-best)")
-    ap.add_argument("--init_skill", default=V2_SKILL_DEFAULT, help="起点 skill (默认 v2 当前)")
+    ap.add_argument("--init_skill", default=V2_SKILL_DEFAULT, help="起点 skill (默认 AIME S₀)")
     ap.add_argument("--s0", default=S0_DEFAULT)
     ap.add_argument("--split_dir", default=SPLIT_DEFAULT)
     ap.add_argument("--s0_cache", default=S0_CACHE_DEFAULT, help="S₀ cache json (同条件 k 投票连续值)")
@@ -3887,10 +4536,11 @@ def main():
         help="Step1: N 候选多样性来源. auto=变体角度提示注入 FACET_EDIT_PROMPT (默认); "
              "temp=每候选 set_temp 扰动 (串行, 失并行). 仅 --n_parallel>1 生效")
     ap.add_argument("--n_diag", type=int, default=8, help="每轮诊断失败题数")
-    ap.add_argument("--train_n", type=int, default=35, help="选择集用 train 题数")
+    ap.add_argument("--train_n", type=int, default=18,
+                    help="选择集用 train 题数 (AIME24 共 30 题, train/val=18/12; 仅用于截断 train, 不改划分)")
     ap.add_argument("--consolidate_every", type=int, default=3, help="每 N 轮慢更新")
     ap.add_argument("--patience", type=int, default=3, help="连续 N 轮无提升则探索/停")
-    ap.add_argument("--out_dir", default=OUT_DIR_DEFAULT)
+    ap.add_argument("--out_dir", "--output_dir", dest="out_dir", default=OUT_DIR_DEFAULT)
     # ── 机制消融 (leave-one-out, 互斥使用; 无 flag = FULL 完整 evolver, 与主结果路径一致) ──
     ap.add_argument("--ablate_gepa", action="store_true", help="A1: K=1 单候选, 消融多候选种群+选择 (M1)")
     ap.add_argument("--ablate_failure", action="store_true", help="A2: 通用 patch 不喂诊断失败, 消融失败驱动 patch (M2)")
@@ -3906,6 +4556,16 @@ def main():
     ap.add_argument("--gate_consolidate", action="store_true", help="M3-gate: consolidate 后 re-eval 选择集, delta 下降超 GATE_MARGIN 则回退 (治盲压缩损质, RunA/B 均观测到 consolidate 后 failure 上扬)")
     ap.add_argument("--data_driven_focus", action="store_true", help="Task3: focus 按已诊断失败的多数类型选 (classify_failure_type), 非固定 round-robin; 默认关=保主结果复现. 根因: val 最难失败 ~93%% 是 meta-option, 原 round-robin 早 iter 用错方向 patch")
     ap.add_argument("--coverage_diagnosis", action="store_true", help="Task4: collect_failures 返回全失败分布 (零额外 API), focus 选 '尚未覆盖类型' (find_uncovered_type 填洞) 非多数类型; patcher 看全分布 tally+分层样本. 默认关=保主结果复现. 治 val 过拟合 + 为 C 结构自进化提供分布数据基底")
+    ap.add_argument("--budget_focus", action="store_true", help="issue #76 (2026-11-16): 让 'Budget-Exhausted (truncated)' 成为可选 focus. 改前 budget 是'永远未覆盖'的哨兵且不在 FAILURE_FOCI 里 → 4 轮 data-driven focus 全落在答错轴, evolver 从没被要求降低截断. 开=强制 data-driven 路径 + budget 有覆盖签名 (写了收尾纪律即'已覆盖') + 平票优先 + 未覆盖时优先. 默认关=逐字节复现改前路径")
+    ap.add_argument("--forced_focus", default="", help="issue #76 对照用: 强制每轮 focus 为指定字符串 (空=不强制). 用于 A/B 隔离'focus 轴'这一唯一变量")
+    ap.add_argument("--dual_gate", action="store_true", help="issue #69/#80 Step 3: 长度轴双门. 让'减少计算'成为可过门的目标之一. 开=在原有准确率门 (delta>best ∧ ci>0) 之上, 追加 token 侧约束: 候选的 clean_pass_tokens 必须 <= best 的 (1 − --token_min_drop). 准确率侧同时要求相对 baseline 的跌落不超过 --acc_max_drop (方案六预登记: ≤2pp). 默认关=逐字节复现改前路径")
+    ap.add_argument("--acc_max_drop", type=float, default=0.02, help="--dual_gate: 允许的准确率跌落上限 (相对 baseline pass, 小数). 方案六预登记值 0.02")
+    ap.add_argument("--token_min_drop", type=float, default=0.20, help="--dual_gate: 要求的 token 降幅下限 (相对 best 的 clean_pass_tokens, 小数). 方案六预登记值 0.20")
+    ap.add_argument("--token_clip_tail", type=float, default=0.10, help="--dual_gate: 长度口径剔除最长比例 (截尾均值). 实测依据 run2: 基线干净样本 mean 2169 / median 1278 / max 14388, 均值被少数超长轨迹主导. 0=用普通均值")
+    ap.add_argument("--trunc_gate", action="store_true", help="issue #81 建议1: 防截断门, 每轮进化对候选做一次截断检验 (与 --dual_gate 独立: 那个管'必须变短才给奖励', 这个管'不许把截断搞坏'). 三道判据: 整体 候选截断率 <= best×(1+--trunc_max_increase); 配对 截断率上升的题不超过 --trunc_paired_max 且平均上升 >25pp 才算退化. 缺 harness 证据 → 不拦 (旧 run 可 resume). 默认关")
+    ap.add_argument("--trunc_max_increase", type=float, default=0.01, help="--trunc_gate: 整体截断率允许的相对涨幅 (0.01 = 最多涨 1 个百分点相对值, 再加 1 个样本容差). 预登记值 0.01")
+    ap.add_argument("--trunc_paired_max", type=float, default=0.25, help="--trunc_gate: 逐题配对里允许的'截断率上升题'占比上限 (0.25 = 30 题里最多 7 题; 且这些题平均上升须 >25pp 才判退化). 预登记值 0.25")
+    ap.add_argument("--no_token_gate", action="store_true", help="--dual_gate 的消融: 只留准确率侧跌落约束, 去掉 token 侧要求 (用于隔离'长度轴'贡献)")
     ap.add_argument("--structure_evolution", action="store_true", help="Phase C: 结构自进化. 每轮额外生成 Kc 个结构变体候选 (内容重组 v2 skill, 不注入新内容), 与 K 个 patch 候选同台竞争 pass_rate. 治 Task4 根因 (同内容不同结构=10pp 差, 结构是因果变量). 默认关=字节复现既有路径; 关时 generate_structure_candidates 永不被调用, mutation_kinds 恒为 ['patch']*K")
     ap.add_argument("--Kc", type=int, default=4, help="Phase C: 每轮结构变体候选数 (仅 --structure_evolution 时生效)")
     ap.add_argument("--struct_temp", type=float, default=1.0, help="Phase C: 结构生成采样温度 (仅 --structure_evolution 时生效); 默认 1.0 高温促结构多样性 (规则5 防 SkillOpt 病: padding 泛泛建议由 validator CI>0+novel 兜底)")
@@ -4078,9 +4738,12 @@ def main():
 
     # 算子H 总开关落定: --strengthen 同时激活 classify_failure_type 后移 + 饱和分支 strengthen.
     # 置模块级 _STRENGTHEN_ON 让 classify_failure_type (早于 main 调用栈) 看到.
-    global _STRENGTHEN_ON
+    global _STRENGTHEN_ON, _BUDGET_FOCUS_ON
     if getattr(args, "strengthen", False) and getattr(args, "expand", False):
         _STRENGTHEN_ON = True
+    if getattr(args, "budget_focus", False):
+        _BUDGET_FOCUS_ON = True
+        print("🔧 budget_focus ON: Budget-Exhausted 轴参与 focus 选择 (issue #76)")
 
     if args.self_test_facet:
         _self_test_facet()
@@ -4100,6 +4763,10 @@ def main():
         # out_dir 尚未建 (在下方 ts 块); 先用占位, ts 块建好后 _EFL._path 迁移到 run 子目录.
         _EFL = FacetLibrary(os.path.join(args.out_dir, "_efl_tmp.json"), llm_fn=llm)
         _EFL.seed_from_foci(FAILURE_FOCI, _TYPE_COVERAGE_SIG, meta_index=5)
+        # issue #88 (Bug 2): 注入 budget facet 的可覆盖签名 (与 _coverage_sig 的 EFL-OFF 路径同词表),
+        # 让 get_signature("Budget Exhausted") 返回 _BUDGET_COVERAGE_SIG 而非哨兵. 无跨文件 import.
+        if _BUDGET_FOCUS_ON:
+            _EFL._budget_cov_sig = tuple(_BUDGET_COVERAGE_SIG)
         print(f"🧬 EFL ON: seeded {_EFL and len(_EFL.all)} facets from FAILURE_FOCI "
               f"(min_failures={args.efl_min_failures}, min_problems={args.efl_min_problems})")
 
@@ -4146,6 +4813,13 @@ def main():
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_dir = os.path.join(args.out_dir, f"run_{ts}")
     os.makedirs(out_dir, exist_ok=True)
+    # 调用级过程日志 → <out_dir>/trace/<stage>.jsonl (unless TRACE_DIR=off 已由 _env 设成 "")
+    if os.environ.get("TRACE_DIR", "").strip().lower() not in ("off", "0", "none", "false", ""):
+        try:
+            from skillopt.model import set_trace_dir
+            set_trace_dir(os.path.join(out_dir, "trace"))
+        except Exception:
+            pass
 
     # EFL path 迁移 (2026-10-13): EFL 在上方用 _efl_tmp.json 占位初始化 (out_dir 尚未建);
     # 此处 out_dir 已建, 把库迁到 run 子目录并持久化 (后续每轮 _EFL.persist() 写这里).
@@ -4241,6 +4915,19 @@ def main():
         print(f"💊 药三 select_exclude_train: probe(计分/晋升)→纯 val {len(probe_items)} 题, "
               f"diag(诊断)→仍 {len(diag_items)} 题 (train 已退出选择集)")
 
+    def _write_aime_s0_cache(cache):
+        # F07 manifest 落盘 (AIME 版): math 的 build_cache_manifest 读 correct_choice/choices (MCQ 专有),
+        # 数值题没有 → 调用即 KeyError → 整个 dump 失败 → 磁盘上永远是"无 _manifest 的旧格式",
+        # 下次运行被 load_s0_cache_with_manifest 拒绝 → 每次都静默重算 S₀ (多花一轮全量 eval).
+        # 身份维度只用 AIME 真有的: k / eval_temp / shuffle_seed(无选项可洗) / skill_hash / 题集 hash.
+        # 直接复用 math 的 build_cache_manifest (schema 已改成 .get 容错, AIME 数值题不报错),
+        # 保证写/读两侧选择集与 hash 口径逐字节一致 (手写容易漏掉 select_items[:train_n] 截断).
+        cache["_manifest"] = build_cache_manifest(
+            s0, args.eval_k, EVAL_TEMP, args.shuffle_seed, select_items,
+            args.split_dir, "train+val")
+        json.dump(cache, open(os.path.join(out_dir, "s0_cache.json"), "w", encoding="utf-8"),
+                  ensure_ascii=False, indent=2)
+
     if args.s0_cache and os.path.exists(args.s0_cache):
         # F07: cache 带 manifest, 按 k/shuffle_seed/skill_hash/choice_arrangement_hash 校验口径.
         # 旧 json.load 只看文件存在 → 换 k/换 seed/换 S₀ 仍静默复用旧 cache, 污染 delta.
@@ -4255,8 +4942,7 @@ def main():
             # (数值题 shuffle-invariant, 无 choices 可洗). math 版有这些 kwarg 但此处导入的是 AIME 版.
             s0_cache = precompute_s0(select_items, s0, args.eval_k,
                                      stage="evolver_s0_trainval")
-            json.dump(s0_cache, open(os.path.join(out_dir, "s0_cache.json"), "w", encoding="utf-8"),
-                      ensure_ascii=False, indent=2)
+            _write_aime_s0_cache(s0_cache)
         else:
             # manifest 已校验 k/seed/口径一致, 但仍需覆盖 select set 题 (cache 可能是子集).
             missing = [str(it["id"]) for it in select_items if str(it["id"]) not in s0_cache]
@@ -4265,16 +4951,14 @@ def main():
                 extra = precompute_s0([it for it in select_items if str(it["id"]) in missing], s0,
                                       args.eval_k, stage="evolver_s0_partial")
                 s0_cache.update(extra)
-                json.dump(s0_cache, open(os.path.join(out_dir, "s0_cache.json"), "w", encoding="utf-8"),
-                          ensure_ascii=False, indent=2)
+                _write_aime_s0_cache(s0_cache)
     else:
         print(f"⏳ precomputing S₀ on select set (k={args.eval_k}, EVAL_TEMP={EVAL_TEMP}, "
               f"shuffle_seed={args.shuffle_seed}) ...", flush=True)
         # AIME precompute_s0 签名 (items, s0_content, k, stage) — 无 shuffle_seed/split_dir.
         s0_cache = precompute_s0(select_items, s0, args.eval_k,
                                  stage="evolver_s0_trainval")
-        json.dump(s0_cache, open(os.path.join(out_dir, "s0_cache.json"), "w", encoding="utf-8"),
-                  ensure_ascii=False, indent=2)
+        _write_aime_s0_cache(s0_cache)
     print(f"📄 init_skill: {len(init_skill)} chars | select(train+val): {len(select_items)} | "
           f"S₀ cache: {len(s0_cache) - 1} 题 (含 _manifest) | eval_k={args.eval_k} | shuffle_seed={args.shuffle_seed}")
 
@@ -4283,14 +4967,24 @@ def main():
     if prior is not None:
         bv = prior["baseline_val"]
         base_pass, base_delta, base_ci = bv["pass"], bv["delta"], bv["ci"]
-        print(f"📊 [resume] baseline 跳过 (prior recorded): pass={base_pass:.3f} delta={base_delta:+.3f} CI={base_ci:+.3f}")
+        # resume 无 harness 记录 (旧 run 目录) → 空 dict, 双门会因"无可判长度证据"而 BLOCK, 这是保守正确
+        _h0 = dict(bv.get("harness") or {})
+        print(f"📊 [resume] baseline 跳过 (prior recorded): pass={base_pass:.3f} delta={base_delta:+.3f} CI={base_ci:.3f}")
     else:
         base_pass, base_delta, _, base_per = eval_on(probe_items, init_skill, s0_cache,
                                                      stage="evolver_base", k=args.eval_k,
                                                      eval_deadline_s=EVAL_DEADLINE_S)
         base_ci = bootstrap_ci_lower(base_per)
-        print(f"📊 init skill select: pass={base_pass:.3f} delta={base_delta:+.3f} CI_lower={base_ci:+.3f}")
+        from tf_global_v2_aime import LAST_HARNESS_AGG as _HA0
+        _h0 = dict(_HA0 or {})
+        dump_eval_items(out_dir, "iter00_baseline", init_skill, base_per, probe_items, harness=_h0)
+        print(f"📊 init skill select: pass={base_pass:.3f} delta={base_delta:+.3f} CI_lower={base_ci:+.3f}"
+              + ("" if not _h0 else
+                 f" | tr={_h0.get('n_truncated_rate', 0):.3f} "
+                 f"ck={_h0.get('clean_pass_tokens') or 0:.0f}"))
 
+    # 双门的长度基准 (issue #80 Step 3): 以 baseline 的 harness 为起点, 每次 accept 随 best 滚动.
+    best_harness = {k: _h0.get(k) for k in _HARNESS_KEEP}
     best_skill = init_skill
     if prior is not None:
         # 恢复 prior 末轮状态: best_skill 已 = prior 末轮 skill_iter; delta/ci/no_improve 从 log 取.
@@ -4311,7 +5005,9 @@ def main():
         no_improve = 0
     log = {"ts": ts, "init_skill": args.init_skill, "init_skill_hash": md5(init_skill),
            "ablation": ablation_label,
-           "baseline_val": {"pass": base_pass, "delta": base_delta, "ci": base_ci},
+           "baseline_val": {"pass": base_pass, "delta": base_delta, "ci": base_ci,
+                            # issue #80: 长度/截断基准随 log 落盘, 使 --resume 能恢复双门基准
+                            "harness": dict(best_harness)},
            "iters": [], "args": vars(args),
            # Task5: 诊断-选择解耦溯源 (flag 关时 n_select=probe=diag, 0.462 复现路径)
            "probe_split": args.probe_split, "probe_n": len(probe_items),
@@ -4350,14 +5046,17 @@ def main():
             f.write(best_skill)
         json.dump(log, open(os.path.join(out_dir, "evolver_log.json"), "w",
                             encoding="utf-8"), ensure_ascii=False, indent=2)
+        dump_token_usage(out_dir)
+        dump_rejected_patches(out_dir, list(log.get("rejected_patches", []) or []), args)
+        build_analysis(out_dir)
         final_hash = md5(best_skill)
         init_hash = md5(init_skill)
         print(f"\n{'='*50}\n✅ Facet-Tree done. init val delta={base_delta:+.3f} → "
               f"best val delta={best_val_delta:+.3f} (CI={best_val_ci:+.3f})")
         print(f"   skill: {len(init_skill)} → {len(best_skill)} chars | hash {init_hash} → {final_hash}")
         print(f"   产出: {out_dir}/best_skill_evolved.md + tree_iter*.json")
-        print(f"   评测 test=106: cd /data/zhuldz/lunwen && python rl/train/verl1/eval_test_multiseed.py "
-              f"--skills s0,evolver --evolver_best {out_dir}/best_skill_evolved.md --eval_k 3 --seeds 2")
+        print(f"   评测: python eval_aime24_multiseed.py --skills s0,{out_dir}/best_skill_evolved.md --eval_k 3 --seeds 3")
+        print(f"         python eval_aime25_multiseed.py --skills s0,{out_dir}/best_skill_evolved.md --eval_k 3 --seeds 3")
         # RF §6 Step 3: 终局 0-promoted 告警 — 开启的算子全程 0 次晋升 best 就告警 (写到 stderr + log)
         _op_alerts = _zero_promoted_alert(log.get("operator_counts", {}), args)
         log["zero_promoted_alerts"] = _op_alerts
@@ -4372,7 +5071,9 @@ def main():
         # focus 选择: 默认 round-robin (保主结果复现). --data_driven_focus / --coverage_diagnosis
         # 时延迟到 collect_failures 之后, 按已诊断失败的类型选 (Task3 多数 / Task4 未覆盖类型).
         # A4 消融固定为通用 focus.
-        focus_deferred = (not args.ablate_antideg) and (args.data_driven_focus or args.coverage_diagnosis)
+        # issue #76: --budget_focus 强制走 data-driven 路径 (否则 round-robin 永不选 Budget 轴).
+        focus_deferred = (not args.ablate_antideg) and (args.data_driven_focus or args.coverage_diagnosis
+                                                        or _BUDGET_FOCUS_ON)
         focus = "General mathematical reasoning improvement" if args.ablate_antideg else (
             None if focus_deferred else _efl_round_robin(t)
         )
@@ -4443,7 +5144,16 @@ def main():
         # round-robin 在早 iter 用错方向 patch. 这里用已诊断失败的真实类型分布定向 patcher.
         # Task4: --coverage_diagnosis 模式由下方 coverage 块独占 focus (supersede), 此块跳过避免冗余.
         if focus_deferred and not args.coverage_diagnosis:
-            if failures:
+            # issue #76: 显式指定的 focus (--forced_focus, 用于 A/B 对照) 覆盖数据驱动选择.
+            if args.forced_focus:
+                focus = args.forced_focus
+                print(f"  [data_driven_focus] override by --forced_focus: {focus}")
+                _forced = True
+            else:
+                _forced = False
+            if _forced:
+                pass
+            elif failures:
                 counts = {}
                 for f in failures:
                     lbl = classify_failure_type(f)
@@ -4554,14 +5264,32 @@ def main():
             cp, cd, _, citem = eval_on(probe_items, cand, s0_cache,
                                        stage="evolver_val", k=args.eval_k,
                                        eval_deadline_s=EVAL_DEADLINE_S)
+            # harness 信号 (issue #80 Step 1): AIME eval_on 已把它聚合成 LAST_HARNESS_AGG,
+            # 这里取出来写进候选分数, 使截断率/干净长度与 delta 同处一个对象 (门控与落盘都可读).
+            from tf_global_v2_aime import LAST_HARNESS_AGG as _HA
+            hagg = dict(_HA or {})
             cl = lcb_score_from_deltas(citem, s0_cache, args.eval_k)[0] if args.select_lcb else bootstrap_ci_lower(citem)
             kind = mutation_kinds[ci_idx] if args.structure_evolution else ""
-            scored.append({"idx": ci_idx, "skill": cand, "hash": md5(cand),
+            scored.append({"idx": ci_idx, "skill": cand, "hash": md5(cand), "per_item": citem,
                            "kind": kind,
-                           "pass": cp, "delta": cd, "ci": cl, "len": len(cand)})
+                           "pass": cp, "delta": cd, "ci": cl, "len": len(cand),
+                           "n_truncated": hagg.get("n_truncated"),
+                           "n_truncated_rate": hagg.get("n_truncated_rate"),
+                           "clean_pass_tokens": hagg.get("clean_pass_tokens"),
+                           "clean_tok_list": hagg.get("clean_tok_list"),
+                           "clean_tok_q50": hagg.get("clean_tok_q50"),
+                           "clean_tok_q90": hagg.get("clean_tok_q90"),
+                           "mean_out_tokens": hagg.get("mean_out_tokens"),
+                           "n_gen_samples": hagg.get("n_gen_samples"),
+                           "per_item_trunc": hagg.get("per_item_trunc")})
             # kind_tag 空 (flag off) 时此行与既有字节一致; 开时加 [structure]/[patch] 标注.
             kind_tag = f" [{kind}]" if kind else ""
-            print(f"  cand{ci_idx}{kind_tag}: delta={cd:+.3f} CI={cl:+.3f} pass={cp:.3f} len={len(cand)} "
+            _tr_s = (" tr=?" if hagg.get("n_truncated_rate") is None
+                     else f" tr={hagg['n_truncated_rate']:.3f}")
+            _ck_s = (" ck=?" if not hagg.get("clean_pass_tokens")
+                     else f" ck={hagg['clean_pass_tokens']:.0f}")
+            print(f"  cand{ci_idx}{kind_tag}: delta={cd:+.3f} CI={cl:+.3f} pass={cp:.3f} len={len(cand)}"
+                  f"{_tr_s}{_ck_s} "
                   f"novel={md5(cand) != current_hash}", flush=True)
 
         # winner 选择: 仅在 novel (hash != current) 且 ci>0 的候选里选 delta 最高.
@@ -4584,6 +5312,15 @@ def main():
                 winner = None
                 reject_reason = "no novel candidate generated (all == current)"
 
+        try:
+            dump_iter_candidates(out_dir, t, current_hash, scored,
+                                 winner["hash"] if winner else None,
+                                 winner.get("kind", "patch") if winner is not None else "",
+                                 reject_reason, focus,
+                                 admissible=None)
+        except Exception as _e:  # noqa: BLE001
+            print(f"   ⚠ dump_iter_candidates: {_e!r}", file=sys.stderr, flush=True)
+
         # winner_kind (前向兼容字段): winner 的变异来源. --structure_evolution 关时为 "patch" (既有路径);
         # 开时为 "patch" 或 "structure". 用于诊断研究主张: 若 structure 占非平凡比例 = 结构是瓶颈.
         winner_kind = winner.get("kind", "patch") if (winner is not None and args.structure_evolution) else "patch"
@@ -4593,6 +5330,33 @@ def main():
         if winner is not None:
             improved = (winner["delta"] > best_val_delta and winner["ci"] > 0
                         and winner["hash"] != current_hash)
+            # 长度轴双门 (issue #69 / #80 Step 3): 默认关, 开时在准确率门之上追加 token 侧约束.
+            if improved and getattr(args, "dual_gate", False):
+                _ok, _why = dual_gate_decision(
+                    winner, best_harness, base_pass, enabled=True,
+                    acc_max_drop=args.acc_max_drop, token_min_drop=args.token_min_drop,
+                    use_token=not args.no_token_gate,
+                    trim=getattr(args, "token_clip_tail", 0.10))
+                print(f"  🚦 dual_gate: {'PASS' if _ok else 'BLOCK'} — {_why}")
+                if not _ok:
+                    improved = False
+                    reject_reason = f"dual_gate blocked: {_why}"
+                    rejected_patches.append(f"iter{t} dual_gate: {_why}")
+            # 防截断门 (issue #81 建议1): 每轮都对"是否把截断搞坏"做一次检验. 与 dual_gate 独立 ——
+            # 前者管"不许退化", 后者管"必须变短 (才给奖励)". 两门都过才 ACCEPT.
+            if improved and getattr(args, "trunc_gate", False):
+                _tok, _tw, _td = trunc_gate_decision(
+                    winner, best_harness, enabled=True,
+                    trunc_max_increase=getattr(args, "trunc_max_increase", 0.01),
+                    paired_max=getattr(args, "trunc_paired_max", 0.25))
+                print(f"  🚧 trunc_gate: {'PASS' if _tok else 'BLOCK'} — {_tw}")
+                if _td:
+                    log.setdefault("trunc_gate", []).append({"iter": t, "ok": bool(_tok),
+                                                             "reason": _tw, **{k: _td[k] for k in _td}})
+                if not _tok:
+                    improved = False
+                    reject_reason = f"trunc_gate blocked: {_tw}"
+                    rejected_patches.append(f"iter{t} trunc_gate: {_tw}")
             if not args.ablate_antideg and winner["pass"] < base_pass - 0.06:
                 print(f"  ⚠️ winner pass {winner['pass']:.3f} << base {base_pass:.3f}, REJECT (LOST risk)")
                 improved = False
@@ -4604,6 +5368,9 @@ def main():
             best_skill = winner["skill"]
             best_val_delta = winner["delta"]
             best_val_ci = winner["ci"]
+            # 长度基准随 best 一起滚动 (issue #80 Step 3): 双门比较的是"相对当前 best 的降幅",
+            # 若不更新, 几轮之后 best 早已变短而门还拿旧基准, 会被轻易放行.
+            best_harness = {k: winner.get(k) for k in _HARNESS_KEEP}
             no_improve = 0
             kind_tag = f" [{winner_kind}]" if args.structure_evolution else ""
             print(f"  ✅ ACCEPT iter{t}: delta={winner['delta']:+.3f} CI={winner['ci']:+.3f} "
@@ -4659,6 +5426,8 @@ def main():
                                     if k == "structure" and md5(c) != current_hash) if args.structure_evolution else 0,
             "reject_reason": reject_reason,
             "best_val_delta": round(best_val_delta, 4), "best_val_ci": round(best_val_ci, 4),
+            # issue #80 Step 3: 每轮记录当前长度基准, 便于回放"若开双门会拦哪一轮"
+            "best_harness": dict(best_harness),
             "improved": improved, "no_improve": no_improve, "consolidated": consolidated,
             # 两段式兜底诊断 (用户指令 2026-10-09): 哪轮触发哪段 + 当轮 gate 放宽幅度.
             # flag off 时全为 False/0.0, 零回归.
@@ -4698,6 +5467,9 @@ def main():
     with open(os.path.join(out_dir, "best_skill_evolved.md"), "w", encoding="utf-8") as f:
         f.write(best_skill)
     json.dump(log, open(os.path.join(out_dir, "evolver_log.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    dump_rejected_patches(out_dir, rejected_patches, args)
+    _write_manifest(out_dir, args, init_skill, best_skill, base_delta, best_val_delta, best_val_ci)
+    build_analysis(out_dir)
 
     final_hash = md5(best_skill)
     init_hash = md5(init_skill)
@@ -4709,8 +5481,8 @@ def main():
     else:
         print(f"   ✅ 产物已改动 (hash 不同), 可进 test 复评.")
     print(f"   产出: {out_dir}/best_skill_evolved.md")
-    print(f"   评测 test=106: cd /data/zhuldz/lunwen && python rl/train/verl1/eval_test_multiseed.py "
-          f"--skills s0,evolver --evolver_best {out_dir}/best_skill_evolved.md --eval_k 3 --seeds 2")
+    print(f"   评测: python eval_aime24_multiseed.py --skills s0,{out_dir}/best_skill_evolved.md --eval_k 3 --seeds 3")
+    print(f"         python eval_aime25_multiseed.py --skills s0,{out_dir}/best_skill_evolved.md --eval_k 3 --seeds 3")
 
 
 if __name__ == "__main__":

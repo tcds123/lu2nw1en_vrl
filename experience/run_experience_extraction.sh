@@ -2,7 +2,7 @@
 set -e
 set -x
 
-echo "Starting Experience Extraction from GRPO trace logs (v3: cross-problem generalization)..."
+echo "Starting Experience Extraction from trace logs (v3: cross-problem generalization)... (Phase 1 entry point, archived)"
 
 export PYTHONPATH="$PYTHONPATH:/data/zhuldz/lunwen:/data/zhuldz/lunwen/generation:/data/zhuldz/lunwen/judge:/data/zhuldz/lunwen/rl/train/verl:/data/zhuldz/lunwen/rl/train/verl1"
 unset http_proxy

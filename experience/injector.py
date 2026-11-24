@@ -1,6 +1,6 @@
 """
-经验注入器 — 将蒸馏出的经验指南注入 A 模型的输入 prompt
-控制 token 预算，确保不超出 A 模型的上下文窗口 (4096 tokens)
+经验注入器 — 将蒸馏出的经验指南注入 evolver 的输入 prompt
+控制 token 预算，确保不超出上下文窗口
 """
 
 import os

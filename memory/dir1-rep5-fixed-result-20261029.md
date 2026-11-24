@@ -62,7 +62,7 @@ donors 空且 best_node 无 carry-forward 段时 overlay 重建的 skill 与 par
 2. **iter1/iter2 expand 各有 7 对因 cand 侧超时被剔除**; iter1 的 expand delta 在补全后从 +0.025 变 +0.004 (排序翻转) — 部分采样时的 Δ 不稳定, 不要中途读。
 3. `eval_audit.jsonl` **只记 main 侧 `eval_on` 的 8 条 abandoned**, `eval_paired` 里 drop 的 pair (iter2 的 13 + 两次 expand 的 7) **没有进审计文件**, 只有日志行。判据①依赖的 "audit 可核验" 因此只对 main 路径成立 → 记 **问题 #17**。
 4. 吞吐: 实测 ~1h/iter (理论 ~4 item/min @28RPM 的 1/4), 主要是长补全 + 重试; 本 run 未改任何变量。
-   ⚠️ **cap 口径事实修正 (2026-10-30, issue #18)**: launch 脚本 `export QWEN_CHAT_MAX_TOKENS=16384` 是对的, 但 **AIME evolver in-sample 评测全程实际跑在 4096** —— `tf_global_v2_aime.py:run_one` L119 硬编码 `max_completion_tokens=4096`, env 的 16384 被显式实参覆盖, F7 修复(在 `tf_global_v2_math.py:47` math 通用层)因 AIME evolver 导入 `tf_global_v2_aime` 而根本没加载。最长 response=16501 chars 卡在 4096 硬上限签名, 尾部被从句子切断。**但对本 run +0.044 结论无影响**: cand/base 长度无系统差异(7657/7666), 长样本 score=0 双向(116/146), 截断在 delta 里对称抵消 → +0.044 非截断假信号。详见 `docs/phase2_issues.md` #18 + [[f7-run-one-hardcoded-4096-20261030]]。
+   ⚠️ **cap 口径事实修正 (2026-10-30, issue #18; 2026-11-02 机制修订: setdefault 实际执行但被 run_one L119 显式实参覆盖)**: launch 脚本 `export QWEN_CHAT_MAX_TOKENS=16384` 是对的, 但 **AIME evolver in-sample 评测全程实际跑在 4096** —— `tf_global_v2_aime.py:run_one` L119 硬编码 `max_completion_tokens=4096`, env 的 16384 被显式实参覆盖, F7 修复(在 `tf_global_v2_math.py:47` math 通用层)因 AIME evolver 导入 `tf_global_v2_aime` 而根本没加载。最长 response=16501 chars 卡在 4096 硬上限签名, 尾部被从句子切断。**但对本 run +0.044 结论无影响**: cand/base 长度无系统差异(7657/7666), 长样本 score=0 双向(116/146), 截断在 delta 里对称抵消 → +0.044 非截断假信号。详见 `docs/phase2_issues.md` #18 + [[f7-run-one-hardcoded-4096-20261030]]。
 
 ## 结论 / 下一步
 

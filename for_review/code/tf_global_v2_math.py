@@ -28,23 +28,10 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as _FuturesTimeoutError
 from datetime import datetime
 
-_SKILLOPT = "/data/zhuldz/skillopt"
-if _SKILLOPT not in sys.path:
-    sys.path.insert(0, _SKILLOPT)
-_LUNWEN = "/data/zhuldz/lunwen"
-if _LUNWEN not in sys.path:
-    sys.path.insert(0, _LUNWEN)
-
-os.environ.setdefault("TARGET_BACKEND", "qwen_chat")
-os.environ.setdefault("OPTIMIZER_BACKEND", "qwen_chat")
-os.environ.setdefault("QWEN_CHAT_API_KEY", os.environ.get("QWEN_CHAT_API_KEY", ""))
-os.environ.setdefault("QWEN_CHAT_BASE_URL", "https://aimpapi.midea.com/t-aigc/aimp-deepseek/v1")
-os.environ.setdefault("QWEN_CHAT_MODEL", "/model/DeepSeek-V3.2")
-os.environ.setdefault("QWEN_CHAT_AIGC_USER", "zhuldz")
-os.environ.setdefault("QWEN_CHAT_MAX_TOKENS", "4096")
-os.environ.setdefault("QWEN_CHAT_TEMPERATURE", "0.0")
-os.environ.setdefault("QWEN_CHAT_MAX_RPM", "28")
-os.environ.setdefault("QWEN_CHAT_BURST", "2")
+_HERE = os.path.dirname(os.path.abspath(__file__))
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
+import _env  # noqa: E402,F401  (standalone: 路径锚定 + .env/API key 加载 + QWEN_CHAT_* 缺省; 必须在后端 import 之前)
 
 from skillopt.envs.livemathematicianbench.rollout import _build_system, _build_user  # noqa: E402
 from skillopt.envs.livemathematicianbench.evaluator import evaluate as math_evaluate  # noqa: E402
@@ -63,6 +50,9 @@ GEN_TEMP = 0.8
 EVAL_TEMP = 0.3
 
 
+# B 模型单次输出上限 (含 reasoning_content). deepseek-v4-flash 思考长, 4096 会被 length 截断成空 content.
+TARGET_MAX_TOKENS = int(os.environ.get("B_MAX_COMPLETION_TOKENS", "16384"))
+
 def set_temp(t):
     """设定 B 模型当前采样温度 (写 TARGET_CONFIG.temperature). 加锁防阶段切换瞬间竞态."""
     with _TEMP_LOCK:
@@ -72,9 +62,10 @@ from experience.templates_math import (  # noqa: E402
     FAILURE_MODE_TEMPLATE, FAILURE_MERGE_TEMPLATE, COMPOSE_APPEND_TEMPLATE,
 )
 
-S0_DEFAULT = "/data/zhuldz/skillopt/skillopt/envs/livemathematicianbench/skills/initial.md"
-SPLIT_DEFAULT = "/data/zhuldz/skillopt/outputs/full_seed_0724/_generated_splits/livemathematicianbench_2-1-7_seed42"
-OUT_DIR = "/data/zhuldz/lunwen/rl/train/verl1/outputs/tf_skill_math_v2"
+# 以下三个默认值只服务 LiveMath 选择题线 (本包主链路 AIME 不走); 保留仅为兼容 import.
+S0_DEFAULT = os.path.join(_env.CODE_DIR, "skillopt", "skillopt", "envs", "livemathematicianbench", "skills", "initial.md")
+SPLIT_DEFAULT = os.path.join(_env.DATA_DIR, "livemathematicianbench_2-1-7_seed42")
+OUT_DIR = os.path.join(_env.OUTPUTS_DIR, "tf_skill_math_v2")
 
 # meta 选项判定文本 (与 eval_test_multiseed_shuffle.py 一致).
 # Phase A shuffle verdict 证明: skill 的增益集中在 meta 题 (meta 规则 shuffle-invariant 合法),
@@ -148,6 +139,32 @@ def extract_experiences(text: str) -> str:
 # ===================================================================
 # B 模型生成 + 验证 (保留 response 文本用于失败模式诊断)
 # ===================================================================
+def call_b(system: str, user: str, *, stage: str, retries: int = 5, max_tokens: int | None = None) -> dict:
+    """B 模型单次调用的统一入口 (过程日志用): 返回 content + 本次调用的元信息.
+    截断保护: 首次立即用大预算 (默认 max(max_tokens, 16384)); 若 finish_reason=='length',
+    且重试预算不超过 B_HARD_MAX_TOKENS 与模型上限, 2x 扩预算重试 (至多 B_MAX_RETRY_ON_TRUNC 次).
+    这样「截断」会被显式记录 (n_truncated) 而不是静默变成 pass=0."""
+    from skillopt.model import qwen_backend as _qb  # 运行期解析: 统一入口按 TARGET_BACKEND 分发
+    chat_target, get_last_call_meta, TARGET_CONFIG = _qb.chat_target, _qb.get_last_call_meta, _qb.TARGET_CONFIG
+    hard = min(int(os.environ.get("B_HARD_MAX_TOKENS", "49152")), getattr(TARGET_CONFIG, "max_tokens", 16384) or 49152)
+    n_retry = int(os.environ.get("B_MAX_RETRY_ON_TRUNC", "2"))
+    mt = max(int(max_tokens or 0), TARGET_MAX_TOKENS)
+    trunc = 0
+    t0 = time.time()
+    while True:
+        resp, usage = chat_target(system=system, user=user, max_completion_tokens=mt,
+                                  retries=retries, stage=stage, timeout=300)
+        meta = get_last_call_meta()
+        if meta.get("finish_reason") != "length" or trunc >= n_retry or mt * 2 > hard:
+            break
+        trunc += 1
+        mt = min(mt * 2, hard)
+    fr = meta.get("finish_reason")
+    return {"response": resp, "usage": usage, "finish_reason": fr, "truncated": fr == "length",
+            "n_truncated": trunc + (1 if fr == "length" else 0), "max_tokens_used": mt,
+            "reasoning_chars": meta.get("reasoning_chars"), "dt": round(time.time() - t0, 2)}
+
+
 def run_one(item: dict, skill_content: str, stage: str = "tf_v2_b", k: int = 1,
             retries: int = 2) -> dict:
     """对单题用 skill 评测 k 次 (采样温度由调用方 set_temp 设定), 返回连续 pass_rate = 通过次数/k.
@@ -163,16 +180,31 @@ def run_one(item: dict, skill_content: str, stage: str = "tf_v2_b", k: int = 1,
     n_pass = 0
     last_ev = None
     last_resp = ""
+    samples = []  # 每次采样明细 (pred/em/fail_type), 写入 trace/eval 产物, 便于区分 答错/空回复/抽取失败/异常
     for _ in range(max(1, k)):
         try:
-            response, _ = chat_target(system=system, user=user, max_completion_tokens=4096,
-                                      retries=retries, stage=stage, timeout=300)
+            _r = call_b(system, user, stage=stage, retries=retries)
+            response = _r["response"]
             ev = math_evaluate(response, item["correct_choice"], item["choices"])
             last_ev, last_resp = ev, response
             if ev["em"]:
                 n_pass += 1
+            samples.append({"pred": ev.get("predicted_label", ev.get("predicted_answer")), "em": ev["em"],
+                            "chars": len(response), "finish_reason": _r["finish_reason"],
+                            "truncated": _r["truncated"], "reasoning_chars": _r["reasoning_chars"],
+                            "prompt_tokens": (_r["usage"] or {}).get("prompt_tokens"),
+                            "completion_tokens": (_r["usage"] or {}).get("completion_tokens"),
+                            "dt": _r["dt"],
+                            "fail_type": "" if ev["em"] else (
+                                "truncated" if _r["truncated"] else
+                                "empty_response" if not response.strip() else
+                                "no_answer_extracted" if not ev.get("predicted_label", ev.get("predicted_answer")) else
+                                "wrong_answer")})
         except Exception as e:
             res["fail_reason"] = f"exception: {e!r}"
+            samples.append({"pred": None, "em": 0, "chars": 0, "fail_type": "exception",
+                            "error": repr(e)[:300]})
+    res["samples"] = samples
     if last_ev is not None:
         res.update({"pass_rate": n_pass / max(1, k), "agent_ok": True,
                     "response": last_resp,
@@ -514,14 +546,65 @@ def beta_binomial_lcb(counts, q=0.25):
     悲观通过率估计; 全部题下分位的算术均值 = 该 skill 的 LCB. 相比 bootstrap_ci_lower (在小样本
     上过窄、低估方差), Beta 后验分位在 n 小时自然收缩到先验 0.5, 抑制赢家诅咒 (val→test 负迁移根因①).
     返回 (lcb_mean, per_item_lcb): lcb_mean 为标量分数 (如 ci>0 门控), per_item_lcb {qid: q分位}."""
-    import scipy.stats as _st
     per = {}
     for qid, (k_, n_) in counts.items():
         k_ = int(k_); n_ = max(1, int(n_))
-        per[qid] = float(_st.beta.ppf(q, 0.5 + k_, 0.5 + n_ - k_))
+        per[qid] = float(_beta_ppf(q, 0.5 + k_, 0.5 + n_ - k_))
     if not per:
         return 0.0, per
     return float(sum(per.values()) / len(per)), per
+
+
+def _betacf(a, b, x, max_iter, eps):
+    """不完全 Beta 的连分式 (Lentz 算法), 参考 Numerical Recipes betacf."""
+    tiny = 1e-300
+    qab, qap, qam = a + b, a + 1.0, a - 1.0
+    c, d = 1.0, 1.0 - qab * x / qap
+    d = 1.0 / (d if abs(d) > tiny else tiny)
+    h = d
+    for m in range(1, max_iter + 1):
+        m2 = 2 * m
+        aa = m * (b - m) * x / ((qam + m2) * (a + m2))
+        d = 1.0 + aa * d; d = 1.0 / (d if abs(d) > tiny else tiny)
+        c = 1.0 + aa / c; c = c if abs(c) > tiny else tiny
+        h *= d * c
+        aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2))
+        d = 1.0 + aa * d; d = 1.0 / (d if abs(d) > tiny else tiny)
+        c = 1.0 + aa / c; c = c if abs(c) > tiny else tiny
+        delta = d * c
+        h *= delta
+        if abs(delta - 1.0) < eps:
+            break
+    return h
+
+
+def _betainc(a, b, x, max_iter=5000, eps=1e-15):
+    """正则化不完全 Beta 函数 I_x(a,b) (纯 stdlib math, 与 scipy.special.betainc 一致)."""
+    import math
+
+    if x <= 0.0:
+        return 0.0
+    if x >= 1.0:
+        return 1.0
+    ln_bt = (math.lgamma(a + b) - math.lgamma(a) - math.lgamma(b)
+             + a * math.log(x) + b * math.log1p(-x))
+    bt = math.exp(ln_bt)
+    if x < (a + 1.0) / (a + b + 2.0):
+        return bt * _betacf(a, b, x, max_iter, eps) / a
+    return 1.0 - bt * _betacf(b, a, 1.0 - x, max_iter, eps) / b
+
+
+def _beta_ppf(q, a, b, iters=200):
+    """scipy.stats.beta.ppf(q, a, b) 替代: 对 I_x(a,b) 二分反解 (a,b>0.5 时 CDF 单调).
+    这样交付包只依赖 numpy, 不需要 scipy (>=30MB). 精度: run_units.sh 对照 scipy 校验 (<1e-5)."""
+    lo, hi = 0.0, 1.0
+    for _ in range(iters):
+        mid = (lo + hi) / 2.0
+        if _betainc(a, b, mid) < q:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2.0
 
 
 def bootstrap_ci_lower(per_item_deltas, n_boot=1000):
@@ -571,10 +654,12 @@ def build_cache_manifest(skill_content, k, eval_temp, shuffle_seed, items,
     qids = sorted(str(it["id"]) for it in items)
     split_hash = md5(json.dumps(qids, ensure_ascii=False)) if qids else ""
     # 选项排列 hash: 若 shuffle_seed 变了, gold/选项位置变了, cache 必须失效.
+    # issue #53 追加8: 数值题 (AIME 等) 无 correct_choice/choices → 退化为题号 hash, 而不是 KeyError
+    # (原先 KeyError 让 AIME evolver 的 s0_cache 永远写不出 manifest → 每次静默重算 S₀).
     choice_hash = md5(json.dumps(
         [{"id": str(it["id"]),
-          "gold": str(it["correct_choice"]["label"]),
-          "choices": [c["text"] for c in it["choices"]]}
+          "gold": str((it.get("correct_choice") or {}).get("label", "")),
+          "choices": [c.get("text", "") for c in (it.get("choices") or [])]}
          for it in items], ensure_ascii=False))
     return {
         "k": int(k),
@@ -763,7 +848,7 @@ def main():
     print(f"\n{'='*50}\n✅ Done. best_val_delta={best_val_delta:+.3f} (baseline {base_delta:+.3f}) | "
           f"主指标 best 非 meta delta={best_other_delta:+.3f}")
     print(f"   产出: {out_dir}/tf_global_skill_v2_math.md")
-    print(f"   评测 test=124: cd /data/zhuldz/skillopt && bash run_midea.sh evalskill {out_dir}/tf_global_skill_v2_math.md")
+    print(f"   评测: python eval_aime24_multiseed.py --skills <s0>,{out_dir}/tf_global_skill_v2_math.md")
     if best_other_delta <= 0:
         print(f"   ⚠ 主指标 (非 meta delta) ≤ 0: skill 未在非 meta 题上取得真算法增益, "
               f"若 best_val_delta>0 来自 meta 规则 (合法但非新能力).")

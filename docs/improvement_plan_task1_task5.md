@@ -13,10 +13,10 @@
 
 ## 背景
 
-基于对当前 lunwen 系统（Phase 2 Context Curator）的深入分析和对 reference.md 中 12 种前沿技能优化方法的调研，本文档提出针对两个关键任务的综合改进方案：
+基于对当前 lunwen 系统（Context Curator）的深入分析和 skill 优化方法的调研，本文档提出针对两个关键任务的综合改进方案：
 
-- **Task #1 (原 #7)**: 提升 Skill 触发词质量
-- **Task #5**: 给 B 加上 python executor tool 实现 self-debug
+- **Task #1**: 提升 Skill 触发词质量
+- **Task #5**: 给推理模型加上 python executor tool 实现 self-debug
 
 ---
 

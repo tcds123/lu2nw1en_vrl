@@ -58,3 +58,16 @@
 - [[dir1-rep5-fixed-launch-20261029]] — cap 16384 口径 (env 层对, 但被 L119 覆盖)
 - [[f7-16384-baseline-result-20261021]] — held-out 侧 F7 确生效 (与本条 in-sample 4096 互补)
 - [[measurement-calibration-1a-20261028]] — 检出下限 +0.10
+
+## 修订 (2026-11-02): 机制修正 + cap 判定定案
+
+1. **"F7 修复没被加载" 不成立**: `skill_evolver_aime_v2.py:64` 直接导入 `tf_global_v2_math`, L47 的 setdefault 必跑;
+   但 launch 已 export 16384 → setdefault 是 no-op → 生效值来自 `run_one` L119 的显式实参 4096。
+   结论方向不变, 机制从"未加载"改为"被显式实参覆盖"。
+2. **cap=4096 的判据改为分布密度**: max=16501 不能区分 4096/16384 (16384 tok 也该允许 ~65k chars);
+   决定性的是 ">16380 chars 只有 1/9607 条、p99=14739、270 条长样本是长尾非堆积"。V3.2 base 4800 条同样形态
+   (mean 7666, >14000 占 3.1%)。**判定成立, 但仍缺 finish_reason 硬证据。**
+3. **cap 隔离已实现**: `eva/crossmodel_flash_baseline.py --isolate_max_tokens` 进程内替换 co_consts (不改文件)。
+   正式修法 (改 L119 读 env) 仍未做。
+
+详见 `docs/phase2_issues.md` #18 修订节。

@@ -1,0 +1,22 @@
+# ── AIME skill 自进化: 运行依赖 (已固定为本项目实际跑通的版本) ──────────────────
+# 参考环境: Linux x86_64, Python 3.10.12, pip install -r requirements.txt
+#
+# 依赖来源说明 (为什么是这几个):
+#   1. numpy            — 进化器 facet 评分 / 统计
+#   2. openai + pydantic+ httpx — skillopt.model.router 会 `from . import azure_openai`,
+#                         azure_openai 顶层 `from openai import AzureOpenAI` → 即使用 qwen_chat
+#                         (纯 urllib) 后端, import 阶段也必须有 openai 包
+#   3. PyYAML           — skillopt/config.py (可选路径, 装上无害)
+#   4. tqdm / requests  — 日志与 http 便捷工具 (代码里有 import, 保证不缺包)
+#
+# 注意: scipy 已**不需要**. Beta-Binomial LCB 的后验分位由 code/tf_global_v2_math.py
+#       中的纯 stdlib 实现 `_beta_ppf` 计算 (与 scipy.stats.beta.ppf 误差 <1e-12,
+#       run_units.sh 自动对照). 如果要跑 `--select_lcb` 也不需要额外包.
+
+numpy==1.26.4
+openai==2.44.0
+pydantic==2.13.4
+httpx==0.28.1
+PyYAML==6.0.3
+tqdm==4.67.0
+requests==2.32.3

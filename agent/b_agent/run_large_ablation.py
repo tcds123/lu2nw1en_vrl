@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 """
-大规模消融实验 — 单文件独立运行，减少依赖复杂度
+大规模消融实验 — 单文件独立运行
 
 对比:
   A. Baseline (NO skills)
-  B. Curated skills (Phase 2: 关键词检索 top-k)
+  B. Curated skills (关键词检索 top-k)
 
 实验设计:
-  - N 条任务 (默认 100), 从训练池随机采样
-  - 固定 system_prompt (一个好 A 模型输出的示例)
+  - N 条任务, 从训练池随机采样
+  - 固定 system_prompt
   - 两组用相同 task + prompt, 只改 skill 注入方式
   - 客观指标: pass_rate (单元测试通过率)
-  - 主观指标: C 模型评判分 (可选, --no_c_judge 跳过)
   - 输出: 统计对比 + 详细 JSON
 
 使用:

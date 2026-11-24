@@ -1,0 +1,65 @@
+# models_aimp.yaml — 跨模型评测专用模型配置 (Midea AIMP 网关)
+#
+# 来源: SmartPad/evaluation/cc_switch_compare/config/models_aimp.yaml (2026-07-21)
+# 迁入 lunwen: 2026-10-30, 用于跨模型 skill 评测 (A→B→C 线的 B/C 模型切换对比)。
+#
+# 🔑 密钥安全: 本文件已脱敏, api_key 从环境变量读取, 不写入仓库。
+#   本地跑评测: 复制 configs/.env.example -> .env, 填入真实 key, set -a; source .env; set +a
+#   (或直接 export 三个 env 变量: AIMP_KEY_FLASH / AIMP_KEY_PRO / AIMP_KEY_GLM)
+#
+# 三个模型 (均经 Midea AIGC 网关 aimpapi.midea.com):
+#   deepseek-v4-flash / deepseek-v4-pro → llm-openai-api (OpenAI 兼容), api=openai-completions
+#   glm-5.2 → aimp-glm (AIMP 专有, 需 AIGC-USER header), api=aimp
+#
+# 写法遵循 SDK model_registry 的 provider-as-model 简写:
+#   - provider 名 = 模型唯一标识 = 选择名
+#   - api: aimp            → AIMP 专有端点 (带 AIGC-USER header, 用 AimpProvider)
+#   - api: openai-completions → OpenAI 兼容端点 (用 ChatOpenAI, base_url 为 OpenAI 根)
+#
+# 字段说明 (model_registry 白名单 _PROVIDER_FIELDS):
+#   api          → aimp / openai-completions / anthropic-messages
+#   api_key      → Authorization: Bearer <api_key>
+#   base_url     → OpenAI client 根, 自动拼 /chat/completions
+#   model        → 请求体 model 字段
+#   extra_body   → 透传到请求 body (thinking / chat_template_kwargs 等)
+#   max_output   → 映射为请求 max_tokens (对应 cc-switch 的 maxTokens)
+#   max_context  → 写入模型 metadata, 用于 registry 算上下文窗口 (对应 contextLength)
+# 注意: 白名单外的字段名 (如 maxTokens/contextLength/modelName/adapt) 会被
+#       model_registry 拒绝 (unknown field), 不要用 cc-switch 的 JSON schema。
+
+providers:
+  # ---- deepseek-v4-flash (OpenAI 兼容端点) ----
+  deepseek-v4-flash:
+    api: openai-completions
+    api_key: ${AIMP_KEY_FLASH}
+    base_url: "https://aimpapi.midea.com/t-aigc/llm-openai-api"
+    model: deepseek-v4-flash
+    max_output: 32000
+    max_context: 128000
+    extra_body:
+      thinking: {type: disabled}
+
+  # ---- deepseek-v4-pro (OpenAI 兼容端点) ----
+  deepseek-v4-pro:
+    api: openai-completions
+    api_key: ${AIMP_KEY_PRO}
+    base_url: "https://aimpapi.midea.com/t-aigc/llm-openai-api"
+    model: deepseek-v4-pro
+    max_output: 32000
+    max_context: 128000
+    extra_body:
+      thinking: {type: disabled}
+
+  # ---- glm-5.2 (AIMP 专有端点, 需 AIGC-USER header) ----
+  # base_url 给到 /v1 (OpenAI client 自动拼 /chat/completions)
+  # max_context 按文档理论上限 202752 (输入+输出 Token 合计); 不设 max_output,
+  # 用模型默认输出上限, 避免把「输入+输出合计」误当单次输出 max_tokens。
+  glm-5.2:
+    api: aimp
+    api_key: ${AIMP_KEY_GLM}
+    base_url: "https://aimpapi.midea.com/t-aigc/aimp-glm/v1"
+    model: glm-5.2
+    max_context: 202752
+    extra_body:
+      chat_template_kwargs: {thinking: false}
+      separate_reasoning: true

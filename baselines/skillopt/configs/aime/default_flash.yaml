@@ -1,0 +1,62 @@
+_base_: ../_base_/default.yaml
+
+# ── Backend: deepseek-v4-flash via qwen_chat (跨模型阶段②: flash 上重跑 SkillOpt) ──
+# 与 default.yaml (V3.2) 的唯一差异: model.* 改 flash, 两处 cap 提到 16384.
+# cap 决策 (#26/#29, docs/phase2_issues.md): flash 把 CoT 写进 content, 硬题 CoT 很长
+# (实测 AIME62 完整需 13207 completion tok). cap 8192 → finish=length → <answer> 未达 → pass=0;
+# thinking=disabled 非有效兜底 (关了输出仍长). 故 cap 必须 16384 (= evolver 同口径).
+# enable_thinking=false 时 qwen_backend 不发 extra_body (qwen_backend.py:294-295), 无需改后端.
+# cap 链路: env.max_completion_tokens → adapter → rollout → chat_target(max_completion_tokens);
+# config.max_tokens ← model.qwen_chat_max_tokens; 后端 token_limit = min(两者) = min(16384,16384).
+model:
+  backend: qwen_chat
+  optimizer: deepseek-v4-flash
+  target: deepseek-v4-flash
+  optimizer_backend: qwen_chat
+  target_backend: qwen_chat
+  reasoning_effort: ""
+  qwen_chat_temperature: "0.0"
+  qwen_chat_max_tokens: "16384"
+  qwen_chat_enable_thinking: "false"
+  qwen_chat_timeout_seconds: 600
+
+train:
+  train_size: 0
+  # 30-item AIME24 → 6:2:2 = 18 train / 6 val / 6 internal-test (gate).
+  batch_size: 6
+  accumulation: 1
+  num_epochs: 8
+  seed: 42
+
+gradient:
+  minibatch_size: 6
+  merge_batch_size: 6
+  analyst_workers: 8
+  max_analyst_rounds: 3
+  failure_only: false
+
+optimizer:
+  learning_rate: 4
+  skill_update_mode: patch
+  use_slow_update: true
+  slow_update_samples: 12
+
+evaluation:
+  use_gate: true
+  sel_env_num: 0
+  test_env_num: 0
+  eval_test: true
+
+env:
+  name: aime
+  skill_init: skillopt/envs/aime/skills/initial.md
+  split_mode: ratio
+  split_ratio: "6:2:2"
+  split_seed: 42
+  data_path: /data/zhuldz/lunwen/data/aime24.jsonl
+  split_output_dir: ""
+  max_turns: 1
+  max_completion_tokens: 16384   # #26/#29: flash 硬题需 ~13k completion tok, 8192 截断
+  exec_timeout: 600
+  workers: 8
+  limit: 0

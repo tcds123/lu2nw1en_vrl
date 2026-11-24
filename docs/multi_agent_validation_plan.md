@@ -2,7 +2,7 @@
 
 > 创建时间：2026-07-13
 > 对应导师建议：组会建议 #2「多 agent 验证泛用性」(见 `memory/advisor-feedback-20260713.md`)
-> 核心目标：证明我们的 skill 优化方法不依赖 BAgent 的特定实现，可迁移到任意支持 system-prompt / instruction 注入的 agent 框架
+> 核心目标：证明我们的 skill 优化方法不依赖特定实现，可迁移到任意支持 system-prompt / instruction 注入的 agent 框架 (Phase 1 文档, 已归档)
 
 ---
 

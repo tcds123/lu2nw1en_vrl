@@ -91,6 +91,18 @@ QWEN_CHAT_MODEL=deepseek-v4-flash                                    # V3.2 是 
 
 **dry-run 建议**: 1 题 k=1, 走完整 `run_one` (build_system/user → chat_target → evaluate_aime EM 解析), 确认链路通 + 无字段报错, 再谈全量。
 
+## Dry-run 结果 (2026-11-02, ✅ 链路通)
+
+`eva/dryrun_flash.py` 跑 aime24:74 (answer=480, V3.2 历史答对) 1 题 k=1, 走完整 `run_one`:
+- `pass_rate=1.0`, `agent_ok=True`, `n_error=0` → 链路无异常
+- `predicted='480'=correct` → flash 答对 (与 V3.2 一致)
+- 25.9s (smoke 17.4s 是简单 PONG; AIME 长 prompt+完整推理更长, 但远低于 300s timeout, 无截断)
+- response 正常 step-by-step 推理, `thinking` 字段兼容 (qwen_backend 发 `chat_template_kwargs.enable_thinking` 被 flash 忽略, 无报错)
+
+**两个风险全部排除**: ① thinking 字段兼容 ✅ ② 长 prompt timeout ✅ (25.9s)。
+**flash 接入 env 确认可用**: `QWEN_CHAT_MODEL=deepseek-v4-flash` / `QWEN_CHAT_BASE_URL=.../llm-openai-api` / `QWEN_CHAT_API_KEY=<flash>` (不设 AIGC-USER, flash openai-compat 不需要)。
+**全量规模**: ~280 请求 ~1.5-2h, flash rate limit 未知 → dryrun 脚本设了 `QWEN_CHAT_MAX_RPM=20` (V3.2 默认 28, 保守)。
+
 ## 关联
 
 - [[skillopt-baseline-migration-20261030]] — 同期 baseline 迁移

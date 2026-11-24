@@ -2,7 +2,7 @@
 
 > 日期：2026-07-24
 > 范围：`agent/b_agent/` 核心四件套 `core.py` / `context.py` / `skills.py` / `memory.py`，以及 `trigger_generator.py`、与训练线的接口
-> 目的：理清"代码实际怎么跑的"，区别于 `ARCHITECTURE.md` 的设计愿景。为把 BAgent 切到数学 bench 做准备。
+> 目的：理清"代码实际怎么跑的"，区别于 `ARCHITECTURE.md` 的设计愿景。为把 BAgent 切到 AIME 数学 bench 做准备。
 
 ---
 

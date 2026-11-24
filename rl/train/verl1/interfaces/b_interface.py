@@ -1,5 +1,5 @@
 """
-B 模型接口 — 统一使用 API 调用 Qwen2.5-72B-Instruct
+B 接口 — 推理模型 API 调用封装 (legacy, 被 BAgent 取代, 保留为 fallback)
 不再支持本地加载小模型
 """
 

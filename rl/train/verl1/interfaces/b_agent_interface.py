@@ -1,19 +1,7 @@
 """
-Phase 2 - BAgent 接口包装器
+BAgent 接口包装器
 
-将 agent/b_agent/ 的 BAgent 包装为与现有 b_model_api 兼容的接口，
-使 custom_reward.py 可以无缝切换到 BAgent (带 skill curation 和 context curation)。
-
-关键差异:
-  旧: B(72B) API 直接调用，只用 system_prompt + user_query
-  新: BAgent(72B) ReAct + skill curation，用 A 的 system_prompt 作为额外的 context 注入
-
-Step 1 (2026-07-13): 检索机制对齐 Trace2Skill
-  - 从 retrieve(top_k=5)+format_for_context 改为 format_all_active_for_context()
-    (全量 compact 注入 + B 自主判断)
-  - 显式补上 Meta-Skill 引导语 (b_agent_interface 绕过 context.build(), 不补则会丢失
-    Step 1b 的"选择性忽略"指令, 导致训练路径与 BAgent 路径不一致)
-  - skills_used 记录实际注入的 skill 子集 (非 402 全量), 供 Step 2 ATE 归因
+将 agent/b_agent/ 的 BAgent 包装为评测兼容接口，使 custom_reward.py 可以调用 BAgent (带 skill curation 和 context curation)。
 """
 
 import sys

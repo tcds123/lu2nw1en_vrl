@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-经验注入脚本: 将 experience_pool.json 中的经验指南注入到 A 模型训练数据的 prompt 中
+经验注入脚本: 将 experience_pool.json 中的经验指南注入到训练数据的 prompt 中 (Phase 1 入口, 已归档)
 
 用法:
   python inject_experiences.py \

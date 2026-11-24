@@ -1,8 +1,8 @@
 """
-EvalPlus 评估脚本 (支持三种提示词来源):
+EvalPlus 评估脚本 (支持多种提示词来源):
   --prompt_source baseline    : 硬编码通用提示词 (原始)
-  --prompt_source experiences : 经验池直接注入 B 模型 system prompt
-  --prompt_source a_model     : A模型+经验 → 为每道题生成定制系统提示词 → B模型
+  --prompt_source experiences : 经验池直接注入 system prompt
+  --prompt_source a_model     : 经验模型 → 为每道题生成定制系统提示词 → 推理模型 (Phase 1 入口, 已归档)
 
 用法:
   cd /data/zhuldz/lunwen && source ./lunwen/bin/activate

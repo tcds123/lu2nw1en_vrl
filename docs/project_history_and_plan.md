@@ -1,7 +1,7 @@
 # lunwen 项目历史与未来规划（汇报版）
 
 > 更新日期：2026-08-05 ｜
-> 一句话定位：**Training-Free GRPO + Prompt/Skill 优化融合方案**，核心流水线 A(生成 prompt/skill) -> B(生成代码/解答) -> C(评判打分) -> 奖励驱动 A 更新。研究方向已从「参数空间优化」转向「上下文空间进化」。
+> 一句话定位：**Skill 自进化框架**，核心流水线 evolver 产出 skill -> skill 作为 system prompt 被推理模型消费 -> 评测打分 -> 反馈驱动下一轮进化。研究方向：上下文空间进化。
 >
 > **本文档读法**：第 0–6 节为**汇报用的现状与设计**（自顶向下读完即可汇报）；附录 A 为**按时间线保留的详细过程记录**（含每次反转的根因与 bug 修复，供溯源）；附录 B 为关键文件索引。
 
@@ -10,12 +10,13 @@
 ## 0. 项目骨架
 
 ```
-A (Qwen3-4B, GRPO训练) -> 系统提示词/Skill -> B (DeepSeek-V3.2 API, 冻结) -> 代码/解答 -> C (DeepSeek-V4-Flash, 冻结) -> 评分+单测 -> GRPO更新A
+evolver (tf_global_v2_aime.py) -> skill 文件 -> 推理模型 (DeepSeek-V3.2 API) -> 评测 (pass rate + bootstrap CI) -> 反馈 -> 下一轮进化
 ```
 
-- A 模型：Qwen3-4B-Instruct-2507，verl 框架，8 GPU；输入 问题+参考解+ICL -> 输出系统提示词/Skill
-- B 模型：DeepSeek-V3.2 API 单次生成（Phase 2 升级为 BAgent 自进化框架；当前主线数学域用单次生成 + skill 注入）
-- C 模型：DeepSeek-V4-Flash 评判 + 单测执行；奖励 = 70% 单测/答案通过率 + 30% LLM 评判
+- Evolver: facet_tree 驱动，多算子（expand/overlay/strengthen/facet_edit/crossover），dual_gate 门控
+- 推理模型: DeepSeek-V3.2 API 单次生成（Phase 2 升级为 BAgent 自进化框架）
+- 评测: 客观 pass rate + bootstrap CI 门控，trunc_gate 为被动防御门
+- (历史注: 原 Phase 1 A→B→C GRPO 训练线已归档于 docs/_archive/)
 
 ---
 

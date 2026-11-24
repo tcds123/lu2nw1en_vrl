@@ -1,7 +1,7 @@
 """
 BAgent — 自进化 Agent 核心
 
-基于 ReAct 循环 (Think → Act → Observe)，封装 Qwen2.5-72B API。
+基于 ReAct 循环 (Think → Act → Observe)，封装推理模型 API。
 
 架构:
   BAgent.run(task)

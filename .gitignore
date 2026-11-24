@@ -58,6 +58,9 @@ data_cache/
 for_review/archive/
 for_review/gpt_review_extracted/
 for_review/**/__MACOSX/
+for_review/incoming/*/
+for_review/incoming/*.zip
+for_review/dist/
 
 # 备份文件 (*.bak / *.bak_phase2 / *.bak.phaseD / backups)
 outputs_backup/
@@ -101,3 +104,31 @@ baselines/skillopt_outputs/
 # 忽略 IDE 配置文件
 .idea/
 .vscode/
+
+# 本地临时与诊断文件
+.cap_autorecord_state.json
+cap_autorecord.out
+.verify_tmp/
+.codex_run_inspect/
+
+# 离线评测缓存 (大体积 JSONL trace dump, 不上传)
+off/
+
+# for_review/review_conclusions/: Codex 审查归档 (含大体积 cache 副本, 4.9G, 仅本地保留)
+for_review/review_conclusions/
+
+# for_review_aime_standalone/: 独立可运行包 (628MB, 包含 outputs/datasource 大体积产物)
+# 仅提交核心代码/配置/文档, 排除运行时产物
+for_review_aime_standalone/outputs/
+for_review_aime_standalone/runs/
+for_review_aime_standalone/datasource_unzipped_20261109/
+for_review_aime_standalone/datasource.zip
+for_review_aime_standalone/for_review_aime_standalone_1110.zip
+for_review_aime_standalone/off/
+for_review_aime_standalone/logs/
+for_review_aime_standalone/x/
+for_review_aime_standalone/rl/
+for_review_aime_standalone/.venv/
+for_review_aime_standalone/__pycache__/
+for_review_aime_standalone/**/__pycache__/
+for_review_aime_standalone/agent/

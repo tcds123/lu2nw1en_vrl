@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """数学域 trace2skill (与代码域 experience_pool.json 物理隔离).
 
-用户判断: 现有 experience_pool.json 是代码域 trace2skill 产出 (GRPO readable_trace_*.log,
-A→prompt→B→代码→单测), 402 条代码 prompt 技巧, 对数学 MCQ 无用。数学域从未跑过 trace2skill。
+数学域 trace2skill: 先 rollout 生成数学 trace (持久化 jsonl), 再蒸馏数学失败模式池。
 本模块在数学域重建 trace2skill: 先 rollout 生成数学 trace (持久化 jsonl), 再蒸馏数学失败模式池.
 
 与代码域 extractor.py 同 4 阶段理念 (parse/group/distill/merge), 但:

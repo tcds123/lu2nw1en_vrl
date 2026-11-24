@@ -2,23 +2,24 @@
 
 ## 项目概述
 
-Training-Free GRPO + Prompt Optimization 融合方案，用于代码生成任务的系统提示词优化。核心流水线：**A 模型生成 prompt → B 模型生成代码 → C 模型评判打分 → 奖励信号驱动 GRPO 更新 A 模型**。
+Skill 自进化框架：通过优化上下文空间（prompt/skill/memory 的组合），在不做模型参数梯度更新的前提下引导推理模型行为。核心组件：**evolver 产出 skill → skill 作为 system prompt 被推理模型消费 → 评测打分 → 反馈驱动下一轮进化**。
 
-研究方向已经从「参数空间优化」转向「上下文空间进化」（见 `docs/` 设计文档和 `agent/b_agent/` 实现）。
-如何在不对模型参数做梯度更新的前提下，通过优化上下文空间（prompt/skill/memory 的组合）来引导模型行为？
-## 核心流水线 (A→B→C)
+研究方向：上下文空间进化（见 `docs/` 设计文档和 `agent/b_agent/` 实现）。
+核心问题：如何在不对模型参数做梯度更新的前提下，通过优化上下文空间来引导模型行为？
+
+## 核心框架
 
 ```
-A (Qwen3-4B, GRPO训练) → 系统提示词 → B (72B API, 冻结) → 代码 → C (235B, 冻结) → 评分 + 单测 → GRPO更新A
+evolver (tf_global_v2_aime.py) → skill 文件 → 推理模型 (DeepSeek-V3.2 API) → 评测 (pass rate + bootstrap CI) → 反馈 → 下一轮进化
 ```
 
-- **A 模型**: Qwen3-4B-Instruct-2507，GRPO 训练中，verl 框架，8 GPU。输入问题+参考解+ICL→ 输出系统提示词
-- **B 模型**: DeepSeek-V3.2 API 调用（通过 aimpapi.midea.com），单次生成代码，无工具/无迭代
-- **C 模型**: DeepSeek-V4-Flash API 调用，评判+单测执行，奖励 = 70% 单元测试通过率 + 30% LLM 评判
+- **Evolver**: 主进化引擎，facet_tree 驱动，多算子（expand/overlay/strengthen/facet_edit/crossover），dual_gate 门控
+- **推理模型**: DeepSeek-V3.2 API（通过 aimpapi.midea.com），单次生成，无工具/无迭代
+- **评测**: 客观 pass rate + bootstrap CI 门控，trunc_gate 为被动防御门
 
 ### Phase 2 增强 (Context Curator)
 
-B 模型已升级为 BAgent（自进化 Agent 框架），核心模块在 `agent/b_agent/`:
+BAgent（自进化 Agent 框架），核心模块在 `agent/b_agent/`:
 - `core.py` — BAgent 核心，ReAct 循环 + API 封装
 - `skills.py` — SkillLibrary，402 条可进化 skill（YAML frontmatter 格式），带 ATE 因果评分
 - `context.py` — ContextBuilder，从 SOUL/Skills/Memory/Tools/Rules 组件化组装 system prompt
@@ -32,37 +33,30 @@ BAgent 设计哲学：所有 context 组件都可独立进化、独立追踪版�
 
 | 目录 | 用途 | 关键入口 |
 |------|------|---------|
-| `agent/` | Agent 系统 (1161 files) | `b_agent/` 自进化 Agent, `nanobot/`, `smolagents/` |
-| `data/` | 训练/评测数据集 | (gitignore, 不上传) 包含 OpenCodeInstruct, HumanEval+ |
-| `docs/` | 设计文档 | `training_free_grpo_fusion_design.md`, `phase2_issues.md`, `improvement_plan_task1_task5.md` |
-| `eva/` | 评测模块 | `eval_lcb_qwen.py`, `extract_best_prompt.py` |
-| `experience/` | 经验提取与注入 | `extractor.py` (从 trace 蒸馏经验), `injector.py`, `cache.py`, `scorer.py`, `score_skills.py` |
-| `generation/` | B 模型代码生成 | `b_model_api.py`, `gen_code.py` |
-| `judge/` | C 模型评判打分 | `qwen_235B.py`, `c_model_prompt.txt` |
-| `rl/` | GRPO 强化学习训练 | verl 框架，trace 日志在 `rl/train/verl1/outputs/log/rollout` |
-| `models/` | 模型权重 | (gitignore) Qwen3-0.6B, Qwen3-4B-Instruct |
-| `outputs/` | 训练输出 | (gitignore) 按日期存放 |
+| `agent/` | Agent 系统 | `b_agent/` 自进化 Agent |
+| `data/` | 训练/评测数据集 | (gitignore, 不上传) |
+| `docs/` | 设计文档 | `phase2_issues.md`, `facet_tree_skill_evolution_design.md` |
+| `eva/` | 评测模块 | `tf_global_v2_aime.py` (评测片断), `direction_a_cp.py` |
+| `experience/` | 经验提取与管理 | `extractor.py` (从 trace 蒸馏经验), `cache.py`, `score_skills.py` |
+| `rl/train/verl1/` | 进化框架主目录 | `custom_reward.py`, `skill_evolution/` (evolver + eval 脚本) |
+| `generation/` | (已归档，见 `_archive/`) | Phase 1 B 模型代码生成 |
+| `judge/` | (已归档，见 `_archive/`) | Phase 1 C 模型评判 |
+| `models/` | 模型权重 | (gitignore) |
+| `outputs/` | 评测/进化输出 | (gitignore) 按日期存放 |
 | `lunwen/` | Python 虚拟环境 | (gitignore, 不提交) |
-| `memory/` | 项目记忆 | `next-steps.md` — 当前待办方向 |
+| `memory/` | 项目记忆 | 实验记录与关键节点 |
 
 ## 关键文件
 
 - `experience/experience_pool.json` — 经验池 (124KB, 401条)，存储蒸馏出的优化经验
 - `experience/cache.py` — ExperienceCache，经验池的 JSON 文件存储、语义去重、聚类、ATE评分
-- `experience/templates.py` — 经验蒸馏的 LLM prompt 模板（单轨迹总结、组内对比、跨题合并）
 - `experience/score_skills.py` — Skill ATE 评分器，消费 trace 日志中的 skills_used 字段
-- `rl/train/verl1/custom_reward.py` — 核心奖励函数（~1K行），含 BAgent 接口、质量检测、单测执行、C模型评判
-- `rl/train/verl1/b_agent_interface.py` — BAgent 接口包装器，兼容旧 b_model_api
-- `rl/train/verl1/b_interface.py` — 旧 B 模型 API 接口（Phase 1）
-- `rl/train/verl1/c_interface.py` — C 模型评判接口，含反幻觉核实
-- `rl/train/verl1/config/grpo_trainer.yaml` — GRPO 训练配置
-- `rl/train/verl1/train_iterative_grpo.sh` — GRPO 训练启动脚本
-- `agent/b_agent/DIRECTION.md` — Agent 架构方向文献调研
+- `rl/train/verl1/custom_reward.py` — 核心奖励/评测函数，含 BAgent 接口、质量检测、单测执行
+- `rl/train/verl1/skill_evolution/tf_global_v2_aime.py` — 主进化引擎 (facet_tree + 多算子 + dual_gate)
+- `rl/train/verl1/skill_evolution/skill_evolver_aime_v2.py` — Evolver 入口
 - `agent/b_agent/ARCHITECTURE.md` — BAgent 技术架构文档
 - `agent/b_agent/reference.md` — 12 种前沿 Skill 优化方法对比
 - `agent/b_agent/ablation_test.py` — 消融实验脚本
-- `agent/b_agent/ablation_results/` — 消融实验结果 JSON
-- `docs/improvement_plan_task1_task5.md` — Task #1 (触发词) + #5 (self-debug) 改进方案
 
 ## 关键命令
 
@@ -70,48 +64,34 @@ BAgent 设计哲学：所有 context 组件都可独立进化、独立追踪版�
 # 激活虚拟环境
 source lunwen/bin/activate
 
-# 经验提取 — 从 GRPO trace 日志蒸馏经验
+# 经验提取 — 从 trace 日志蒸馏经验
 python -m experience.extractor --trace_dir rl/train/verl1/outputs/log/rollout
 
 # Skill ATE 评分 — 从 trace 日志计算 skill 因果效应
 python -m experience.score_skills --trace_dir rl/train/verl1/outputs/log/rollout
 
-# B 模型代码生成 (旧 API 模式)
-python generation/b_model_api.py
-
-# C 模型评判
-python judge/qwen_235B.py
+# 主进化 (facet_tree)
+cd rl/train/verl1/skill_evolution && bash launch_trunc_efl_evolve_v3_cap8192.sh
 
 # 消融实验
 python agent/b_agent/ablation_test.py
 
-# GRPO 训练
-bash rl/train/verl1/train_iterative_grpo.sh
-
-# 评测
-python eva/eval_lcb_qwen.py
+# 单次评测
+python eva/tf_global_v2_aime.py --data ... --skill ...
 ```
 
-## Phase 2 待解决问题 (2026-06-29)
+## Phase 2 待解决问题
 
 | # | 问题 | 状态 |
 |---|------|------|
-| 1 | YAML 触发词格式 bug（全部 skill 写成单字符串） | 🔴 待修复 |
-| 2 | 402 条 skill 全部用相同触发词，检索精度 = 随机 | 🔴 待修复 (Task #1) |
-| 3 | 消融实验 n=100 不显著 (p=0.87), n=50 边际显著 (p=0.059) | 🟡 调查中 |
-| 4 | C 模型评判区分度不足 | 🟡 Task #9 |
-| 5 | B 缺少 python_executor tool，无法 self-debug | 🔴 Task #5 |
-| 3 (原) | A 模型短输出被质量检测拦截（Phase 2 已放宽） | ✅ 已缓解 |
-| 4 (原) | C 模型打分过高（已增大客观权重到 70%） | 🟡 |
-| 5 (原) | BAgent 初始化开销 ~1.2s（lazy init 已实现） | ✅ 可接受 |
+| 1 | 准确率线 held-out 泛化信号弱 (~+0.02, CI 宽) | 🟡 需放大信号 |
+| 2 | 防截断 skill 自进化不 work（tool mismatch, 已裁决放弃主动进化） | ✅ 已有结论 |
+| 3 | Cap sensitivity（8192 vs 16384 不显著, cap=8192 是合理默认值） | ✅ 已有结论 |
+| 4 | n=90 evolver 尚未启动（gate 已通过，待解决 split 口径） | 🟡 下一步方向 |
 
-## 配方 (Known Bugs)
+## 已知注意事项
 
-1. **YAML triggers 序列化 bug**: `skills.py:SKILL_TEMPLATE` 中 `{trigger_description}` 写成单字符串而非多行 YAML 列表。`to_markdown()` 中 `"\\n  - ".join()` 转义了 `\n`。需要改为正确的 `"\n".join(f"  - {t}" for t in ...)` 模板。
-   - 影响：所有 402 个 skill 文件都写入了格式错误的 triggers
-   - 修复：先改 `skills.py` 的模板和序列化，然后重新生成所有 G*.md 文件
-
-2. **API key 管理**: 代码中多处硬编码了 `msk-bf2324...` key，分别在 `core.py`, `b_model_api.py`, `c_interface.py`, `extractor.py` 中。只有 DeepSeek 和 Qwen3-235B 授权。如果需要其他模型需要确认 key 权限。
+1. **API key 管理**: 代码中多处硬编码了 API key，分别在 `agent/b_agent/core.py`, `rl/train/verl1/interfaces/c_interface.py`, `experience/extractor.py` 等文件中。不要提交到公开仓库。
 
 ## 🚨 硬性规则: 实验记录与知识持久化
 
@@ -154,19 +134,18 @@ python eva/eval_lcb_qwen.py
 ## 重要注意事项
 
 - API key 在多个文件中硬编码，不要提交到公开仓库
-- `data/`, `models/`, `outputs/`, `lunwen/`, `tensorboard_log/`, `a_model_grpo_*/` 均在 .gitignore 中
-- GRPO 训练产物在 `rl/train/verl1/` 下，trace 日志是经验提取的数据源
-- C 模型评判使用了多种后端：Qwen 235B, Qwen 480B, Claude 4.5, DeepSeek-V4-Flash
+- `data/`, `models/`, `outputs/`, `lunwen/`, `tensorboard_log/` 均在 .gitignore 中
 - BAgent 工作目录默认为 `agent/b_agent/`，包含 skills/, memory/ 子目录
 - 虚拟环境路径为 `lunwen/`（项目根目录下）
 
 ## 当前实验状态
 
 详见 `MEMORY.md` 和 `memory/` 下的具体文件。最近更新:
-- 消融实验矩阵: HumanEval Pro ✅, MBPP Pro ✅, APPS_Plus Hard 🔄 运行中
-- Self-Debug 突破: 消融实验中 self-debug 组显著优于 baseline
-- 详见 `memory/achievements.md` 和 `memory/next-steps.md`
+- 准确率线 Quantity Parsing: AIME24 +0.100 (CI>0 显著), AIME25 held-out +0.019, AIME26 held-out +0.026 (per-seed CI 不跨零)
+- 防截断线: 已裁决放弃主动进化，trunc_gate 保留为 passive gate
+- Token 预算消融: cap=8192 是合理默认值
+- 详见 `memory/aime26-heldout-20261123.md`, `docs/truncation-defense-final-report-20261123.md`
 
 ## 下一步方向
 
-详见 `docs/improvement_plan_task1_task5.md` 和 `memory/next-steps.md`。
+详见 `memory/next-steps.md` 和 `docs/` 下的设计文档。

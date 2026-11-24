@@ -21,16 +21,19 @@ import time
 _HERE = os.path.dirname(os.path.abspath(__file__))
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
+import _env  # noqa: E402,F401  (standalone bootstrap)
 
 from tf_global_v2_aime import set_temp, EVAL_TEMP, md5  # noqa: E402  (AIME backend, not math)
 from eval_aime24_multiseed import eval_skill_on, load_aime  # noqa: E402
 
-AIME_DATA = "/data/zhuldz/lunwen/data/aime25.jsonl"
-S0_AIME = "/data/zhuldz/lunwen/data/skill_aime_initial_v2.md"
-V2_AIME = "/data/zhuldz/lunwen/rl/train/verl1/outputs/tf_skill_aime_v2/run_LATEST/tf_global_skill_v2_aime.md"
-EVOLVER_AIME = "/data/zhuldz/lunwen/rl/train/verl1/outputs/skill_evolver_aime/run_LATEST/best_skill_evolved.md"
-SKILLOPT_AIME = "/data/zhuldz/lunwen/rl/train/verl1/outputs/tf_skill_aime_v2/skillopt/aime-skillopt-20261008/train/best_skill.md"
-OUT_DIR = "/data/zhuldz/lunwen/rl/train/verl1/outputs/tf_skill_aime_v2/aime25_test"
+AIME_DATA = _env.data_path("aime25.jsonl")
+S0_AIME = _env.data_path("skill_aime_initial_v2.md")
+# 下面三条是旧项目里的进化产物路径, standalone 包内不存在; 用 --v2_best/--evolver_best/--skillopt_best
+# 显式指定, 或 --skills 只选 s0 / 指向你自己跑出的 best_skill_evolved.md.
+V2_AIME = os.path.join(_env.OUTPUTS_DIR, "tf_skill_aime_v2", "run_LATEST", "tf_global_skill_v2_aime.md")
+EVOLVER_AIME = os.path.join(_env.OUTPUTS_DIR, "skill_evolver_aime_v2", "run_LATEST", "best_skill_evolved.md")
+SKILLOPT_AIME = os.path.join(_env.OUTPUTS_DIR, "tf_skill_aime_v2", "skillopt", "aime-skillopt-20261008", "train", "best_skill.md")
+OUT_DIR = os.path.join(_env.OUTPUTS_DIR, "tf_skill_aime_v2", "aime25_test")
 
 
 def _write_summary(args, test_items, skills, results, out_dir):
@@ -40,6 +43,17 @@ def _write_summary(args, test_items, skills, results, out_dir):
             continue
         passes = [r["mean_pass"] for r in runs]
         summary[name] = {"n_seeds": len(passes), "mean_pass": sum(passes) / len(passes), "passes": passes}
+    for name, runs in results.items():
+        if not runs:
+            continue
+        ft = {}
+        for r in runs:
+            for d in r.get("per_qid_detail", {}).values():
+                for smp in d.get("samples", []):
+                    _k = smp.get("fail_type", "") or "correct"
+                    ft[_k] = ft.get(_k, 0) + 1
+        if ft:
+            summary[name]["fail_type_counts"] = ft
     if "s0" in results and results["s0"]:
         s0_runs = results["s0"]
         for name in skills:
@@ -54,7 +68,23 @@ def _write_summary(args, test_items, skills, results, out_dir):
     return summary
 
 
+def build_analysis(out_dir: str) -> None:
+    """把本目录所有产物整理进 <out_dir>/analysis/ (软链 + 自动 REPORT.md). 零 API, 失败不影响主流程."""
+    try:
+        sys.path.insert(0, _HERE)
+        import analysis_bundle
+        r = analysis_bundle.build(out_dir, with_report=True)
+        print(f"📁 分析入口: {os.path.join(out_dir, 'analysis')}"
+              + (f"  (报告 {os.path.basename(r['report'])})" if r.get("report") else ""))
+    except Exception as e:  # noqa: BLE001
+        print(f"   ⚠ analysis bundle failed: {e!r}", file=sys.stderr, flush=True)
+
 def main():
+    # C 角色 (最终测评): C_DEEPSEEK_* 覆盖端点; 未配置则沿用 DEEPSEEK_* (行为不变)
+    _c = _env.apply_eval_env()
+    if _c:
+        print(f"[eval] C endpoint: {_c}  model={os.environ.get('QWEN_CHAT_MODEL')}  "
+              f"key={os.environ.get('QWEN_CHAT_API_KEY', '')[:6]}...")
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default=AIME_DATA)
     ap.add_argument("--s0", default=S0_AIME)
@@ -64,23 +94,35 @@ def main():
                     help="skillopt 训练产物 best_skill.md 路径 (与我们 evolver 公平对比)")
     ap.add_argument("--eval_k", type=int, default=3)
     ap.add_argument("--seeds", type=int, default=4, help="重复次数 (多 seed = 多次 k 投票独立采样)")
-    ap.add_argument("--skills", default="s0,v2,evolver", help="逗号分隔, 选 s0/v2/evolver/skillopt")
+    ap.add_argument("--skills", default="s0", help="逗号分隔: s0[,路径1,路径2...] (v2/evolver/skillopt 为旧项目别名)")
     ap.add_argument("--out_dir", default=OUT_DIR)
+    ap.add_argument("--no_key_check", action="store_true", help="跳过 API key 预检 (仅离线调试)")
     args = ap.parse_args()
 
+    if not args.no_key_check:
+        _env.require_key()
     os.makedirs(args.out_dir, exist_ok=True)
+    if os.environ.get("TRACE_DIR", "").strip().lower() not in ("off", "0", "none", "false", ""):
+        try:  # 调用级过程日志 → <out_dir>/trace/<stage>.jsonl
+            from skillopt.model import set_trace_dir
+            set_trace_dir(os.path.join(args.out_dir, "trace"))
+        except Exception:
+            pass
     test_items = load_aime(args.data)
     print(f"📋 AIME25 items: {len(test_items)} | k={args.eval_k} | seeds={args.seeds}")
 
+    named = {"v2": args.v2_best, "evolver": args.evolver_best, "skillopt": args.skillopt_best}
     skills = {}
-    if "s0" in args.skills:
-        skills["s0"] = open(args.s0, encoding="utf-8").read().strip()
-    if "v2" in args.skills:
-        skills["v2"] = open(args.v2_best, encoding="utf-8").read().strip()
-    if "evolver" in args.skills:
-        skills["evolver"] = open(args.evolver_best, encoding="utf-8").read().strip()
-    if "skillopt" in args.skills:
-        skills["skillopt"] = open(args.skillopt_best, encoding="utf-8").read().strip()
+    for tok in [t.strip() for t in args.skills.split(",") if t.strip()]:
+        if tok == "s0":
+            skills["s0"] = open(args.s0, encoding="utf-8").read().strip()
+        elif tok in named:
+            skills[tok] = open(named[tok], encoding="utf-8").read().strip()
+        else:
+            path = tok if os.path.isabs(tok) else os.path.abspath(tok)
+            if not os.path.isfile(path):
+                raise SystemExit(f"[err] skill 文件不存在: {path}")
+            skills[os.path.splitext(os.path.basename(path))[0]] = open(path, encoding="utf-8").read().strip()
     for name, txt in skills.items():
         print(f"  {name}: {len(txt)} chars (hash {md5(txt)[:8]})")
 
@@ -95,10 +137,14 @@ def main():
         print(f"\n{'='*50}\nSeed {seed}/{args.seeds}\n{'='*50}", flush=True)
         for name, txt in skills.items():
             per_path = _per_path(name, seed, txt)
+            det_path = per_path.replace(".json", "_detail.json")
             if os.path.exists(per_path):
                 per = json.load(open(per_path, encoding="utf-8"))
                 mean_pass = sum(per.values()) / max(1, len(per))
-                results[name].append({"seed": seed, "mean_pass": mean_pass, "per_qid": per})
+                run_rec = {"seed": seed, "mean_pass": mean_pass, "per_qid": per}
+                if os.path.exists(det_path):
+                    run_rec["per_qid_detail"] = json.load(open(det_path, encoding="utf-8"))
+                results[name].append(run_rec)
                 print(f"  [{name}] seed{seed} CACHED pass={mean_pass:.4f}", flush=True)
                 continue
             t0 = time.time()
@@ -111,15 +157,19 @@ def main():
                     print(f"    [{_name} seed{seed}] {d}/{total}  last {qid} pr={pr:.2f}  "
                           f"elapsed {time.time()-t0:.0f}s", flush=True)
 
-            mean_pass, per = eval_skill_on(test_items, txt, args.eval_k,
-                                           stage=f"aime25_{name}", progress_cb=cb)
+            mean_pass, per, detail = eval_skill_on(test_items, txt, args.eval_k,
+                                                   stage=f"aime25_{name}", progress_cb=cb)
             json.dump(per, open(per_path, "w", encoding="utf-8"), ensure_ascii=False)
-            results[name].append({"seed": seed, "mean_pass": mean_pass, "per_qid": per})
+            json.dump(detail, open(det_path, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+            results[name].append({"seed": seed, "mean_pass": mean_pass, "per_qid": per,
+                                  "per_qid_detail": detail})
             print(f"  [{name}] seed{seed} AIME25 pass={mean_pass:.4f} ({time.time()-t0:.0f}s)", flush=True)
             _write_summary(args, test_items, skills, results, out_dir=args.out_dir)
 
     summary = _write_summary(args, test_items, skills, results, out_dir=args.out_dir)
     out_path = os.path.join(args.out_dir, "aime25_eval.json")
+    build_analysis(args.out_dir)
+
     print(f"\n{'='*50}\n✅ Done -> {out_path}")
     print(f"\n汇总 (k={args.eval_k}, AIME25={len(test_items)}, seeds={args.seeds}):")
     for name, s in summary.items():

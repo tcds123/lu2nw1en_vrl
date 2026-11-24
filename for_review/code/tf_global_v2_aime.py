@@ -22,15 +22,13 @@ import json
 import os
 import sys
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 from datetime import datetime
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
-_LUNWEN = "/data/zhuldz/lunwen"
-if _LUNWEN not in sys.path:
-    sys.path.insert(0, _LUNWEN)
+import _env  # noqa: E402,F401  (standalone: 路径锚定 + .env/API key 加载; 必须在后端 import 之前)
 
 # 通用层 (已含 API env / chat_target 配置) 直接复用 math v2, 避免重复定义与配置漂移.
 from tf_global_v2_math import (  # noqa: E402
@@ -44,9 +42,9 @@ from experience.templates_aime import (  # noqa: E402
     FAILURE_MODE_TEMPLATE_AIME, FAILURE_MERGE_TEMPLATE_AIME, COMPOSE_APPEND_TEMPLATE_AIME,
 )
 
-S0_DEFAULT = "/data/zhuldz/lunwen/data/skill_aime_initial.md"
-AIME24_DATA = "/data/zhuldz/lunwen/data/aime24.jsonl"
-OUT_DIR = "/data/zhuldz/lunwen/rl/train/verl1/outputs/tf_skill_aime_v2"
+S0_DEFAULT = _env.data_path("skill_aime_initial_v2.md")  # v2 4-facet skill (与 evolver 一致)
+AIME24_DATA = _env.data_path("aime24.jsonl")
+OUT_DIR = os.path.join(_env.OUTPUTS_DIR, "tf_skill_aime_v2")
 
 REWRITER_SYSTEM = (
     "You are an expert System Prompt Engineer optimizing a mathematical-reasoning AI for "
@@ -55,6 +53,9 @@ REWRITER_SYSTEM = (
     "mathematical failure modes revealed by rollout errors - not generic prompt-writing advice."
 )
 
+
+# B 模型单次输出上限 (含 reasoning_content). deepseek-v4-flash 思考长, 4096 会被 length 截断成空 content.
+TARGET_MAX_TOKENS = int(os.environ.get("B_MAX_COMPLETION_TOKENS", "16384"))
 
 def _excerpt(text: str, n: int = 600) -> str:
     t = (text or "").strip()
@@ -92,6 +93,86 @@ def extract_experiences(text: str) -> str:
 # ===================================================================
 # B 模型生成 + 验证 (AIME 数值, v2-schema 兼容 evolver 复用)
 # ===================================================================
+def budget_signal(failure: dict) -> str:
+    """预算/完成度信号 (2026-11-12, issue #53 追加7): harness 侧 finish_reason=length 的失败单列一类.
+    与题库无关; 供 flat 路径的 classify_failure_type 与 budget facet 复用. 返回英文描述, 干净则 ""."""
+    h = failure.get("harness") or {}
+    if not isinstance(h, dict) or int(h.get("n_truncated") or 0) < 1:
+        return ""
+    return (f"token budget exhausted: {int(h.get('n_truncated') or 0)}/{int(h.get('n_samples') or 0)} "
+            f"samples hit the {int(h.get('max_tokens_used') or 0)}-token limit (finish_reason=length)")
+
+
+def harness_signal(failure: dict) -> str:
+    """其余 harness 侧失败 (issue #53 追加7): 采样全为 API 异常 / 整批放弃 (deadline). 与 budget 同级,
+    同样与题库无关; 不会被误学成一道数学规则. 返回英文描述, 干净则 ""."""
+    h = failure.get("harness") or {}
+    if not isinstance(h, dict):
+        return ""
+    n_samp, n_exc = int(h.get("n_samples") or 0), int(h.get("n_exceptions") or 0)
+    if n_exc >= 1 and n_exc >= max(1, n_samp):
+        return f"harness failure: {n_exc} API exception(s) with no usable sample"
+    return ""
+
+
+def _b_eval_budget() -> int:
+    """run_one 评测轮的输出预算 (2026-11-12 issue #53 追加5).
+
+    原先硬编码 4096: 与 _env / 评测脚本默认 16384 不一致 → 写出「完整」答复的题在 4096 处被
+    finish_reason=length 截断, 无 <answer> 收尾, 被误计为 pass=0 且被归因成 "Missing Final Answer";
+    这类伪失败会让 S0 缓存与 delta 统计失真 (用户要求: 不能出现影响准确性的问题).
+    现取 QWEN_CHAT_MAX_TOKENS (backend 会 min(), 再大会被钳回), 默认 16384.
+    """
+    try:
+        return max(4096, int(os.environ.get("QWEN_CHAT_MAX_TOKENS") or 16384))
+    except ValueError:
+        return 16384
+
+
+def _b_call_timeout(stage: str) -> float:
+    """B 调用超时 (2026-11-12 issue #53 追加4 流式改造).
+
+    非流式: 网关对整次请求有 ~300s 硬预算, 超时即 HTTP 500/断连, 单次调用等再久也没用 → 固定 300.
+    流式 (QWEN_CHAT_STREAM=1): 无整次请求上限, 首个 chunk 2~7s, 长思考题可跑 10 分钟以上;
+    此时 timeout 是 socket「多久没新 chunk」的判定 → 用 QWEN_CHAT_TIMEOUT_SECONDS (默认 300s 无新输出才判卡死).
+    注意: 这只是单次调用级保护; 整轮评测的上限由 evolver 的 eval_deadline_s 控制.
+    """
+    streaming = (os.environ.get("QWEN_CHAT_STREAM", "0").strip().lower() in ("1", "true", "yes", "on"))
+    if not streaming:
+        return 300.0
+    try:
+        return float(os.environ.get("QWEN_CHAT_TIMEOUT_SECONDS") or 300)
+    except ValueError:
+        return 300.0
+
+
+def call_b(system: str, user: str, *, stage: str, retries: int = 5, max_tokens: int | None = None) -> dict:
+    """B 模型单次调用的统一入口 (过程日志用): 返回 content + 本次调用的元信息.
+    截断保护: 首次立即用大预算 (默认 max(max_tokens, 16384)); 若 finish_reason=='length',
+    且重试预算不超过 B_HARD_MAX_TOKENS 与模型上限, 2x 扩预算重试 (至多 B_MAX_RETRY_ON_TRUNC 次).
+    这样「截断」会被显式记录 (n_truncated) 而不是静默变成 pass=0."""
+    from skillopt.model import qwen_backend as _qb  # 运行期解析: 统一入口按 TARGET_BACKEND 分发
+    chat_target, get_last_call_meta, TARGET_CONFIG = _qb.chat_target, _qb.get_last_call_meta, _qb.TARGET_CONFIG
+    hard = min(int(os.environ.get("B_HARD_MAX_TOKENS", "49152")), getattr(TARGET_CONFIG, "max_tokens", 16384) or 49152)
+    n_retry = int(os.environ.get("B_MAX_RETRY_ON_TRUNC", "2"))
+    mt = max(int(max_tokens or 0), TARGET_MAX_TOKENS)
+    trunc = 0
+    t0 = time.time()
+    while True:
+        resp, usage = chat_target(system=system, user=user, max_completion_tokens=mt,
+                                  retries=retries, stage=stage,
+                                  timeout=_b_call_timeout(stage))
+        meta = get_last_call_meta()
+        if meta.get("finish_reason") != "length" or trunc >= n_retry or mt * 2 > hard:
+            break
+        trunc += 1
+        mt = min(mt * 2, hard)
+    fr = meta.get("finish_reason")
+    return {"response": resp, "usage": usage, "finish_reason": fr, "truncated": fr == "length",
+            "n_truncated": trunc + (1 if fr == "length" else 0), "max_tokens_used": mt,
+            "reasoning_chars": meta.get("reasoning_chars"), "dt": round(time.time() - t0, 2)}
+
+
 def run_one(item: dict, skill_content: str, stage: str = "tf_v2_aime_b", k: int = 1) -> dict:
     """对单题用 skill 评测 k 次 (采样温度由调用方 set_temp 设定), 返回连续 pass_rate = 通过次数/k.
     返回 v2 兼容 schema (predicted_label/correct_label = 答案字符串), 供 rollout_group/eval_on/collect_failures 复用."""
@@ -100,6 +181,15 @@ def run_one(item: dict, skill_content: str, stage: str = "tf_v2_aime_b", k: int 
            "pass_rate": -3.0, "agent_ok": False, "fail_reason": "",
            "response": "", "predicted_label": "", "correct_label": "",
            "n_pass": 0, "n_samples": 0}
+    # harness 诊断信号 (2026-11-12 issue #53 追加7): run_one 是 k 次采样的聚合, 失败归因需要过程数据:
+    #   finish_reason / n_truncated / max_tokens_used → 区分「模型行为」(循环/不交卷/冗长) 与
+    #   「预算不足」(length 截断, 换数据集/换模型都会出现); n_out_tokens → 输出规模.
+    #   只记录诊断, 不改 pass 判定.
+    #   n_out_tokens 是**累计和** (k 次采样求和, 修 2026-11-12: 原实现每次覆盖成单次值);
+    #   max_tokens_used 取本次实际生效的预算 (调用层 meta['max_tokens'] = min(请求, 配置上限)),
+    #   而非 _b_eval_budget() 这个名义值 —— 后者与实际不符时 completion% 的分母就是错的.
+    harness = {"finish_reason": None, "n_truncated": 0, "max_tokens_used": _b_eval_budget(),
+               "n_out_tokens": 0, "n_samples": 0, "n_exceptions": 0}
     system = _build_system(skill_content)
     user = _build_user(item)
     n_pass = 0
@@ -107,15 +197,41 @@ def run_one(item: dict, skill_content: str, stage: str = "tf_v2_aime_b", k: int 
     last_resp = ""
     for _ in range(max(1, k)):
         try:
+            # 2026-11-12 issue #53 追加7 fix: get_last_call_meta 只在 qwen_backend 里, 包 __init__ 不导出
             from skillopt.model import chat_target
-            response, _ = chat_target(system=system, user=user, max_completion_tokens=4096,
-                                      retries=5, stage=stage, timeout=300)
-            ev = evaluate_aime(response, item["answer"])
+            from skillopt.model.qwen_backend import get_last_call_meta
+            response, usage = chat_target(system=system, user=user, max_completion_tokens=_b_eval_budget(),
+                                          retries=5, stage=stage, timeout=_b_call_timeout(stage))
+            meta = get_last_call_meta()
+            harness["n_samples"] += 1
+            harness["n_out_tokens"] += int((usage or {}).get("completion_tokens") or 0)
+            harness["finish_reason"] = meta.get("finish_reason")
+            harness["max_tokens_used"] = int(meta.get("max_tokens") or harness["max_tokens_used"])
+            _fr = meta.get("finish_reason")
+            if _fr == "length":
+                harness["n_truncated"] += 1
+            # 截断计错 (2026-11-17 issue #80, review A1): 截断样本 em 记 0, 不再吃
+            # extract_int_answer 的「全文最后整数」兜底假阳性。旧口径值留在 em_untruncated。
+            ev = evaluate_aime(response, item["answer"], finish_reason=_fr)
+            # 过程指标 (issue #80 Step 1): 干净完成样本的输出长度 —— 长度信号的唯一干净来源.
+            # 只统计 finish_reason=='stop' 的样本, 避免「被截断所以短」污染.
+            if _fr == "stop":
+                _ct = int((usage or {}).get("completion_tokens") or 0)
+                if _ct > 0:
+                    harness["n_clean"] = harness.get("n_clean", 0) + 1
+                    harness["clean_tok_sum"] = harness.get("clean_tok_sum", 0) + _ct
+                    # 逐样本留档 (issue #80 Step 3): 供中位/分位诊断 —— 均值会被单条超长轨迹主导
+                    harness.setdefault("clean_tok_list", []).append(_ct)
             last_ev, last_resp = ev, response
             if ev["em"]:
                 n_pass += 1
         except Exception as e:
             res["fail_reason"] = f"exception: {e!r}"
+            harness["n_exceptions"] += 1
+    # 派生指标: clean_pass_tokens = 干净完成样本的单次平均 completion tokens (无干净样本 → None)
+    _nc = harness.get("n_clean") or 0
+    harness["clean_pass_tokens"] = (harness.get("clean_tok_sum", 0) / _nc) if _nc else None
+    res["harness"] = harness
     if last_ev is not None:
         res.update({"pass_rate": n_pass / max(1, k), "agent_ok": True,
                     "response": last_resp,
@@ -246,7 +362,7 @@ def compose_global_skill_append(s0, experiences):
 def eval_on(items, skill_content, s0_cache, stage="tf_v2_aime_val", k=1, eval_deadline_s=None):
     """评测: 每题 k 次采样投票 (EVAL_TEMP), pass_rate=通过次数/k. delta 对位 s0_cache 固定快照.
 
-    eval_deadline_s: 整批墙钟上限 (秒). 超时后未完成的 future 取消并按 0 分计入 (不阻塞死锁).
+    eval_deadline_s: 整批墙钟上限 (秒). 超时后先给 EVAL_DEADLINE_GRACE_S 秒收尾, 仍未完成的该 future 取消并按 0 分计入 (不阻塞死锁).
         镜像 math 版同款护栏 (治 urllib socket.read 无超时死锁, PID 53188 根因).
         默认 None=继承旧行为 (无墙钟, 但调用方应传安全上界)."""
     from concurrent.futures import TimeoutError as _FuturesTimeoutError
@@ -259,24 +375,37 @@ def eval_on(items, skill_content, s0_cache, stage="tf_v2_aime_val", k=1, eval_de
         done = as_completed(futs, timeout=eval_deadline_s)
     results = []
     deadline_hit = False
+    seen_done = set()
     try:
         for fut in done:
+            seen_done.add(fut)
             results.append((futs[fut]["id"], fut.result()))
     except (TimeoutError, _FuturesTimeoutError):
         deadline_hit = True
-        stuck = [f for f in futs if not f.done()]
+        # 2026-11-12 issue #53 追加4: 死线只挂起收集, 不宣布失败. 流式下长推理 5~15 分钟正常 (73 实测 758s),
+        # 固定 eval_deadline_s 会把刚过的截止点的慢题按 0 分计入 → 分数随网速/排队抖动. 给 in-flight
+        # 请求 GRACE 秒收尾 (单次调用另有 idle 超时兜底, 不会无限等); 网关非流式 ~300s 硬预算仍不可救.
+        _grace = float(os.environ.get("EVAL_DEADLINE_GRACE_S", "1800"))
+        stuck = wait([f for f in futs if f not in seen_done], timeout=_grace).not_done
+        # grace 内跑完的补收结果; 仍未完成的计 0 pass
+        for f in [f for f in futs if f not in seen_done and f.done() and not f.cancelled()]:
+            try:
+                results.append((futs[f]["id"], f.result()))
+            except Exception:  # noqa: BLE001
+                pass
+        if stuck:
+            print(f"   ⚠ eval_on deadline({eval_deadline_s}s) hit: {len(stuck)}/{len(futs)} items abandoned (treated as 0 pass)", flush=True)
         for f in stuck:
             f.cancel()
-        n_stuck = len(stuck)
-        if n_stuck:
-            print(f"   ⚠ eval_on deadline({eval_deadline_s}s) hit: {n_stuck}/{len(futs)} items abandoned (treated as 0 pass)", flush=True)
     try:
         ex.shutdown(wait=False, cancel_futures=True)
     except TypeError:
         ex.shutdown(wait=False)
     # 超时放弃的 item 计 0 pass (delta = -s0_pass, 保守悲观).
     done_qids = {qid for qid, _ in results}
-    results.extend((str(it["id"]), {"pass_rate": 0.0, "n_pass": 0, "n_samples": k})
+    results.extend((str(it["id"]), {"pass_rate": 0.0, "n_pass": 0, "n_samples": k,
+                                    "harness": {"finish_reason": None, "n_truncated": 0, "n_samples": 0,
+                                                "n_exceptions": 1}})   # issue #53 追加7: 超时=harness 失败, 让信号可见
                    for it in items if str(it["id"]) not in done_qids)
     deltas, per_item = [], {}
     for qid, r in results:
@@ -284,9 +413,71 @@ def eval_on(items, skill_content, s0_cache, stage="tf_v2_aime_val", k=1, eval_de
         d = pr - s0_cache.get(qid, {}).get("pass_rate", 0.0)
         deltas.append(d)
         per_item.setdefault(qid, []).append(d)
-    mean_pass = sum(r["pass_rate"] for _, r in results if r["pass_rate"] >= 0) / max(1, len(deltas))
+    # mean_pass 与 deltas 同口径: 失败/超时行为 -3 或 0 一律按 0 计 (与 delta 的悲观口径一致),
+    # 保证 mean_pass - mean_pass(s0_cache) == mean_delta.
+    mean_pass = sum((r["pass_rate"] if r["pass_rate"] >= 0 else 0.0) for _, r in results) / max(1, len(deltas))
     mean_delta = sum(deltas) / max(1, len(deltas))
+    # harness 聚合 (2026-11-17 issue #80 Step 1): 旧实现只取 pass_rate, run_one 采的截断/长度
+    # 过程信号在这里被丢弃 → 候选分数无任何截断/长度信息, 晋升门只能看准确率 (issue #69 机械根因).
+    global LAST_HARNESS_AGG
+    LAST_HARNESS_AGG = aggregate_harness(results)
     return mean_pass, mean_delta, len(deltas), per_item
+
+
+def aggregate_harness(results) -> dict:
+    """把逐题 run_one 结果的 harness 聚合成候选级标量. 无 harness (旧实现/超时项) → 不计入.
+      n_truncated_rate  截断样本 / 全部生成样本 (越低越好)
+      clean_pass_tokens 干净完成样本 (finish_reason=='stop') 的单次平均 completion tokens
+                        —— 长度信号的干净来源, 不含「被截断所以短」的样本
+      mean_out_tokens   全部生成样本的单次平均 completion tokens
+      clean_tok_q50/q90 干净完成样本 completion tokens 的中位/90 分位 (issue #80 Step 3:
+                        均值被少数超长轨迹主导 —— run2 实测 mean 2169 vs median 1278, 尾部
+                        噪声会让"长度比较"仅靠均值漂移; 分位数只作诊断, 门仍用均值)
+      per_item_trunc     {qid: [n_truncated, n_samples]} (issue #81: 逐题配对截断门要用 ——
+                        整体截断率被 30 题里少数长题稀释, 配对才看得到"这题被救/这题被弄坏")"""
+    n_s = n_tr = n_clean = 0
+    per_item: dict = {}
+    tok_sum = 0
+    n_out_sum = 0
+    clean_toks: list[int] = []
+    for qid, r in results:
+        h = r.get("harness") or {}
+        if not h:
+            continue
+        n_s += int(h.get("n_samples") or 0)
+        n_tr += int(h.get("n_truncated") or 0)
+        per_item[str(qid)] = [int(h.get("n_truncated") or 0), int(h.get("n_samples") or 0)]
+        n_out_sum += int(h.get("n_out_tokens") or 0)
+        n_clean += int(h.get("n_clean") or 0)
+        tok_sum += int(h.get("clean_tok_sum") or 0)
+        clean_toks += list(h.get("clean_tok_list") or [])
+    if not n_s:
+        return {}
+    return {"n_gen_samples": n_s,
+            "n_truncated": n_tr,
+            "n_truncated_rate": n_tr / n_s,
+            "mean_out_tokens": n_out_sum / n_s,
+            "n_clean": n_clean,
+            "clean_pass_tokens": (tok_sum / n_clean) if n_clean else None,
+            "clean_tok_q50": _quantile(clean_toks, 0.50),
+            "clean_tok_q90": _quantile(clean_toks, 0.90),
+            "per_item_trunc": per_item}
+
+
+def _quantile(xs, q: float):
+    """线性插值分位数; 空列表 → None (不用 statistics.quantiles: n<2 会抛)."""
+    if not xs:
+        return None
+    s = sorted(xs)
+    if len(s) == 1:
+        return float(s[0])
+    pos = q * (len(s) - 1)
+    lo = int(pos)
+    hi = min(lo + 1, len(s) - 1)
+    return float(s[lo] + (s[hi] - s[lo]) * (pos - lo))
+
+
+LAST_HARNESS_AGG: dict = {}
 
 
 def precompute_s0(items, s0_content, k, stage="tf_v2_aime_s0"):
