@@ -22,10 +22,23 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
-if _HERE not in sys.path:
-    sys.path.insert(0, _HERE)
-import _env  # noqa: E402,F401  (standalone: 路径锚定 + .env/API key 加载; 必须在后端 import 之前)
+_SKILLOPT = "/data/zhuldz/skillopt"
+if _SKILLOPT not in sys.path:
+    sys.path.insert(0, _SKILLOPT)
+_LUNWEN = "/data/zhuldz/lunwen"
+if _LUNWEN not in sys.path:
+    sys.path.insert(0, _LUNWEN)
+
+os.environ.setdefault("TARGET_BACKEND", "qwen_chat")
+os.environ.setdefault("OPTIMIZER_BACKEND", "qwen_chat")
+os.environ.setdefault("QWEN_CHAT_API_KEY", "")  # 由环境变量提供 key
+os.environ.setdefault("QWEN_CHAT_BASE_URL", "https://aimpapi.midea.com/t-aigc/aimp-deepseek/v1")
+os.environ.setdefault("QWEN_CHAT_MODEL", "/model/DeepSeek-V3.2")
+os.environ.setdefault("QWEN_CHAT_AIGC_USER", "zhuldz")
+os.environ.setdefault("QWEN_CHAT_MAX_TOKENS", "4096")
+os.environ.setdefault("QWEN_CHAT_TEMPERATURE", "0.0")
+os.environ.setdefault("QWEN_CHAT_MAX_RPM", "28")
+os.environ.setdefault("QWEN_CHAT_BURST", "2")
 
 from skillopt.model import chat_target  # noqa: E402
 
@@ -35,19 +48,22 @@ from skillopt.model import chat_target  # noqa: E402
 # docs/phase2_issues.md 末条 + memory/evolver-unchanged-skill-bug-20260729.md.
 #
 # AIME 适配: 通用层 (set_temp/EVAL_TEMP/GEN_TEMP/md5/bootstrap_ci_lower/per_item_counts/
-# beta_binomial_lcb/load_s0_cache_with_manifest/check_skill_leakage) 直接从 math v2 复用
+# beta_binomial_lcb/load_s0_cache_with_manifest[AIME 版]/check_skill_leakage) 直接从 math v2 复用
 # (这些函数读 it["id"] / r["n_pass","n_samples"] / it.get("question") — schema 无关,
 #  AIME item {id,problem,answer,year} 无 choices/theorem, check_skill_leakage 用 .get 安全).
 # AIME 评测函数从 v2_aime 导入 (run_one/eval_on/precompute_s0/load_aime_split 是 AIME 数值评测后端).
 # is_meta_item 是 MCQ 专用 (读 item["choices"] KeyError on AIME) — 仅导入不调用 (死导入, 保 GA 核心
 # 其余代码字节不变); AIME 无 meta-option 概念, meta 路径不触发.
 from tf_global_v2_aime import (  # noqa: E402
-    run_one, eval_on, precompute_s0, bootstrap_ci_lower,
-    set_temp, EVAL_TEMP, GEN_TEMP, md5, load_aime_split, budget_signal, harness_signal,
+    run_one, eval_on, eval_paired, precompute_s0, bootstrap_ci_lower,
+    set_temp, EVAL_TEMP, GEN_TEMP, md5, load_aime_split,
+    build_cache_manifest_aime, load_s0_cache_with_manifest_aime,
 )
+# AIME 评分器版本 (审计字段, 写入 paired eval 持久化记录).
+from eval_aime24_multiseed import SCORER_VERSION as AIME_SCORER_VERSION  # noqa: E402
 from tf_global_v2_math import (  # noqa: E402
     per_item_counts, beta_binomial_lcb,
-    load_s0_cache_with_manifest, check_skill_leakage, is_meta_item, build_cache_manifest,
+    load_s0_cache_with_manifest, check_skill_leakage, is_meta_item,
 )
 
 
@@ -70,15 +86,43 @@ def load_split(split_dir, split, shuffle_seed=None):
     return load_split._cache[split]
 
 
-S0_DEFAULT = _env.data_path("skill_aime_initial_v2.md")
-# 起点 skill 默认 = S₀ (从 S₀ 从头进化). 也可 --init_skill <已有的 best skill> 做续跑式进化.
-V2_SKILL_DEFAULT = S0_DEFAULT
+# Held-out gate 数据缓存 (Direction 2): 镜像 load_split._cache 的模块级缓存模式.
+# keyed by path, 单 run 单 list; resume 时进程冷启 cache 重建 (不跨 run 持久化, 避陈旧).
+_HELDOUT_CACHE = {}
+
+
+def _get_heldout_items(args):
+    """Held-out gate 数据加载 (lazily, cached). 返回 AIME25 items list 或 [].
+
+    零回归: args.held_out_gate off 或 held_out_split_dir 空 → 返回 [] (门 skipped, 字节不变).
+    泄露红线: items 仅喂 _run_heldout_gate → eval_paired (B-model generate + C-model score),
+    绝不入 collect_failures / rewriter / emergent facet. 独立于 load_split (AIME24 train/val) —
+    物理隔离, 无交叉. AIME25 id 为 int 0-29 → qid key "0".."29"; AIME24 id 为 str "aime24:60"..
+    → 无碰撞, eval_paired 走 str(it["id"]) 作 per_item key 不串扰."""
+    if not getattr(args, "held_out_gate", False) or not getattr(args, "held_out_split_dir", ""):
+        return []
+    path = args.held_out_split_dir
+    if path not in _HELDOUT_CACHE:
+        items = []
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    items.append(json.loads(line))
+        _HELDOUT_CACHE[path] = items
+        print(f"🔒 HELD-OUT gate ON: loaded {len(items)} items from {path} "
+              f"(k={args.held_out_k}, ci_gate={args.held_out_ci_gate})", flush=True)
+    return _HELDOUT_CACHE[path]
+
+
+S0_DEFAULT = "/data/zhuldz/lunwen/data/skill_aime_initial_v2.md"
+# 起点改为与 multiseed 的 v2 baseline 同源 (run_20260728_131934), 统一对比基准.
+V2_SKILL_DEFAULT = "/data/zhuldz/lunwen/rl/train/verl1/outputs/tf_skill_aime_v2/run_LATEST/tf_global_skill_v2_aime.md"
 # split: AIME24 (30 题) 确定性划分 train(18)+val(12); AIME25 (30 题) held-out test
 # (eval_aime25_multiseed.py). load_split 走 AIME 后端 load_aime_split, select=train+val=30.
-SPLIT_DEFAULT = _env.data_path("aime24.jsonl")
-# S₀ cache: 不存在则首轮现场 precompute (额外 ~30 题 x eval_k 次调用), 并写到 <out_dir>/s0_cache.json
-S0_CACHE_DEFAULT = os.path.join(_env.OUTPUTS_DIR, "s0_cache_aime.json")
-OUT_DIR_DEFAULT = os.path.join(_env.OUTPUTS_DIR, "skill_evolver_aime_v2")
+SPLIT_DEFAULT = "/data/zhuldz/lunwen/data/aime24.jsonl"
+S0_CACHE_DEFAULT = "/data/zhuldz/lunwen/rl/train/verl1/outputs/tf_skill_aime_v2/s0_cache_aime_k3.json"
+OUT_DIR_DEFAULT = "/data/zhuldz/lunwen/rl/train/verl1/outputs/skill_evolver_aime_v2"
 
 # M3-gate 容差: consolidate 后 re-eval, 若 delta 下降超此阈值则回退原 skill (治盲压缩损质).
 # 设 0.03 ≈ eval_k=3 下 delta 采样噪声的一半, 容忍噪声抖动但拦截真实退化.
@@ -132,283 +176,6 @@ def llm(system: str, user: str, *, max_tokens=4096, stage="evolver") -> str:
     return resp
 
 
-def dump_token_usage(out_dir: str) -> None:
-    """把本轮进程累计的 API token 用量写进 <out_dir>/token_usage.json (每轮覆盖写, 中断也可用).
-    用于估算成本/配额: {stage: {calls, prompt_tokens, completion_tokens, total_tokens}, "_total": {...}}"""
-    try:
-        from skillopt.model import get_token_summary
-        json.dump(get_token_summary(), open(os.path.join(out_dir, "token_usage.json"), "w",
-                                            encoding="utf-8"), ensure_ascii=False, indent=2)
-    except Exception as e:  # 统计失败不影响主流程
-        print(f"   ⚠ token usage dump failed: {e!r}", file=sys.stderr, flush=True)
-
-
-def build_analysis(out_dir: str) -> None:
-    """把本目录所有产物整理进 <out_dir>/analysis/ (软链 + 自动 REPORT.md). 零 API, 失败不影响主流程."""
-    try:
-        sys.path.insert(0, _HERE)
-        import analysis_bundle
-        r = analysis_bundle.build(out_dir, with_report=True)
-        print(f"📁 分析入口: {os.path.join(out_dir, 'analysis')}"
-              + (f"  (报告 {os.path.basename(r['report'])})" if r.get("report") else ""))
-    except Exception as e:  # noqa: BLE001
-        print(f"   ⚠ analysis bundle failed: {e!r}", file=sys.stderr, flush=True)
-
-def _write_manifest(out_dir: str, args, init_skill: str, best_skill: str,
-                    base_delta: float, best_val_delta: float, best_val_ci: float) -> None:
-    """run_manifest.json: 一屏看清「这次跑的是什么」— 完整参数/环境/模型/数据指纹/skill hash/token/版本.
-    便于对方跑完后不用翻代码就能复现或对照 (key 从不写入)."""
-    try:
-        import platform
-        from skillopt.model.qwen_backend import TARGET_CONFIG
-        man = {
-            "argv": sys.argv, "args": {k: v for k, v in vars(args).items()},
-            "env": {k: os.environ.get(k, "") for k in (
-                "DEEPSEEK_MODEL", "QWEN_CHAT_MODEL", "TARGET_DEPLOYMENT",
-                "QWEN_CHAT_BASE_URL", "DEEPSEEK_BASE_URL",
-                "QWEN_CHAT_MAX_TOKENS", "QWEN_CHAT_MAX_RPM", "QWEN_CHAT_TEMPERATURE",
-                "B_MAX_COMPLETION_TOKENS", "TRACE_DIR")},
-            "model_live": {"deployment": TARGET_CONFIG.deployment, "base_url": TARGET_CONFIG.base_url,
-                           "temperature": TARGET_CONFIG.temperature, "max_tokens": TARGET_CONFIG.max_tokens,
-                           "timeout_s": TARGET_CONFIG.timeout_seconds},
-            "gen_temp": GEN_TEMP, "eval_temp": EVAL_TEMP,
-            "data_md5": {n: md5(open(os.path.join(_env.DATA_DIR, n), "rb").read().decode("utf-8", "replace"))
-                         for n in ("aime24.jsonl", "aime25.jsonl") if os.path.exists(os.path.join(_env.DATA_DIR, n))},
-            "init_skill_hash": md5(init_skill), "init_skill_len": len(init_skill), "init_skill_text": init_skill,
-            "best_skill_hash": md5(best_skill), "best_skill_len": len(best_skill),
-            "changed": md5(best_skill) != md5(init_skill),
-            "val": {"init_delta": base_delta, "best_delta": best_val_delta, "best_ci": best_val_ci},
-            "python": platform.python_version(), "platform": platform.platform(),
-            "finished_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-        }
-        try:
-            from skillopt.model import get_token_summary
-            man["tokens"] = get_token_summary()
-        except Exception:
-            pass
-        json.dump(man, open(os.path.join(out_dir, "run_manifest.json"), "w", encoding="utf-8"),
-                  ensure_ascii=False, indent=2)
-    except Exception as e:  # noqa: BLE001
-        print(f"   ⚠ run_manifest failed: {e!r}", file=sys.stderr, flush=True)
-
-
-def dump_iter_candidates(out_dir: str, t: int, current_hash: str, scored: list,
-                         winner_hash: str | None, winner_kind: str, reject_reason: str | None,
-                         focus: str = "", admissible=None) -> None:
-    """<out_dir>/candidates/iter{t:02d}.json: 本轮每个候选可分析的完整记录 (零 API, 事后分析用).
-    含: 变异来源/是否 novel/通过数/delta/CI/长度/是否被选/被拒原因 + 逐题 delta + 改动 diff 摘要 (与当前最佳 skill 的行级差异).
-    skill 全文不重复写 (已按 hash 存在 eval_items/<tag>.json), 只写 hash + 长度."""
-    try:
-        d = os.path.join(out_dir, "candidates")
-        os.makedirs(d, exist_ok=True)
-        rec = {"iter": t, "focus": focus, "current_hash": current_hash,
-               "winner_hash": winner_hash, "winner_kind": winner_kind, "reject_reason": reject_reason,
-               "n_candidates": len(scored), "candidates": []}
-        for s_ in scored:
-            pi = s_.get("per_item") or {}
-            flat = [x for ds in pi.values() for x in (ds or [])]
-            item_mean = {q: (round(sum(ds) / len(ds), 4) if ds else 0.0) for q, ds in pi.items()}
-            rec["candidates"].append({
-                "idx": s_.get("idx"), "hash": s_.get("hash"), "kind": s_.get("kind", "") or "",
-                "novel": s_.get("hash") != current_hash,
-                "pass": s_.get("pass"), "delta": s_.get("delta"), "ci": s_.get("ci"), "len": s_.get("len"),
-                # winner 是「最佳 novel 候选」; 门控没通过时它并未真正入选, 单独标 admitted
-                "selected": winner_hash is not None and s_.get("hash") == winner_hash,
-                "admitted": admissible(s_.get("hash")) if admissible else None,
-                "n_items": len(item_mean),
-                "n_items_improved": sum(1 for v in item_mean.values() if v > 0),
-                "n_items_hurt": sum(1 for v in item_mean.values() if v < 0),
-                "mean_of_item_deltas": round(sum(item_mean.values()) / len(item_mean), 4) if item_mean else 0.0,
-                "sample_delta_mean": round(sum(flat) / len(flat), 4) if flat else 0.0,
-                "eval_items_ref": f"eval_items/iter{t:02d}_cand{s_.get('idx'):02d}_{str(s_.get('hash'))[:8]}.json",
-                "per_item_mean_delta": item_mean,
-                # issue #81: 截断轴证据随候选落盘 (否则截断门只能看整体率, 逐题配对证据丢在内存).
-                # 只写非空字段 → 无 harness 的旧路径字节不变.
-                **{k: s_.get(k) for k in ("n_gen_samples", "n_truncated", "n_truncated_rate",
-                                          "per_item_trunc") if s_.get(k) is not None},
-            })
-        json.dump(rec, open(os.path.join(d, f"iter{t:02d}.json"), "w", encoding="utf-8"),
-                  ensure_ascii=False, indent=2)
-    except Exception as e:  # noqa: BLE001
-        print(f"   ⚠ dump_iter_candidates(iter{t}) failed: {e!r}", file=sys.stderr, flush=True)
-
-
-def dump_rejected_patches(out_dir: str, rejected_patches: list, args=None) -> None:
-    """<out_dir>/rejected_patches.json: 「反面教材」全文 — 被否决的方案 + 拒绝原因 + 当轮门控数值.
-    rejected_patches 当前为字符串 (iterate 时回灌给 patcher); 这里额外把结构化信息 (解析 iter/focus/reason) 落盘,
-    并附 args 中的门控阈值, 便于事后判断「是生成不行还是门控太严」."""
-    try:
-        out = []
-        for rp in rejected_patches:
-            rp = str(rp)
-            it = None
-            try:
-                it = int(rp.split("iter", 1)[1].split(":", 1)[0].strip().split(" ")[0])
-            except Exception:
-                pass
-            out.append({"text": rp, "iter": it,
-                        "reason": rp.split(":", 1)[1].strip() if ":" in rp else rp})
-        gates = {}
-        if args is not None:
-            gates = {k: v for k, v in vars(args).items()
-                     if any(s in k for s in ("gate", "lost", "ci", "lcb", "margin", "patience", "admit"))}
-        json.dump({"n": len(out), "gates": gates, "patches": out},
-                  open(os.path.join(out_dir, "rejected_patches.json"), "w", encoding="utf-8"),
-                  ensure_ascii=False, indent=2)
-    except Exception as e:  # noqa: BLE001
-        print(f"   ⚠ dump_rejected_patches failed: {e!r}", file=sys.stderr, flush=True)
-
-
-# 双门基准必须沿 accept 滚动的字段. 含 clean_tok_list —— 截尾均值要用逐样本长度,
-# 只滚标量会让下轮退回普通均值, 口径前后不一致.
-_HARNESS_KEEP = ("n_truncated_rate", "clean_pass_tokens", "mean_out_tokens",
-                 "clean_tok_list", "clean_tok_q50", "clean_tok_q90",
-                 # issue #81: 截断门基准 (需要分母 + 逐题配对, 只有 rate 无法判)
-                 "n_truncated", "n_gen_samples", "per_item_trunc")
-
-
-def _trimmed_mean(xs, trim: float):
-    """去掉最高的 trim 比例后取均值 (截尾均值, 单侧). trim=0 → 普通均值.
-    实测依据 (run2 evolver_val): 基线 skill 的干净样本 mean 2169 / median 1278 / max 14388,
-    均值由少数超长轨迹主导 → 长度比较必须能剔除尾部, 否则"变短"要靠偶发长尾抽签."""
-    if not xs:
-        return None
-    s = sorted(xs)
-    if trim > 0:
-        keep = max(1, int(round(len(s) * (1.0 - trim))))
-        s = s[:keep]
-    return sum(s) / len(s)
-
-
-def dual_gate_decision(cand: dict, best: dict, base_pass: float, enabled=True,
-                       acc_max_drop=0.02, token_min_drop=0.20, use_token=True,
-                       trim: float = 0.10):
-    """长度轴双门 (issue #69 / #80 Step 3). 纯函数, 零副作用, 可单测.
-
-    背景: 旧门 `delta > best_val_delta and ci > 0` 只看准确率 —— "变短"既得不到正反馈也得不到
-    负反馈 (issue #69)。但反过来直接要求"不许变长"会诱导模型**写少** (少推理 = 少思考), 所以约束
-    放在两侧:
-      准确率侧  cand.pass >= base_pass − acc_max_drop   (方案六预登记: 相对 baseline 跌落 ≤2pp)
-      token 侧  trim(cand.clean_tok_list) <= trim(best.clean_tok_list) × (1 − token_min_drop)
-                (方案六预登记: 干净完成样本的 token 降幅 ≥20%; trim 默认去掉最长 10%)
-    返回 (ok, reason). 缺 harness 数据时: 准确率侧仍可判; token 侧**不可判 → 判失败并说明**
-    (不乱放行 —— 没有证据就不给长度奖励, 避免"缺数据"变成新的捷径)。
-    长度口径回退: 有 clean_tok_list 才用截尾均值; 只有 clean_pass_tokens (旧 run 落盘的标量)
-    时退回该标量 —— 保证 `--resume` 老目录 / 回放脚本仍可判, 但日志里会标 `(mean)`。
-    """
-    if not enabled:
-        return True, "dual_gate OFF"
-    if cand.get("pass") is not None and cand["pass"] < base_pass - acc_max_drop:
-        return False, (f"acc_drop: pass {cand['pass']:.3f} < base {base_pass:.3f}"
-                       f"−{acc_max_drop:.3f} (允许跌落 {acc_max_drop:.0%})")
-    if not use_token:
-        return True, "token_gate ablated"
-
-    def _len_of(d):
-        tl = d.get("clean_tok_list")
-        if tl:
-            return _trimmed_mean(tl, trim), f"trim{trim:.0%}={len(tl)}样本"
-        v = d.get("clean_pass_tokens")
-        return v, "mean"
-
-    ck_c, src_c = _len_of(cand)
-    ck_b, src_b = _len_of(best)
-    if not ck_c or not ck_b:
-        return False, (f"token_unknown: clean len cand={ck_c} best={ck_b}"
-                       f" (无可判长度证据 → 不放行长度奖励)")
-    need = ck_b * (1.0 - token_min_drop)
-    if ck_c > need:
-        return False, (f"token_not_shorter: clean {ck_c:.0f}[{src_c}] > best {ck_b:.0f}[{src_b}]"
-                       f"×(1−{token_min_drop:.2f})={need:.0f} (需降 ≥{token_min_drop:.0%})")
-    return True, (f"dual_gate OK: clean {ck_c:.0f}[{src_c}] vs best {ck_b:.0f}[{src_b}]"
-                  f" (−{1 - ck_c / ck_b:.1%})")
-
-
-def _added_trunc_rate(per_item_trunc):
-    """逐题截断率 {qid: n_tr/n} (只留有 harness 的题). 供 trunc_gate 配对."""
-    out = {}
-    for q, v in (per_item_trunc or {}).items():
-        try:
-            n_tr, n_s = int(v[0]), int(v[1])
-        except (TypeError, IndexError, ValueError):
-            continue
-        if n_s > 0:
-            out[str(q)] = n_tr / n_s
-    return out
-
-
-def trunc_gate_decision(cand: dict, best: dict, enabled=True,
-                        trunc_max_increase=0.01, paired_max=0.25, min_paired=3):
-    """防截断门 (issue #81 建议1: 每轮进化都做一次防截断检验). 纯函数, 零副作用.
-
-    为什么不复用 dual_gate 的 token 侧: 那个门的判据是「本次晋升必须比 best 短 ≥20%」—— 那是
-    **奖励方向**; 本门判的是「不许把截断搞坏」—— 是**不许退化**。两条轴独立:
-      · 一轮候选可能"长度没降但截断率也没涨" → dual_gate BLOCK, trunc_gate PASS (不该因截断拒)
-      · 一轮候选可能"trim 长度降了但截断率从 3% 涨到 9%" → dual_gate PASS, trunc_gate BLOCK
-                                    (变短是因为更多轨迹被砍断, 不是想得更紧 —— 假缩短)
-
-    判据 (两道, 各自可关):
-      整体门  候选 n_truncated/n_gen_samples <= best × (1+trunc_max_increase) + 1/gen_samples
-              (加一个样本的容差, 避免 n 小 (30~90) 时 0/90→1/90 就判"退化 100%")
-      配对门  截断率上升的题数 <= paired_max × 有配对证据的题数, 且这些题平均上升 ≤25pp
-              (整体率被少数长题稀释; 配对才看得到"两题被救、一题被弄坏")
-    缺 harness 证据 → 不拦 (与 dual_gate 相反: 那个门的缺证据 = 没理由给长度奖励;
-    本门的缺证据 = 没有截断证据 ≠ 截断变差. 旧 run 目录必须仍能 resume).
-    返回 (ok, reason, detail). detail 落盘进 evolver_log, 供事后复核门是否真的在看数据.
-    """
-    if not enabled:
-        return True, "trunc_gate OFF", {}
-    c_s, c_t = cand.get("n_gen_samples"), cand.get("n_truncated")
-    b_s, b_t = best.get("n_gen_samples"), best.get("n_truncated")
-    if not c_s or not b_s or c_t is None or b_t is None:
-        return True, f"trunc_unknown: cand {c_t}/{c_s} best {b_t}/{b_s} — 无证据不拦", {}
-    cr, br = c_t / c_s, b_t / b_s
-    allow = br * (1.0 + trunc_max_increase) + 1.0 / c_s
-    detail = {"cand_rate": round(cr, 4), "best_rate": round(br, 4), "allow": round(allow, 4),
-              "cand_n": [int(c_t), int(c_s)], "best_n": [int(b_t), int(b_s)]}
-    if cr > allow:
-        return False, (f"trunc_rate_up: {c_t}/{c_s}={cr:.1%} > best {b_t}/{b_s}={br:.1%}"
-                       f" (容差 +{trunc_max_increase:.0%}+1样本 → 上限 {allow:.1%})"), detail
-
-    cp = _added_trunc_rate(cand.get("per_item_trunc"))
-    bp = _added_trunc_rate(best.get("per_item_trunc"))
-    common = [q for q in cp if q in bp]
-    if paired_max is not None and len(common) >= min_paired:
-        worse = [q for q in common if cp[q] - bp[q] > 0.01]
-        mean_up = (sum(cp[q] - bp[q] for q in worse) / len(worse)) if worse else 0.0
-        frac = len(worse) / len(common)
-        detail.update({"paired_q": len(common), "paired_worse": len(worse),
-                       "paired_frac": round(frac, 3), "paired_mean_up": round(mean_up, 4)})
-        if frac > paired_max and mean_up > 0.25:
-            return False, (f"trunc_paired_up: {len(worse)}/{len(common)} 题截断率上升"
-                           f" ({frac:.0%} > {paired_max:.0%}), 平均 +{mean_up*100:.0f}pp"), detail
-    return True, (f"trunc_gate OK: {c_t}/{c_s}={cr:.1%} vs best {br:.1%}"
-                  f" (配对 {detail.get('paired_worse', 0)}/{detail.get('paired_q', 0)} 变差)"), detail
-
-
-def dump_eval_items(out_dir: str, tag: str, skill: str, per_item: dict,
-                    items: list | None = None, harness: dict | None = None) -> None:
-    """逐候选逐题记录: <out_dir>/eval_items/<tag>.json.
-    per_item: {qid: [delta_k...]} (eval_on 第 4 返回值); items: 对应题面 (缺省只用 qid).
-    用于事后分析「哪一题被 skill 救了 / 被 skill 弄坏」, 以及 delta 分布 — 不只写 mean.
-    harness (issue #80 Step 1): 候选级截断率 / 干净完成长度, 与 items 并列写入, 使
-    「准确率没掉但 token 降了」这类结论可以从磁盘证据直接读出, 不必重跑."""
-    try:
-        qmap = {str(it["id"]): it for it in (items or [])}
-        d = os.path.join(out_dir, "eval_items")
-        os.makedirs(d, exist_ok=True)
-        rec = {"tag": tag, "skill_hash": md5(skill), "skill": skill,
-               "items": {q: {"id": q, "deltas": ds, "mean_delta": (sum(ds) / len(ds) if ds else 0.0),
-                             "problem": qmap.get(q, {}).get("problem", qmap.get(q, {}).get("question", ""))}
-                         for q, ds in per_item.items()}}
-        if harness:
-            rec["harness"] = harness
-        json.dump(rec, open(os.path.join(d, f"{tag}.json"), "w", encoding="utf-8"),
-                  ensure_ascii=False, indent=2)
-    except Exception as e:  # noqa: BLE001
-        print(f"   ⚠ dump_eval_items({tag}) failed: {e!r}", file=sys.stderr, flush=True)
-
-
 PATCHER_SYSTEM = (
     "You are an expert System Prompt Engineer for a mathematical-reasoning LLM solving AIME-style "
     "competition problems (numerical answers, integers 0-999). You make SMALL, SURGICAL edits to an "
@@ -429,189 +196,6 @@ def _format_choices(choices):
 def _excerpt(text: str, n: int = 700) -> str:
     t = (text or "").strip()
     return t if len(t) <= n else t[:n] + " …[truncated]"
-
-
-# ===================================================================
-# 行为归因 (2026-11-12, issue #53 追加3): 让 patcher 看见 "输出过程病态",
-# 而不只是 "答案错". 原来 diagnostics 只给前 600 字符 excerpt → 一个跑 65k token
-# 反复重来的轨迹在 patcher 眼里等于一段正常开头, 归因无从谈起, 只能在 skill 里
-# 补"题目内容类"规则. 这里把行为特征显式写进诊断, 让 skill 进化器自己去归纳.
-# 观测依据 (流式 60 次探针): none 组 3 题 fr=length; 62/88 答案在末尾但前面
-# 无限枚举; 73 在 Step 120 后同一段原样重复 ~39 次、无 <answer>.
-# ===================================================================
-_ANSWER_TAG_RE = re.compile(r"<answer>.*?</answer>", re.DOTALL | re.IGNORECASE)
-_REPEAT_WINDOW = 120   # 段落块判定窗口 (字符)
-_REPEAT_MIN = 5        # 同一块连续出现 >= 5 次记为复读
-
-
-def find_tail_loop(text: str, window: int = _REPEAT_WINDOW, min_reps: int = _REPEAT_MIN) -> int:
-    """检测结尾复读: 末尾 window 字符连续重复 >= min_reps 次则返回重复次数, 否则 0.
-
-    只看结尾, 因为病态复读的特征就是 "再也走不出来", 中途的正常重复 (如求和符号) 不误报。
-    """
-    t = text or ""
-    if len(t) < window * min_reps:
-        return 0
-    blk = t[-window:]
-    reps = 0
-    i = len(t)
-    while i >= window and t[i - window:i] == blk:
-        reps += 1
-        i -= window
-    return reps if reps >= min_reps else 0
-
-
-def find_cycle(text: str, s_len: int = 160, min_reps: int = 3) -> str:
-    """检测中途复读: 返回重复次数最多的、长度 s_len 的子串 (无重复段落则空串).
-
-    按字符滑动 (不按固定窗口对齐, 因为保存的轨迹常丢失换行 → 任意 chunk 都可能被拆断),
-    取出现 >= min_reps 次的 s_len 长子串, 再贪心向左/右扩到最大且重复次数不变的边界。
-    O(len * reps)。文本短于 s_len*min_reps 则直接返回空串 (不可判).
-    """
-    t = text or ""
-    if len(t) < s_len * min_reps:
-        return ""
-    seen: dict[str, list[int]] = {}
-    for i in range(0, len(t) - s_len + 1):
-        k = t[i:i + s_len]
-        pos = seen.get(k)
-        if pos is None:
-            seen[k] = [i]
-        else:
-            pos.append(i)
-    best = max(seen.items(), key=lambda kv: len(kv[1]))
-    blk, pos = best
-    if len(pos) < min_reps:
-        return ""
-    n = max(len(pos), t.count(blk))
-    lo, hi = pos[0], pos[0] + s_len
-    # 右扩: 所有出现处共同延续同一位且重复次数不掉, 就继续纳入 (得到完整循环段)
-    while hi < len(t):
-        c = t[hi]
-        if all(p + (hi - lo) < len(t) and t[p + (hi - lo)] == c for p in pos) and len(pos) >= n:
-            hi += 1
-        else:
-            break
-    return t[lo:hi]
-
-
-def behavior_signature(text: str) -> dict:
-    """把一条轨迹的 "过程行为" 归一成特征 dict, 零 API, 供 collect_failures 和诊断渲染共用.
-
-    字段:
-      n_chars        轨迹长度 (字符)
-      n_steps        出现的 "Step N" 编号最大值 (0 = 无编号)
-      n_answer_tags  <answer> 出现次数 (0 = 没交卷; >1 = 反复改口)
-      answer_pos     首个 <answer> 的相对位置 0~1 (1.0 = 只在结尾交卷, 0 = 开头就交)
-      tail_loop      结尾复读次数 (find_tail_loop)
-      cycle_reps     全文中重复最多的段落块次数 (-1 = 未检出)
-      cycle_block    上面那段的样本 (用于给 patcher 看它究竟在哪卡住)
-    """
-    t = text or ""
-    tags = _ANSWER_TAG_RE.findall(t)
-    steps = [int(x) for x in re.findall(r"Step\s+(\d+)", t)]
-    reps = find_tail_loop(t)
-    cyc = find_cycle(t)
-    return {
-        "n_chars": len(t),
-        "n_steps": max(steps) if steps else 0,
-        "n_answer_tags": len(tags),
-        "answer_pos": round(t.find(tags[0]) / len(t), 2) if tags and len(t) else 1.0,
-        "tail_loop": reps,
-        "cycle_reps": _repeat_count(t, cyc) if cyc else -1,
-        "cycle_block": _excerpt(cyc, 300) if cyc else "",
-    }
-
-
-def _repeat_count(text: str, blk: str, window: int = _REPEAT_WINDOW) -> int:
-    if not blk:
-        return -1
-    return text.count(blk)
-
-
-def render_behavior(sig: dict) -> str:
-    """把 behavior_signature 渲染成 patcher 可读的一行诊断 (英文, 与模板一致)."""
-    flags = []
-    if sig.get("n_answer_tags", 0) == 0:
-        flags.append("NEVER EMITTED <answer> (no final answer -> automatically wrong)")
-    elif sig.get("answer_pos", 1.0) > 0.9 and sig.get("n_chars", 0) > 12000:
-        flags.append("only emitted <answer> at the very end of a very long trace")
-    if sig.get("n_answer_tags", 0) > 1:
-        flags.append(f"emitted <answer> {sig['n_answer_tags']} times (kept second-guessing)")
-    if sig.get("tail_loop", 0):
-        flags.append(f"tail repetition: last block repeated {sig['tail_loop']}x")
-    if sig.get("cycle_reps", -1) >= _REPEAT_MIN:
-        flags.append(f"mid-trace loop: the same {_REPEAT_WINDOW}-char block repeated {sig['cycle_reps']}x")
-    if not flags:
-        flags.append("clean termination")
-    s = (f"trace_len={sig.get('n_chars', 0)} chars, max_step={sig.get('n_steps', 0)}, "
-         f"answer_tags={sig.get('n_answer_tags', 0)}; " + "; ".join(flags))
-    if sig.get("cycle_block"):
-        s += f"\n  repeated block sample: {sig['cycle_block']!r}"
-    return s
-
-
-# ================================================================
-# Harness / 完成度 信号因子 (2026-11-12, issue #53 追加7)
-# ----------------------------------------------------------------
-# 动机: 失败的"形状"分两类 — 模型**行为**(循环/不交卷/冗长) 与 **预算**(length 截断).
-# 只靠答案文本 + behavior_signature 无法区分后者 (截断的残文往往同样"没交卷"), 会把
-# "预算不足" 学成一条 skill 规则, 换数据集/换模型就失效. 故把调用层过程信号
-# (finish_reason / n_truncated / max_tokens_used / 输出 token) 作为**信号因子**归一进失败记录,
-# 让 (a) 归因区分 BUDGET 与 BEHAVIOR, (b) patcher 看到量化的完成度.
-# 数据集无关: 只看调用过程, 不看题型.
-# ================================================================
-_BUDGET_FAILURE_LABEL = "Budget-Exhausted (truncated before completion)"
-# harness 故障标签 (issue #53 追加7): 与 facet_library.HARNESS_FAILURE_LABEL 同义, flat 路径用.
-# 这类失败不能进 patcher (写规则修不了 API 异常), 由 generate_candidates 显式跳过.
-_HARNESS_FAILURE_LABEL = "Harness Failure (API error / eval abandoned, not model behavior)"
-
-
-def build_harness_summary(harness_list) -> dict:
-    """把若干条 run_one harness 归一成一个跨题聚合 (零 API, 确定性).
-    truncated_ratio = 截断样本数 / 有效样本数; completion = 平均 输出token / 预算."""
-    hs = [h for h in (harness_list or []) if isinstance(h, dict)]
-    n_samp = sum(int(h.get("n_samples") or 0) for h in hs)
-    n_tr = sum(int(h.get("n_truncated") or 0) for h in hs)
-    n_exc = sum(int(h.get("n_exceptions") or 0) for h in hs)
-    # n_out_tokens 在 run_one 里是**每题的 k 次采样累计和** (k=1 时即单次). 误差贡献可忽略 (≤ 1/k).
-    # completion = 平均每题输出token / (采样数 × 单次预算) —— 用总预算做分母, k>1 时不会 >100%.
-    toks = [int(h.get("n_out_tokens") or 0) for h in hs if h.get("n_out_tokens")]
-    budgets = [int(h.get("max_tokens_used") or 0) for h in hs if h.get("max_tokens_used")]
-    avg_tok = sum(toks) / len(toks) if toks else 0.0
-    budget = max(budgets) if budgets else 0
-    samp_per_fail = (n_samp / len(hs)) if hs else 0.0
-    total_budget = budget * samp_per_fail
-    return {
-        "n_failures": len(hs), "n_samples": n_samp,
-        "truncated_ratio": round(n_tr / n_samp, 3) if n_samp else 0.0,
-        "n_truncated": n_tr, "n_exceptions": n_exc,
-        "avg_out_tokens": int(avg_tok), "avg_completion": round(avg_tok / total_budget, 3) if total_budget else 0.0,
-        "budget": budget,
-    }
-
-
-def summarize_harness(h: dict) -> str:
-    """一行渲染, 给 patcher / tally 表用. 空/全零 → '' (不污染提示)."""
-    if not h or not h.get("n_failures"):
-        return ""
-    if h.get("n_truncated"):
-        # 有截断: 分母 = 实际生效预算 (调用层 meta['max_tokens'], 已|未加倍), completion 恒≈100%.
-        bits = [f"completion~{h.get('avg_completion', 0):.0%} of {h.get('budget', 0)}tok (hit limit)"]
-        bits.append(f"{h['n_truncated']}/{h.get('n_samples', 0)} samples truncated")
-    elif h.get("budget"):
-        # 无截断: 该题没被预算卡住 (finish_reason=stop), 只报输出规模, 不渲染误导性的百分比.
-        bits = [f"finished within budget ({h.get('budget', 0)}tok), ~{h.get('avg_out_tokens', 0)} output tok"]
-    if h.get("n_exceptions"):
-        bits.append(f"{h['n_exceptions']} API exception(s)")
-    return ", ".join(bits)
-
-
-def harness_is_budget_failure(failure: dict) -> bool:
-    """单条失败是否 budget 型: 该题任一采样被截断 (finish_reason=length) → 是.
-    这类失败与题面/模型推理无关, 交卷格式再严也修不了, 不该走行为/题型归因."""
-    h = failure.get("harness") or {}
-    return int(h.get("n_truncated") or 0) >= 1
 
 
 def clean_skill(s: str, fallback: str) -> str:
@@ -650,12 +234,6 @@ def classify_failure_type(failure: dict) -> str:
     None (off) → 下方原关键词梯逐字节执行 (0.462 路径)."""
     if _EFL is not None:
         return _EFL.classify(failure)
-    if budget_signal(failure):
-        # 预算信号 (issue #53 追加7): finish_reason=length 的失败与题面/推理无关, 单列一类,
-        # 不被关键词梯或 answer-form 兜底吞掉 (deterministic, 不进 seed 八维).
-        return _BUDGET_FAILURE_LABEL
-    if harness_signal(failure):
-        return _HARNESS_FAILURE_LABEL   # harness 故障 (全异常/deadline): 非推理失败, 不进 patcher
     it = failure.get("item", {}) or {}
     q = (str(it.get("problem", "")) + " " + str(it.get("answer", ""))).lower()
     is_meta = any(sig in q for sig in _META_Q_SIG)
@@ -899,16 +477,18 @@ def _new_operator_counts():
       evaluated       — 进 eval_on 算出 pass/delta/ci 的次数
       admitted        — 过准入门进 archive 的次数 (含未成 best 的 keep-losers)
       promoted        — 成为本轮/历史全局 best 的次数 (TREE-BEST / *-BEST 命中)
+      identity_skip   — [overlay 专属] donors 空+无 carry-forward → overlay 重建出 parent (identity),
+                        为避免 winner's-curse 噪声跳过的次数 (Direction 2 复盘 2026-10-28 修).
     pool_filter 是 gate 不是算子, 单独记 per-gate: {quality, spike, diverse} × {pass, reject}.
     """
     return {op: {"attempted": 0, "guard_rejected": 0, "evaluated": 0,
-                 "admitted": 0, "promoted": 0} for op in _OPERATOR_NAMES}
+                 "admitted": 0, "promoted": 0, "identity_skip": 0} for op in _OPERATOR_NAMES}
 
 
 def _accumulate_counts(run_total, iter_counts):
     """把本轮 iter_counts 累加进 run_total (跨轮汇总, 供终局 0-promoted 告警)."""
     for op, d in iter_counts.items():
-        for k in ("attempted", "guard_rejected", "evaluated", "admitted", "promoted"):
+        for k in ("attempted", "guard_rejected", "evaluated", "admitted", "promoted", "identity_skip"):
             run_total[op][k] += d.get(k, 0)
 
 
@@ -976,22 +556,41 @@ def subset_signal(per_item_delta, meta_mask):
                   if meta_mask.get(q, False) and v]
     notmeta_means = [sum(v) / len(v) for q, v in per_item_delta.items()
                      if not meta_mask.get(q, True) and v]
-    def _ci(ms):
+    def _ci(ms, q=2.5):
         if len(ms) < 2:
-            return float("-inf")
+            # n<2: 下界 -inf (不增益, 保守不救); 上界 +inf (不否决, 无法证退步) — F2 veto softening
+            return float("-inf") if q == 2.5 else float("inf")
         rng = _np.random.default_rng(42)
         arr = _np.asarray(ms)
         samples = rng.choice(arr, size=(1000, len(arr)), replace=True).mean(axis=1)
-        return float(_np.percentile(samples, 2.5))
+        return float(_np.percentile(samples, q))
     return {
         "meta": {"mean": float(_np.mean(meta_means)) if meta_means else 0.0,
-                 "ci": _ci(meta_means), "n": len(meta_means)},
+                 "ci": _ci(meta_means), "ci_upper": _ci(meta_means, 97.5),
+                 "n": len(meta_means)},
         "not_meta": {"mean": float(_np.mean(notmeta_means)) if notmeta_means else 0.0,
-                     "ci": _ci(notmeta_means), "n": len(notmeta_means)},
+                     "ci": _ci(notmeta_means), "ci_upper": _ci(notmeta_means, 97.5),
+                     "n": len(notmeta_means)},
     }
 
 
-def subset_promote_decision(xitem, best_val_delta, meta_mask, eps=0.02, enabled=True):
+def _veto_regression(bucket, eps, upper_veto=False, skip_n1=False):
+    """交叉子集/分组否决判据 (F2 veto softening).
+
+    旧行为 (upper_veto=False, 默认零回归): bucket 显著退步 = ci (置信下界) < -eps.
+    新行为 (upper_veto=True, --veto_upper_bound): bucket 显著退步 = ci_upper (置信上界) < 0
+      — 只有"连最好的情况都 < 0"才否决, 对噪声更宽容 (整体 CI≤0 但某子集置信上界 > 0 时仍允许救援).
+    skip_n1 (--veto_skip_n1): n<2 的 bucket 不否决 (单样本无法证退步; AIME meta 子集 n=1 否则永远 -inf 否决).
+    """
+    if skip_n1 and bucket.get("n", 0) < 2:
+        return False
+    if upper_veto:
+        return bucket.get("ci_upper", float("inf")) < 0
+    return bucket.get("ci", float("-inf")) < -eps
+
+
+def subset_promote_decision(xitem, best_val_delta, meta_mask, eps=0.02, enabled=True,
+                            upper_veto=False, skip_n1=False):
     """break-③ per-subset 准入判据: 整体未超 best 时, 看子集信号决定是否晋升为 best.
 
     判据 (对齐 expand-v2 not-meta +0.157 信号):
@@ -1010,11 +609,11 @@ def subset_promote_decision(xitem, best_val_delta, meta_mask, eps=0.02, enabled=
     # 关键: 交叉子集判据必须用 ci (置信下界), 不是 mean — mean 易被少数极端样本拉偏, 而 ci 才是
     # "是否真的有正向效应". Bug C 根因: 旧版用 mt["mean"]>=-eps / nm["mean"]>=-eps 作交叉判据,
     # 导致 not-meta ci 显著为负 (如 -0.08) 但 mean 刚好 >=-eps 的候选被 meta-mirror 路径误救.
-    promote = (nm["ci"] > 0) and (nm["n"] >= 1) and (mt["ci"] >= -eps)
+    promote = (nm["ci"] > 0) and (nm["n"] >= 1) and (not _veto_regression(mt, eps, upper_veto, skip_n1))
     # 镜像备用路径: meta 子集显著增益 且 not-meta 子集未显著退步 (ci 判据).
     # 旧 Bug C: 此处用 nm["mean"]>=-eps → not-meta ci=-0.027/-0.06/-0.08 全部误救 (5/6 误判).
-    # 收紧为 nm["ci"]>=-eps: not-meta 必须置信下界不显著为负, 才允许 meta 增益带它一起晋升.
-    if not promote and (mt["ci"] > 0) and (mt["n"] >= 1) and (nm["ci"] >= -eps):
+    # 收紧为 _veto_regression (默认 ci<-eps; --veto_upper_bound 时改用 ci_upper<0; --veto_skip_n1 跳 n<2).
+    if not promote and (mt["ci"] > 0) and (mt["n"] >= 1) and (not _veto_regression(nm, eps, upper_veto, skip_n1)):
         promote = True
     return promote, sig
 
@@ -1034,28 +633,31 @@ def group_signal(per_item_delta, group_mask):
         g = group_mask.get(q, "unassigned")
         buckets.setdefault(g, []).append(sum(v) / len(v))
 
-    def _ci(ms):
+    def _ci(ms, q=2.5):
         if len(ms) < 2:
-            return float("-inf")
+            return float("-inf") if q == 2.5 else float("inf")
         rng = _np.random.default_rng(42)
         arr = _np.asarray(ms)
         samples = rng.choice(arr, size=(1000, len(arr)), replace=True).mean(axis=1)
-        return float(_np.percentile(samples, 2.5))
+        return float(_np.percentile(samples, q))
 
     return {g: {"mean": float(_np.mean(ms)) if ms else 0.0,
-                "ci": _ci(ms), "n": len(ms)} for g, ms in buckets.items()}
+                "ci": _ci(ms), "ci_upper": _ci(ms, 97.5), "n": len(ms)}
+            for g, ms in buckets.items()}
 
 
-def group_promote_decision(xitem, best_val_delta, group_mask, eps=0.02, enabled=True):
+def group_promote_decision(xitem, best_val_delta, group_mask, eps=0.02, enabled=True,
+                          upper_veto=False, skip_n1=False):
     """N-way per-group 准入判据 (镜像 subset_promote_decision, 推广为对称 N 路):
 
       - 存在某组 ci_lower > 0 (显著增益) 且
-      - 无任何组 ci_lower < -eps (无组显著退步)
+      - 无任何组显著退步 (默认 ci_lower < -eps; --veto_upper_bound 时改用 ci_upper < 0)
       → 晋升 best.
     enabled=False (--no-facet_group_admit) 时返回 (False, sig, None).
     返回 (should_promote, sig_dict, best_group_name).
-    注: ci 判据 (非 mean) 防 Bug C 类误判 (见 subset_promote_decision 注释);
+    注: ci 判据 (非 mean) 防 Bug C 类误误判 (见 subset_promote_decision 注释);
         _ci 对 n<2 返回 -inf, 故 n>=2 是 bootstrap 自带的真实统计地板.
+        upper_veto/skip_n1 (F2 veto softening, 默认 OFF=零回归): 见 _veto_regression.
     """
     sig = group_signal(xitem, group_mask)
     if not enabled:
@@ -1063,8 +665,8 @@ def group_promote_decision(xitem, best_val_delta, group_mask, eps=0.02, enabled=
     gains = [(g, d) for g, d in sig.items() if d["ci"] > 0 and d["n"] >= 2]
     if not gains:
         return False, sig, None
-    # 任一组显著退步即否决 (ci 判据, 非 mean — 防 Bug C 类误判).
-    if any(d["ci"] < -eps for d in sig.values()):
+    # 任一组显著退步即否决 (默认 ci<-eps; --veto_upper_bound 用 ci_upper<0; --veto_skip_n1 跳 n<2).
+    if any(_veto_regression(d, eps, upper_veto, skip_n1) for d in sig.values()):
         return False, sig, None
     best_group = max(gains, key=lambda kv: kv[1]["ci"])[0]
     return True, sig, best_group
@@ -1082,13 +684,17 @@ def _combined_rescue(item, best_val_delta, meta_mask, group_mask, args, eps=0.02
     (键 meta/not_meta) — 调用方按 source 区分打印, 不混用键.
     """
     # ① 2-way (existing, default ON)
+    _uv = getattr(args, "veto_upper_bound", False)
+    _sn1 = getattr(args, "veto_skip_n1", False)
     sub_promote, sub_sig = subset_promote_decision(
-        item, best_val_delta, meta_mask, eps=eps, enabled=args.subset_admit)
+        item, best_val_delta, meta_mask, eps=eps, enabled=args.subset_admit,
+        upper_veto=_uv, skip_n1=_sn1)
     if sub_promote:
         return True, sub_sig, "subset"
     # ② N-way (new, default OFF)
     grp_promote, grp_sig, grp_name = group_promote_decision(
-        item, best_val_delta, group_mask, eps=eps, enabled=args.facet_group_admit)
+        item, best_val_delta, group_mask, eps=eps, enabled=args.facet_group_admit,
+        upper_veto=_uv, skip_n1=_sn1)
     if grp_promote:
         return True, grp_sig, f"group:{grp_name}"
     return False, (sub_sig if args.subset_admit else grp_sig), None
@@ -1164,28 +770,6 @@ _TYPE_COVERAGE_SIG = {
     FAILURE_FOCI[7]: ("equation setup", "equation", "variable", "unknown", "introduce variables"),
 }
 
-# ---------------------------------------------------------------------------
-# Budget 轴 (issue #76, 2026-11-16): 让"跑不完/截断"成为可被优化的 focus.
-# 背景: classify_failure_type 早就有 _BUDGET_FAILURE_LABEL 单列, budget_advisory 也早已把
-# "两次校验一致就交卷"喂给 patcher, 但 budget 不占 focus 名额 —— 它被设计成"永远未覆盖"的哨兵,
-# 只能靠别的 focus 顺手蹭到, 于是 evolver 从未被要求降低截断 (run1 4 iter focus 全是答错轴,
-# 手写预算纪律段的收益被误当成"进化成果"). 本轴只在 --budget_focus ON 时参与 focus 选择.
-# 零回归: OFF 时 _efl_majority / find_uncovered_type 行为与改前逐字节一致.
-_BUDGET_COVERAGE_SIG = ("commit discipline", "commit checkpoint", "running total",
-                        "stop and submit", "token budget", "hard commit")
-_BUDGET_FOCUS_ON = False   # 由 --budget_focus 置位
-
-# 注入给 patcher 的诊断块: 隐性失败轴 (无题面关键词、无法自愈) 要怎么写成决策程序.
-_IMPLICIT_AXIS_MANDATE = {
-    _BUDGET_FAILURE_LABEL: (
-        "This axis is INVISIBLE from problem statements (a model that never finishes any problem "
-        "shows up here), so no keyword cue can self-fix it. You MUST write an explicit decision "
-        "program: a pre-reasoning budget plan, an anti-repetition test, and a hard commit "
-        "checkpoint that forces a single `<answer>\\boxed{N}</answer>` before the token limit. "
-        "Keep the added text tight (<=5 bullets) and do NOT delete existing sections."
-    ),
-}
-
 
 # ================================================================
 # EFL guard helpers (2026-10-13) — 零回归解耦层
@@ -1196,12 +780,8 @@ _IMPLICIT_AXIS_MANDATE = {
 # 核心解耦: "meta" 从位置索引 FAILURE_FOCI[5] 变成显式 is_meta flag.
 def _coverage_sig(lbl: str):
     """替换 _TYPE_COVERAGE_SIG.get(lbl, ()).
-    OFF → 静态 8 入口 dict; ON → EFL facet 的 keyword_signature (涌现 facet 也参与覆盖检查).
-    issue #76: --budget_focus ON 时 Budget 轴也有签名, 故它可以是"已覆盖" (不再永远未覆盖);
-    OFF 时 Budget 不在 dict 里 → 返回 () → 行为与改前一致."""
+    OFF → 静态 8 入口 dict; ON → EFL facet 的 keyword_signature (涌现 facet 也参与覆盖检查)."""
     if _EFL is None:
-        if _BUDGET_FOCUS_ON and _is_budget_label(lbl):  # issue #88: 用宽松匹配 (兼容 EFL-ON/EFL-OFF 标签名差异)
-            return _BUDGET_COVERAGE_SIG
         return _TYPE_COVERAGE_SIG.get(lbl, ())
     return _EFL.get_signature(lbl)
 
@@ -1240,18 +820,9 @@ def _efl_majority(counts: dict) -> str:
     OFF → max(counts, key=(counts[lbl], -FAILURE_FOCI.index(lbl))) (逐字节复现);
     ON → 同语义但 tiebreak 用 EFL id 序 (FAILURE_FOCI.index 对涌现 label 会抛 ValueError)."""
     if _EFL is None:
-        # issue #77: nan-safe 无条件生效 —— Budget 标签即便在 OFF 路径也可能进 counts
-        # (某个 skill 恰好整题截断时), 原式 `FAILURE_FOCI.index(lbl)` 会直接 ValueError 崩掉整轮.
-        # OFF 路径的语义不变: 只在答错轴之间按 FAILURE_FOCI 序 tiebreak; Budget 排最后.
-        # issue #88: fix tiebreak direction — _is_budget_label 为 True 时 budget 应在
-        # tiebreak 中排最后 (False=0 > True=-1, max prefers larger), 反之前是 +1 让其优先.
-        return max(counts, key=lambda lbl: (counts[lbl],
-                                            (-1 if _is_budget_label(lbl) else 0) if _BUDGET_FOCUS_ON else 0,
-                                            -FAILURE_FOCI.index(lbl) if lbl in FAILURE_FOCI else -10 ** 6))
+        return max(counts, key=lambda lbl: (counts[lbl], -FAILURE_FOCI.index(lbl)))
     order = {fc.name: i for i, fc in enumerate(_EFL.all)}
-    return max(counts, key=lambda lbl: (counts[lbl],
-                                        (-1 if _is_budget_label(lbl) else 0) if _BUDGET_FOCUS_ON else 0,
-                                        -order.get(lbl, 10 ** 9)))
+    return max(counts, key=lambda lbl: (counts[lbl], -order.get(lbl, 10 ** 9)))
 
 
 def _efl_end_of_iter(args):
@@ -1263,11 +834,6 @@ def _efl_end_of_iter(args):
     成本: 1 次 merge LLM call/轮 (无 candidate 时直接 return)."""
     if _EFL is None:
         return
-    # 行为归因 (2026-11-12): 本轮预算耗尽时暂存的行为失败 → 并入已命名的行为 facet, 并清预算.
-    _n_beh = _EFL.drain_deferred()
-    if _n_beh:
-        print(f"🧬 EFL: merged {_n_beh} deferred behavior failure(s) into existing behavior facet(s)")
-    _EFL.reset_round_budget()
     _EFL.merge_candidates()
     _EFL.promote_candidates(k_min=getattr(args, "efl_min_failures", 2),
                             p_min=getattr(args, "efl_min_problems", 2))
@@ -1276,28 +842,9 @@ def _efl_end_of_iter(args):
 
 def find_uncovered_type(counts, skill_content):
     """在分布中出现且当前 skill 尚未覆盖 (无签名关键词) 的类型里, 选最高频的一个 (先填最大的洞).
-    全已覆盖则返回 None -> 调用方回退多数类型 (Task3 行为).
-    harness 故障 (issue #53 追加7): 不是推理失败, skill 里写什么都不影响 → 永远不选 (不占焦点);
-    budget 类有意例外 (哨兵签名 → 永远"未覆盖") —— 它需要一条收尾纪律, 且 patcher 会拿到完成度旁注.
-    issue #76: --budget_focus ON 时 budget 轴改为有签名 → 能"已覆盖" (写了收尾纪律就不再占焦点),
-    并在未覆盖时优先于其他类型 (它是唯一从题面看不见的轴, 且是 0 分失败而非答错)."""
+    全已覆盖则返回 None -> 调用方回退多数类型 (Task3 行为)."""
     sc = skill_content.lower()
-    # issue #76: budget 轴是"隐性轴" —— 题面里没有任何词能让模型自己想到"该交卷了", 所以它是
-    # 唯一可以越过"最高频优先"的类型: 只要还缺一条收尾纪律, 就先补它 (0 分失败 > 答错).
-    # 它一旦被写进 skill (签名命中) 就不再占焦点, 交给其他轴.
-    # issue #88: EFL-ON 下 budget 标签是 facet 名 ("Budget Exhausted"), EFL-OFF 是
-    # _BUDGET_FAILURE_LABEL ("Budget-Exhausted (truncated before completion)") — 用 _is_budget_label
-    # 宽松匹配统一, 否则 EFL-ON 下 budget 的"优先选中"早退分支永不执行.
-    if _BUDGET_FOCUS_ON:
-        _budget_lbl = next((l for l in counts if _is_budget_label(l)), None)
-        if _budget_lbl is not None:
-            sigs = _coverage_sig(_budget_lbl)
-            if sigs and not any(s in sc for s in sigs):
-                return _budget_lbl
-    for lbl in sorted(counts, key=lambda l: (-counts[l],
-                                            not (_BUDGET_FOCUS_ON and _is_budget_label(l)))):
-        if lbl == _HARNESS_FAILURE_LABEL:
-            continue
+    for lbl in sorted(counts, key=lambda l: -counts[l]):
         sigs = _coverage_sig(lbl)
         if sigs and not any(s in sc for s in sigs):
             return lbl
@@ -1482,10 +1029,6 @@ def collect_failures(val_items, skill_content, s0_cache, n_diag=8, k=1, n_win=4,
                 "pred": r.get("predicted_label", ""),
                 "correct": r.get("correct_label", ""),
                 "response_excerpt": _excerpt(r.get("response", ""), 600),
-                "behavior": behavior_signature(r.get("response", "")),
-                "harness": r.get("harness") or {},
-                "response_head": _excerpt(r.get("response", ""), 400),
-                "response_tail": _excerpt((r.get("response") or "")[-1200:], 1200),
                 "s0_pass": s0p,
             })
         else:
@@ -1496,7 +1039,6 @@ def collect_failures(val_items, skill_content, s0_cache, n_diag=8, k=1, n_win=4,
                     "pred": r.get("predicted_label", ""),
                     "correct": r.get("correct_label", ""),
                     "response_excerpt": _excerpt(r.get("response", ""), 600),
-                    "behavior": behavior_signature(r.get("response", "")),
                     "s0_pass": s0p, "skill_pass": r["pass_rate"],
                 })
             if r["pass_rate"] > 0 and s0p < 1.0:
@@ -1508,7 +1050,6 @@ def collect_failures(val_items, skill_content, s0_cache, n_diag=8, k=1, n_win=4,
                         "pred": r.get("predicted_label", ""),
                         "correct": r.get("correct_label", ""),
                         "response_excerpt": _excerpt(r.get("response", ""), 600),
-                        "behavior": behavior_signature(r.get("response", "")),
                         "s0_pass": s0p, "skill_pass": r["pass_rate"], "gain": gain,
                     })
     # 取最多 n_diag 个, 优先 S0 也错的 (真 headroom)
@@ -1533,7 +1074,6 @@ The CURRENT skill is below. It already works well on many problems but STILL FAI
 Rules:
 1. Do NOT rewrite the skill. Keep its structure. Add at most ONE new short subsection (or replace/extend one existing bullet) that addresses the failure mode.{modify_clause}
 2. The new content must be a CONCRETE, OPERATIONAL decision procedure anchored to the diagnostic cases — e.g. "For off-by-one boundary errors, test both endpoints explicitly: is the boundary inclusive or exclusive? Plug in the boundary value and the value just before/after it, and confirm which the problem's wording selects." NOT "check boundaries carefully".
-   If a diagnostic shows a TRACE BEHAVIOR problem (e.g. "NEVER EMITTED <answer>", "mid-trace loop", "tail repetition", excessive trace length), treat the BEHAVIOR as the failure mode and write a procedure that would prevent it — e.g. a stopping/commit rule ("when a computation cannot distinguish two candidate configurations after one attempt, state the assumption, run it to a single numeric answer, and emit <answer> once; do not restart the derivation"), or a length/commitment rule for problems with finitely many cases. Ground it in the repeated block shown in the diagnostic.
 3. Keep total skill under ~5000 chars. If near the limit, compress redundant existing bullets rather than appending.
 4. Do NOT reference specific problem answers, labels, or this problem's constants.
 5. Focus area this round: {focus}
@@ -1546,6 +1086,7 @@ Rules:
 {diagnostics}
 {positive_section}
 {meta_contrast_section}
+{staleness_section}
 ## YOUR OUTPUT
 Output ONLY the edited skill text (full skill with your small edit applied). No meta commentary. START directly with the skill.
 """
@@ -1558,10 +1099,8 @@ PATCH_TEMPLATE_COVERAGE = """You are improving a system prompt (skill) for a mat
 The CURRENT skill is below. It already works well on many problems but STILL FAILS on the diagnostic cases shown. Below is the FULL failure-type distribution over the select set (not just the hardest 8), with each type marked COVERED (the skill already has a decision procedure for it) or UNCOVERED (gap to fill). Your job: make SMALL, SURGICAL edits to fix an UNCOVERED failure type — add a concrete DECISION PROCEDURE (a step-by-step test the model can run), not a generic checklist.
 
 Rules:
-0. The CURRENT skill may ALREADY contain a section for the FOCUS type — that is expected (the gap is measured on behavior, not on the presence of prose). In that case a surgical edit means SHARPENING or REPLACING the weakest part of that existing section (e.g. make a vague rule measurable, add the one missing trigger, reorder it earlier) — do NOT restate it in a new subsection.
 1. Do NOT rewrite the skill. Keep its structure. Add at most ONE new short subsection (or replace/extend one existing bullet) that addresses the UNCOVERED failure type marked FOCUS.{modify_clause}
 2. The new content must be a CONCRETE, OPERATIONAL decision procedure anchored to the representative failures shown — e.g. "For off-by-one boundary errors, test both endpoints explicitly: is the boundary inclusive or exclusive? Plug in the boundary value and the value just before/after it, and confirm which the problem's wording selects." NOT "check boundaries carefully".
-   If a diagnostic shows a TRACE BEHAVIOR problem (e.g. "NEVER EMITTED <answer>", "mid-trace loop", "tail repetition", excessive trace length), treat the BEHAVIOR as the failure mode and write a procedure that would prevent it — e.g. a stopping/commit rule ("when a computation cannot distinguish two candidate configurations after one attempt, state the assumption, run it to a single numeric answer, and emit <answer> once; do not restart the derivation"), or a length/commitment rule for problems with finitely many cases. Ground it in the repeated block shown in the diagnostic.
 3. Keep total skill under ~5000 chars. If near the limit, compress redundant existing bullets rather than appending.
 4. Do NOT reference specific problem answers, labels, or this problem's constants.
 5. Focus area this round (an UNCOVERED gap, not the majority): {focus}
@@ -1577,6 +1116,7 @@ Rules:
 {stratified}
 {positive_section}
 {meta_contrast_section}
+{staleness_section}
 ## YOUR OUTPUT
 Output ONLY the edited skill text (full skill with your small edit applied). No meta commentary. START directly with the skill.
 """
@@ -1614,7 +1154,6 @@ The CURRENT skill is below. Make a SMALL, SURGICAL edit to improve it - add a co
 Rules:
 1. Do NOT rewrite the skill. Keep its structure. Add at most ONE new short subsection (or replace/extend one existing bullet) that addresses the focus area.
 2. The new content must be a CONCRETE, OPERATIONAL decision procedure - e.g. "For off-by-one boundary errors, test both endpoints explicitly: is the boundary inclusive or exclusive? Plug in the boundary value and the value just before/after it, and confirm which the problem's wording selects." NOT "check boundaries carefully".
-   If a diagnostic shows a TRACE BEHAVIOR problem (e.g. "NEVER EMITTED <answer>", "mid-trace loop", "tail repetition", excessive trace length), treat the BEHAVIOR as the failure mode and write a procedure that would prevent it — e.g. a stopping/commit rule ("when a computation cannot distinguish two candidate configurations after one attempt, state the assumption, run it to a single numeric answer, and emit <answer> once; do not restart the derivation"), or a length/commitment rule for problems with finitely many cases. Ground it in the repeated block shown in the diagnostic.
 3. Keep total skill under ~5000 chars. If near the limit, compress redundant existing bullets rather than appending.
 4. Do NOT reference specific problem answers, labels, or this problem's constants.
 5. Focus area this round: {focus}
@@ -1636,79 +1175,9 @@ def make_diagnostics(failures):
             f"Problem: {str(it.get('problem') or '(n/a)')[:500]}\n"
             f"Correct answer: {str(it.get('answer',''))[:100]}\n"
             f"Model predicted: {f['pred']!r} | Correct: {f['correct']!r}\n"
-            + (f"Trace behavior: {render_behavior(f['behavior'])}\n" if f.get("behavior") else "")
-            + f"Model reasoning excerpt:\n{f['response_excerpt']}"
-            + (f"\n... [trace tail] ...\n{f['response_tail']}"
-               if f.get("response_tail") and f["behavior"]["n_chars"] > 1500 else "")
+            f"Model reasoning excerpt:\n{f['response_excerpt']}"
         )
     return "\n\n".join(parts)
-
-
-def _is_budget_label(lbl) -> bool:
-    return isinstance(lbl, str) and (lbl == _BUDGET_FAILURE_LABEL or lbl.lower().startswith("budget"))
-
-
-def budget_diagnoses(bundle) -> list:
-    """从 coverage_bundle 里挑出 budget 类失败 (issue #53 追加7).
-    返回 [(problem_id, harness_summary_dict)], 支持 dict (focus 用) 或 str (模板需 str) 两种形态."""
-    if not bundle:
-        return []
-    try:
-        reps, counts, _ = bundle
-    except Exception:  # noqa: BLE001
-        return []
-    out, seen = [], set()
-    for lbl in counts or {}:
-        if not _is_budget_label(lbl):
-            continue
-        for f in (reps.get(lbl) or [])[:3]:
-            if f.get("id") in seen:
-                continue
-            seen.add(f.get("id"))
-            out.append((str(f.get("id")), build_harness_summary([f.get("harness") or {}])))
-    out.sort(key=lambda x: x[1].get("avg_completion", 0), reverse=True)
-    return out
-
-
-def budget_advisory(bundle) -> str:
-    """渲染给 patcher 的"完成度/预算"旁注. 无预算失败 → ''. (模板里用 str, 故用 replace 注入而非 format.)"""
-    d = budget_diagnoses(bundle)
-    if not d:
-        return ""
-    lines = [
-        "## Completion / budget signal (harness-level, dataset-independent)",
-        "The failures below are NOT reasoning errors — the model's output hit the token budget "
-        "before it finished (finish_reason=length), so no answer could be scored. "
-        "A rule about the math will not fix them. Add a hard completion discipline: bound the "
-        "derivation, re-check rather than re-derive, and commit the final answer within a short "
-        "budget (e.g. 'if two checks of the same case agree, stop and submit').",
-    ]
-    for pid, h in d[:5]:
-        lines.append(f"  - Problem {pid}: completion ~{h.get('avg_completion', 0):.0%} of "
-                     f"{h.get('budget', 0)} tokens; {h.get('n_truncated', 0)}/{h.get('n_samples', 0)} samples truncated")
-    return "\n".join(lines)
-
-
-def _implicit_axis_block(label: str, failures: list) -> str:
-    """issue #76: 隐性轴 (budget) 作为 focus 时给 patcher 的诊断块 — 失败样本 + 必须写成决策程序.
-    与 budget_advisory 的区别: advisory 是"旁注" (coverage 路径顺带), 本块是"本轮焦点" (要出稿).
-
-    issue #87 (增量 B): 原版只渲染 n_truncated/n_samples 抽象计数 + 通用 mandate, patcher 看不到
-    "残文里到底发生了什么" → 写不出针对性的收尾纪律. 现对每条失败注入 render_behavior (tail_loop、
-    cycle_reps、answer_pos 等), 让 patcher 看到"残文死循环 8 次"而非"3/90 截断". 仅 `behavior` 字段
-    非空时渲染 (key error-safe, 旧 trace 无此字段时跳过)."""
-    lines = [f"## Focus: {label} ({len(failures)} diagnostic failure(s))"]
-    for f in failures[:5]:
-        it = f.get("item", {}) or {}
-        h = f.get("harness") or {}
-        line = (f"  - Problem {it.get('id', '?')}: s0_pass={f.get('s0_pass', '?')}, "
-                f"{h.get('n_truncated', 0)}/{h.get('n_samples', 0)} samples hit the token limit")
-        beh = f.get("behavior")
-        if beh and isinstance(beh, dict):
-            line += f"\n    Trace behavior: {render_behavior(beh)}"
-        lines.append(line)
-    lines.append(_IMPLICIT_AXIS_MANDATE.get(label, ""))
-    return "\n".join([ln for ln in lines if ln])
 
 
 def make_coverage_diagnostics(reps, counts, uncovered, skill_content, max_per_type=3):
@@ -1716,30 +1185,21 @@ def make_coverage_diagnostics(reps, counts, uncovered, skill_content, max_per_ty
     关键: 复用已算 run_one 结果, 零额外 API; 丢弃 600-char response_excerpt (bloat 源),
     只保留 problem/answer/pred/correct 各截断 ~200 char, 控制 patcher prompt 体积.
     reps 已是每类型 up-to-3 最难样本 (compute_failure_distribution 排序保证)."""
-    def _harness_of(lbl):
-        hs = [f.get("harness") or {} for f in reps.get(lbl, [])]
-        return build_harness_summary(hs) if hs else {}
-
     sc = skill_content.lower()
     # tally 表: 每类型一行, 标注 count + covered/uncovered
     tally_lines = []
     for lbl in sorted(counts, key=lambda l: -counts[l]):
-        if lbl == _HARNESS_FAILURE_LABEL:
-            continue   # 仪器故障: 不进 patcher prompt (写规则修不了 API 异常), 也不影响 FOCUS
         sigs = _coverage_sig(lbl)
         covered = bool(sigs) and any(s in sc for s in sigs)
         flag = "COVERED" if covered else "UNCOVERED"
         focus_mark = "  <- FOCUS" if (uncovered and lbl == uncovered) else ""
-        hsum = summarize_harness(_harness_of(lbl))
-        tally_lines.append(f"  [{flag}] ({counts[lbl]:2d}x) {lbl}{focus_mark}" + (f"   | {hsum}" if hsum else ""))
+        tally_lines.append(f"  [{flag}] ({counts[lbl]:2d}x) {lbl}{focus_mark}")
     tally = "\n".join(tally_lines) if tally_lines else "  (no failures)"
 
     # 分层样本: 喂所有未覆盖类型 (covered 的已有内容, 不重复喂), 每类最多 max_per_type
     parts = []
     uncovered_types = []
     for lbl in sorted(counts, key=lambda l: -counts[l]):
-        if lbl == _HARNESS_FAILURE_LABEL:
-            continue
         sigs = _coverage_sig(lbl)
         if sigs and not any(s in sc for s in sigs) and lbl in reps:
             uncovered_types.append(lbl)
@@ -1751,14 +1211,6 @@ def make_coverage_diagnostics(reps, counts, uncovered, skill_content, max_per_ty
                 f"Problem: {str(it.get('problem') or '(n/a)')[:200]}\n"
                 f"Correct answer: {str(it.get('answer',''))[:100]}\n"
                 f"Model predicted: {f['pred']!r} | Correct: {f['correct']!r}"
-                + (f"\nTrace behavior: {render_behavior(f['behavior'])}"
-                   if f.get("behavior") and f["behavior"].get("n_answer_tags", 0) == 0
-                   or (f.get("behavior") or {}).get("cycle_reps", -1) >= 5
-                   or (f.get("behavior") or {}).get("tail_loop", 0) >= 5
-                   or (f.get("harness") or {}).get("n_truncated", 0) >= 1
-                   else "")
-                + (f"\nHarness signal: {summarize_harness(build_harness_summary([f.get('harness') or {}]))}"
-                   if (f.get("harness") or {}).get("finish_reason") == "length" else "")
             )
     stratified = "\n\n".join(parts) if parts else "(all failure types already covered - make a diversifying exploratory edit)"
     return tally, stratified
@@ -1775,6 +1227,36 @@ def make_wins(wins):
             f"Problem: {str(it.get('problem') or '(n/a)')[:400]}\n"
             f"Correct answer: {str(it.get('answer',''))[:100]}\n"
             f"Model's CORRECT reasoning excerpt (mine the reusable decision procedure here):\n{w['response_excerpt']}"
+        )
+    return "\n\n".join(parts)
+
+
+def make_staleness_negatives(stable_solved, focus, max_n=2):
+    """A-Step2 (2026-10-29): 题级 staleness 负例 — 把"当前 skill 已稳定解对、且 S₀ 本就难"的题
+    渲染成"别弄坏"负例, 让 patcher 在改 skill 时显式保留这些题的解法路径.
+
+    与 make_wins 的区别: make_wins 是正信号蒸馏 (摆 CORRECT reasoning excerpt, 让 patcher 抽象
+    可推广决策程序); staleness 是反向护栏 (只摆题 + 答案, 不摆解法, 只说"别让这些回归"),
+    对齐"数据非规则"纪律 — 只摆事实, 不写推导.
+
+    纯函数, 零 API. stable_solved 入参每项 = {"id","item","skill_pass","s0_pass"}, 复用
+    collect_failures 已有 run_one 结果构造, 零额外 API.
+
+    选题逻辑: focus 是当前轮的失败面 (skill 解错的题); stable_solved 是 skill 已稳定解对的题.
+    二者天然互补 — "改 skill 修 focus 的同时别弄坏 stable_solved".
+    确定性: 按 item id 升序取前 max_n 题, 保证跨 run 可复现."""
+    if not stable_solved:
+        return ""
+    # 按 id 升序确定性取前 max_n 题 (跨 run 复现性)
+    picks = sorted(stable_solved, key=lambda w: str(w.get("id", "")))[:max_n]
+    parts = []
+    for w in picks:
+        it = w.get("item", {}) or {}
+        parts.append(
+            f"### Problem {w.get('id','?')} (year={it.get('year','?')}, "
+            f"S0_pass={w.get('s0_pass', float('nan')):.2f} skill_pass={w.get('skill_pass', float('nan')):.2f})\n"
+            f"Problem: {str(it.get('problem') or '(n/a)')[:300]}\n"
+            f"Correct answer: {str(it.get('answer',''))[:100]}"
         )
     return "\n\n".join(parts)
 
@@ -1820,15 +1302,29 @@ META_CONTRAST_SECTION = """## CONTRAST: SAME QUESTION STYLE, MISSED vs SOLVED
 Above are pairs where each MISSED problem has a SOLVED partner of the SAME answer-form style. Study what distinguishes the solved one from the missed one — the evidence is in the two raw examples. Derive any GENERALIZABLE procedure yourself; do not reference these specific problems' answers or constants.
 """
 
+# A-Step2 (2026-10-29): 题级 staleness 负例块 — "别弄坏当前 skill 已稳定解对的题".
+# 默认空串 = 关闭 staleness 时字节不变 (零回归). --staleness 时由 make_staleness_negatives 渲染.
+# 措辞对齐"数据非规则"纪律: 只摆题与答案, 不写推导 — 让 patcher 自己看出"这些题别碰坏",
+# 而非注入"你必须保留 XX 规则"这样的结论性指令. 与 POSITIVE_SECTION (正信号) 互补而非冲突:
+# positive 摆解法 excerpt 抽象程序, staleness 只摆题面强调"别回归".
+# 挂在 {meta_contrast_section} 之后、## YOUR OUTPUT 之前, 与 positive/contrast 同列.
+STALENESS_SECTION = """## DO-NOT-BREAK: PROBLEMS THE CURRENT SKILL ALREADY SOLVES RELIABLY
+{staleness}
 
-def generate_candidates(current_skill, failures, focus, rejected, K, explore=False, failure_driven=True, allow_modify=False, wins=None, learn_positive=False, coverage_bundle=None, meta_contrast=None):
+The skill currently solves these problems correctly where the baseline S0 does not. Your edit must keep them correct - do not regress them. The raw problems and answers are shown above; if your edit risks breaking any of them, prefer a more surgical edit.
+"""
+
+
+def generate_candidates(current_skill, failures, focus, rejected, K, explore=False, failure_driven=True, allow_modify=False, wins=None, learn_positive=False, coverage_bundle=None, meta_contrast=None, staleness_negatives=None):
     """生成 K 个候选 patch. 多样性靠 (a) GEN_TEMP 真采样 + (b) per-candidate 文字角度提示.
     C1 修复 (2026-08-05): 原 temps 参数从未使用 (chat_target 不接受 temperature), 探索模式是 no-op;
     现改用 explore 标志, 为 True 时切到 bolder angle hints 池 (卡住时加大力度).
     dir-4 (2026-08-05): allow_modify 时往 PATCH_TEMPLATE 注入 MODIFY_CLAUSE, 允许定向删除有害内容.
     dir-5 (2026-08-05): learn_positive 且有 wins 时注入 POSITIVE_SECTION, 从成功解法蒸馏正信号.
     Task4 (2026-08-17): coverage_bundle=(reps,counts,uncovered) 非空时切 PATCH_TEMPLATE_COVERAGE,
-    喂全失败分布 tally + 未覆盖类型分层样本 (复用已算 run_one, 零额外 API)."""
+    喂全失败分布 tally + 未覆盖类型分层样本 (复用已算 run_one, 零额外 API).
+    A-Step2 (2026-10-29): staleness_negatives 非空时注入 STALENESS_SECTION, 摆"别弄坏"题级负例.
+    默认 None → st_sec="" → 模板槽渲染空行, 字节近不变 (零回归)."""
     set_temp(GEN_TEMP)
     if failure_driven:
         pos_sec = ""
@@ -1839,6 +1335,11 @@ def generate_candidates(current_skill, failures, focus, rejected, K, explore=Fal
             # 路径B: meta_contrast=(meta_failures, meta_passes) — 渲染 MISSED/SOLVED 对照块.
             meta_sec = META_CONTRAST_SECTION.format(
                 contrast=make_meta_contrast_diagnostics(meta_contrast[0], meta_contrast[1]))
+        # A-Step2: staleness 题级负例 (默认空串 = 零回归). 与 positive/contrast 并列, 摆在最后.
+        st_sec = ""
+        if staleness_negatives:
+            st_sec = STALENESS_SECTION.format(
+                staleness=make_staleness_negatives(staleness_negatives, focus))
         if coverage_bundle is not None:
             # Task4: 覆盖驱动 - 喂全分布而非仅 8 最难, focus=未覆盖类型 (填洞).
             reps, counts, uncovered = coverage_bundle
@@ -1848,23 +1349,16 @@ def generate_candidates(current_skill, failures, focus, rejected, K, explore=Fal
                                                       focus=focus, rejected=rejected or "(none)",
                                                       modify_clause=MODIFY_CLAUSE if allow_modify else "",
                                                       positive_section=pos_sec,
-                                                      meta_contrast_section=meta_sec)
-            _bud = budget_advisory(coverage_bundle)
-            if _bud:
-                base_user = base_user.rstrip() + "\n\n" + _bud + "\n"
+                                                      meta_contrast_section=meta_sec,
+                                                      staleness_section=st_sec)
         else:
             diag = make_diagnostics(failures) if failures else "(no diagnostic failures this round - make a diversifying exploratory edit)"
             base_user = PATCH_TEMPLATE.format(skill=current_skill, diagnostics=diag,
                                               focus=focus, rejected=rejected or "(none)",
                                               modify_clause=MODIFY_CLAUSE if allow_modify else "",
                                               positive_section=pos_sec,
-                                              meta_contrast_section=meta_sec)
-            # issue #76: 非 coverage 路径但 focus 落到隐性轴 (budget) → 同样注入该轴诊断块,
-            # 否则 patcher 只看到 "focus=Budget-Exhausted" 却看不到失败样本, 会写含糊的"be efficient".
-            # 注意必须在 PATCH_TEMPLATE.format() **之后** 追加 (第 1707 行原版写在其前面 →
-            # UnboundLocalError, run2 首轮即崩, issue #77)。
-            if _BUDGET_FOCUS_ON and focus in _IMPLICIT_AXIS_MANDATE and failures:
-                base_user = base_user.rstrip() + "\n\n" + _implicit_axis_block(focus, failures) + "\n"
+                                              meta_contrast_section=meta_sec,
+                                              staleness_section=st_sec)
     else:
         base_user = GENERIC_PATCH_TEMPLATE.format(skill=current_skill, focus=focus)
     # per-candidate 角度提示: 让不同候选侧重不同诊断维度, 增大候选池多样性.
@@ -2036,27 +1530,6 @@ Rules:
 """
 
 
-_BEHAVIOR_RULE_HINT = ("do not restart", "commit", "emit <answer>", "once you have",
-                       "stop", "terminate", "length", "concise", "do not enumerate",
-                       "single final answer", "no second-guess", "budget", "restart")
-
-
-def _behavior_rules_ratio_ok(skill: str, max_ratio: float = 0.25) -> bool:
-    """保守估计输出过程类规则占比: 含 _BEHAVIOR_RULE_HINT 关键词的 bullet 行字符数 / 总长.
-
-    用于 consolidate 兜底, 防止进化方向退化为"只压长度、不修推理"。
-    """
-    total = len(skill or "")
-    if not total:
-        return True
-    hinted = 0
-    for line in (skill or "").splitlines():
-        ll = line.lower()
-        if any(h in ll for h in _BEHAVIOR_RULE_HINT):
-            hinted += len(line)
-    return hinted / total <= max_ratio
-
-
 def consolidate(skill):
     set_temp(GEN_TEMP)
     try:
@@ -2064,10 +1537,6 @@ def consolidate(skill):
                   max_tokens=4096, stage="evolver_consolidate")
         c = clean_skill(out, skill)
         if len(c) < len(skill) * 0.7:  # 防过度删减
-            return skill
-        # 行为规则不得超过 skill 总长的 1/4: 防"省 token/收尾"类输出过程规则挤掉题目求解规则,
-        # 只教模型"快交卷"而不教"怎么解" (2026-11-12 行为归因接入时加).
-        if not _behavior_rules_ratio_ok(c):
             return skill
         return c
     except Exception:
@@ -3448,7 +2917,26 @@ def gen_facet_candidates(leaf, ax, failures, n, system, prompt_tmpl, gen_temp, d
 def _run_strengthen(args, t, counts, reps, best_node, freeze, title,
                     s0_cache, probe_items, base_pass, meta_mask, archive,
                     best_val_delta, best_val_ci, best_skill, expand_event,
-                    op_counts=None, pool_gates=None, stage_gates=None, group_mask=None):
+                    op_counts=None, pool_gates=None, stage_gates=None, group_mask=None,
+                    out_dir=None, run_id=None, persist_ctx=None, heldout_state=None):
+    """算子H strengthen — 加固现有段 (加/精炼一条 bullet), 而非长新段. 供两处饱和入口复用:
+
+      (1) find_uncovered_type_for_expand 返回 None: 全非-meta 类型已覆盖 (target is None);
+      (2) type_best_delta 判该类型饱和: 该类型已有采纳过的专段 且 本次新变体 delta < 旧段 delta
+          (用户指定修复: "已有专段且新变体 delta < 旧段 delta 才判饱和, 否则 expand 抢先").
+
+    classifier-independent 选段 (select_strengthen_target), 绕过分类器把 existence/uniqueness
+    吞进 meta 的 bug, 让 LLM 看真实最难失败自识别第 2 双向轴. archive 原地 append (mutable list).
+    入参 expand_event: 已由调用方设置的诊断 (None = 全覆盖; "type-saturated" = 单类型饱和). 若
+    strengthen 产出候选 (无论采纳与否), expand_event 被 strengthen 事件覆盖; 若 sec_key 为 None
+    (无可加固段) 则原样返回调用方的 expand_event (保既有诊断).
+    stage_gates: 两段式兜底门 (来自 _run_facet_tree 的 stag_fb dict, None=零回归 strict ci>0/delta>best).
+      Stage1 (松入池): ci>pool_ci_gate; Stage2 (松 best): delta>best-best_delta_floor and ci>best_ci_gate.
+    返回 (did_strengthen, expand_event, best_val_delta, best_val_ci, best_skill, best_node).
+
+    Direction 2 (2026-10-26): heldout_state = {items, by_hash, gates, ho_done, best_skill_snapshot}.
+      候选过 in-sample 门后, 在 AIME25 held-out 上 paired 评 cand vs parent, bootstrap CI 门.
+      flag off (heldout_state=None 或 items 空) → 零回归 (本函数 3 个赋值点原样执行)."""
     """算子H strengthen — 加固现有段 (加/精炼一条 bullet), 而非长新段. 供两处饱和入口复用:
 
       (1) find_uncovered_type_for_expand 返回 None: 全非-meta 类型已覆盖 (target is None);
@@ -3538,34 +3026,68 @@ def _run_strengthen(args, t, counts, reps, best_node, freeze, title,
               f"CI={sl:+.3f} pass={sp:.3f} admitted=Y", flush=True)
         # Stage2 兜底: best 门 (delta>best and ci>0) → (delta>best-best_delta_floor and ci>_best_ci_gate)
         if sd > best_val_delta - _best_delta_floor and sl > _best_ci_gate:
-            best_val_delta, best_val_ci, best_skill = sd, sl, st_skill
-            best_node = st_node
-            expand_event["became_best"] = True
-            # 上报 promoted_this_iter 给调用方: 通过 stage_gates["stage1/2"] 间接已知, 但 best 刷新需
-            # 调用方设 promoted_this_iter=True — _run_strengthen 无法直接设 (作用域在调用方).
-            # 调用方在 strengthen 返回后统一检查 did_strengthen + expand_event["became_best"].
-            print(f"  ✅ STRENGTHEN-BEST iter{t}: ~{sec_key} "
-                  f"delta={sd:+.3f} CI={sl:+.3f}", flush=True)
-            if op_counts is not None:
-                op_counts["strengthen"]["promoted"] += 1  # strengthen: TREE-BEST 夺魁
+            # ── Held-out gate (Direction 2, 2026-10-26): flag off → _ho_passed 恒 True, 字节不变 ──
+            _ho_passed = True
+            _ho_items = heldout_state.get("items") if heldout_state else None
+            if _ho_items and not heldout_state.get("ho_done"):
+                _ho_passed, _ho_d, _ho_c, _ho_item, _ = _run_heldout_gate(
+                    st_skill, best_skill, args, t, "strengthen",
+                    heldout_state.get("out_dir"), heldout_state.get("run_id"),
+                    heldout_state.get("persist_ctx"))
+                heldout_state["ho_done"] = True
+                heldout_state["by_hash"][md5(st_skill)] = {"passed": _ho_passed, "delta": _ho_d, "ci": _ho_c}
+                heldout_state["gates"].append({"op": "strengthen", "cand_hash": md5(st_skill),
+                                               "delta": round(_ho_d, 4), "ci": round(_ho_c, 4), "passed": _ho_passed})
+            elif _ho_items:
+                _ho_passed = False  # 本算子已 gate 过, 不 cascade (成本上界 ≤1 gate/op/iter)
+            if _ho_passed:
+                best_val_delta, best_val_ci, best_skill = sd, sl, st_skill
+                best_node = st_node
+                expand_event["became_best"] = True
+                # 上报 promoted_this_iter 给调用方: 通过 stage_gates["stage1/2"] 间接已知, 但 best 刷新需
+                # 调用方设 promoted_this_iter=True — _run_strengthen 无法直接设 (作用域在调用方).
+                # 调用方在 strengthen 返回后统一检查 did_strengthen + expand_event["became_best"].
+                print(f"  ✅ STRENGTHEN-BEST iter{t}: ~{sec_key} "
+                      f"delta={sd:+.3f} CI={sl:+.3f}", flush=True)
+                if op_counts is not None:
+                    op_counts["strengthen"]["promoted"] += 1  # strengthen: TREE-BEST 夺魁
+            else:
+                print(f"  🚫 HELD-OUT VETO strengthen iter{t}: ~{sec_key} in-sample passed but "
+                      f"held-out CI {_ho_c:+.3f} <= gate; parent stays best", flush=True)
         else:
             # break-③ 救援 (统一入口): 整体未超 best, 先 2-way subset_admit 再 N-way facet_group_admit
             _promote, _sig, _src = _combined_rescue(
                 sitem, best_val_delta, meta_mask, group_mask, args)
             _eps_floor = 0.05
             if _promote and sd >= best_val_delta - _eps_floor:
-                best_val_delta, best_val_ci, best_skill = sd, sl, st_skill
-                best_node = st_node
-                expand_event["became_best"] = True
-                expand_event["rescue_source"] = _src
-                expand_event["subset_promote"] = {
-                    "not_meta_ci": round(_sig["not_meta"]["ci"], 4) if "not_meta" in _sig else None,
-                    "not_meta_n": _sig["not_meta"]["n"] if "not_meta" in _sig else None}
-                print(f"  ✅ STRENGTHEN-RESCUE-BEST iter{t}: ~{sec_key} "
-                      f"delta={sd:+.3f} src={_src} sig={ {g: round(d['ci'],3) for g,d in _sig.items()} }",
-                      flush=True)
-                if op_counts is not None:
-                    op_counts["strengthen"]["promoted"] += 1  # strengthen: RESCUE-BEST 救援晋升
+                # ── Held-out gate (RESCUE) — 同一 st_skill 候选, ho_done 可能已被 TREE-BEST 置位 ──
+                _ho_items = heldout_state.get("items") if heldout_state else None
+                _ho_passed = (not _ho_items) or (heldout_state.get("ho_done") is False)
+                if _ho_items and not heldout_state.get("ho_done"):
+                    _ho_passed, _ho_d, _ho_c, _ho_item, _ = _run_heldout_gate(
+                        st_skill, best_skill, args, t, "strengthen",
+                        heldout_state.get("out_dir"), heldout_state.get("run_id"),
+                        heldout_state.get("persist_ctx"))
+                    heldout_state["ho_done"] = True
+                    heldout_state["by_hash"][md5(st_skill)] = {"passed": _ho_passed, "delta": _ho_d, "ci": _ho_c}
+                    heldout_state["gates"].append({"op": "strengthen", "cand_hash": md5(st_skill),
+                                                   "delta": round(_ho_d, 4), "ci": round(_ho_c, 4), "passed": _ho_passed})
+                if _ho_passed:
+                    best_val_delta, best_val_ci, best_skill = sd, sl, st_skill
+                    best_node = st_node
+                    expand_event["became_best"] = True
+                    expand_event["rescue_source"] = _src
+                    expand_event["subset_promote"] = {
+                        "not_meta_ci": round(_sig["not_meta"]["ci"], 4) if "not_meta" in _sig else None,
+                        "not_meta_n": _sig["not_meta"]["n"] if "not_meta" in _sig else None}
+                    print(f"  ✅ STRENGTHEN-RESCUE-BEST iter{t}: ~{sec_key} "
+                          f"delta={sd:+.3f} src={_src} sig={ {g: round(d['ci'],3) for g,d in _sig.items()} }",
+                          flush=True)
+                    if op_counts is not None:
+                        op_counts["strengthen"]["promoted"] += 1  # strengthen: RESCUE-BEST 救援晋升
+                else:
+                    print(f"  🚫 HELD-OUT VETO strengthen(rescue) iter{t}: ~{sec_key} in-sample rescue passed "
+                          f"but held-out CI {_ho_c:+.3f} <= gate; parent stays best", flush=True)
             elif _promote:
                 expand_event["subset_gated"] = {
                     "not_meta_ci": round(_sig["not_meta"]["ci"], 4) if "not_meta" in _sig else None,
@@ -3585,7 +3107,91 @@ def _run_strengthen(args, t, counts, reps, best_node, freeze, title,
         if args.facet_group_admit:
             _gsig = group_signal(sitem, group_mask)
             expand_event["group_signal"] = {g: round(d["ci"], 4) for g, d in _gsig.items()}
+        # F2 (2026-10-16): 整体 ci<=0 (未准入) 时仍查子集/分组信号 — 设计场景终于可达.
+        # 默认 off (--rescue_on_reject) = 零回归. 镜像 2934 admitted-path rescue 但此处需建 st_node.
+        # _run_strengthen 是 helper: promoted_this_iter/iter_counts/rescue_by_source 不在作用域,
+        # 故只设 expand_event["became_best"] + op_counts; 调用方据此设 promoted_this_iter.
+        if getattr(args, "rescue_on_reject", False):
+            _r_promote, _r_sig, _r_src = _combined_rescue(
+                sitem, best_val_delta, meta_mask, group_mask, args)
+            _eps_floor = 0.05
+            if _r_promote and sd >= best_val_delta - _eps_floor:
+                # ── Held-out gate (Direction 2): strengthen RESCUE-REJECT, 复用本算子 gate 状态 ──
+                _ho_items = heldout_state.get("items") if heldout_state else None
+                _ho_passed = (not _ho_items) or (heldout_state.get("ho_done") is False)
+                if _ho_items and not heldout_state.get("ho_done"):
+                    _ho_passed, _ho_d, _ho_c, _ho_item, _ = _run_heldout_gate(
+                        st_skill, best_skill, args, t, "strengthen",
+                        heldout_state.get("out_dir"), heldout_state.get("run_id"),
+                        heldout_state.get("persist_ctx"))
+                    heldout_state["ho_done"] = True
+                    heldout_state["by_hash"][md5(st_skill)] = {"passed": _ho_passed, "delta": _ho_d, "ci": _ho_c}
+                    heldout_state["gates"].append({"op": "strengthen", "cand_hash": md5(st_skill),
+                                                   "delta": round(_ho_d, 4), "ci": round(_ho_c, 4), "passed": _ho_passed})
+                st_node = _ArchiveNode(st_skill, st_slots, f"strengthen:{sec_key}",
+                                       parent=best_node.facet_label, val_delta=sd, val_ci=sl)
+                archive.append(st_node)  # archive 入池不受 held-out 门影响 (交叉素材)
+                did_strengthen = True
+                if op_counts is not None:
+                    op_counts["strengthen"].setdefault("admitted", 0)
+                    op_counts["strengthen"]["admitted"] += 1
+                if _ho_passed:
+                    best_val_delta, best_val_ci, best_skill = sd, sl, st_skill
+                    best_node = st_node
+                    expand_event["became_best"] = True
+                    expand_event["rescue_source"] = _r_src
+                    expand_event["rescue_branch"] = "rejected-not-admitted"
+                    if op_counts is not None:
+                        op_counts["strengthen"].setdefault("promoted", 0)
+                        op_counts["strengthen"]["promoted"] += 1
+                    print(f"  ✅ STRENGTHEN-RESCUE-REJECT iter{t}: ~{sec_key} "
+                          f"delta={sd:+.3f} src={_r_src} sig={ {g: round(d.get('ci', d.get('mean',0)),3) for g,d in _r_sig.items()} }",
+                          flush=True)
+                else:
+                    print(f"  🚫 HELD-OUT VETO strengthen(rescue-reject) iter{t}: ~{sec_key} "
+                          f"入 archive 但不夺 best; parent 留", flush=True)
     return did_strengthen, expand_event, best_val_delta, best_val_ci, best_skill, best_node
+
+
+def _run_heldout_gate(cand_skill, parent_skill, args, t, op_label, out_dir, run_id, persist_ctx=None):
+    """Direction 2 (2026-10-26): 候选过 in-sample 门后调, 在 AIME25 held-out 上 paired 评 cand vs
+    parent, bootstrap CI 门. 通过 selection pressure veto 采样偏置产物 (rep5 iter1 污染 bullet).
+
+    返回 (passed, heldout_delta, heldout_ci, per_item, n_abandoned).
+    passed iff heldout_ci > args.held_out_ci_gate (NO-CI strict, 镜像 in-sample ci>0 门).
+
+    零回归: flag off → _get_heldout_items 返回 [] → 本函数不应被调 (调用方 `if _heldout_items:` 短路).
+    防御性: 即便被调且 items 为空, 直接 pass-through (passed=True, 全 0).
+    泄露红线: items 仅喂 eval_paired, 绝不入 collect_failures/rewriter/emergent-facet.
+
+    fail-closed 说明 (设计修正): 原计划用 `len(items)-len(per_item)` 数 abandoned — 但 eval_paired
+    把超时题 backfill 进 per_item (pass_rate=0.0, 悲观), 故 per_item 恒含全部 items, 该差恒 0 (死代码).
+    本函数改用 eval_paired 返回的 mean_pass<0 哨兵不可行 (mean_pass 非 per-item), 故 abandoned 计数
+    退化为 0 (无信号) — 但这安全: abandoned 题取 0 pass → paired delta 偏负 → bootstrap CI 偏 <0 →
+    严格门 (ci>gate) 自然 veto. fail-closed 由既有悲观 backfill + strict 门联合保证, 不需独立计数.
+    n_abandoned 字段仍返回 (恒 0), 留作日志/未来 eval_paired 显式返回 abandoned 数时的接入点."""
+    items = _get_heldout_items(args)
+    if not items:
+        return True, 0.0, 0.0, {}, 0
+    _ctx = None
+    if persist_ctx is not None:
+        # 仅在 in-sample 也持久化 (--paired_rescore) 时同步审计 held-out (镜像 L3138-3147).
+        _ctx = dict(persist_ctx)
+        _ctx["cand_hash"] = md5(cand_skill)
+        _ctx["base_hash"] = md5(parent_skill)
+        _ctx["iter"] = t
+        _ctx["ts"] = datetime.now().isoformat(timespec="seconds")
+    _mean_pass, heldout_delta, _n, per_item, _base_per = eval_paired(
+        items, cand_skill, parent_skill,
+        stage=f"heldout_{op_label}", k=args.held_out_k,
+        eval_deadline_s=EVAL_DEADLINE_S, persist_ctx=_ctx)
+    heldout_ci = bootstrap_ci_lower(per_item)
+    passed = heldout_ci > args.held_out_ci_gate
+    tag = "PASS" if passed else "VETO"
+    print(f"  {'✅' if passed else '🚫'} HELD-OUT {tag} {op_label} iter{t}: "
+          f"delta={heldout_delta:+.3f} CI={heldout_ci:+.3f} (gate={args.held_out_ci_gate:+.3f}, "
+          f"n={len(items)}, k={args.held_out_k})", flush=True)
+    return passed, heldout_delta, heldout_ci, per_item, 0
 
 
 def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pass, base_delta,
@@ -3644,6 +3250,16 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
     best_skill = init_skill
     best_val_delta = _best0_delta
     best_val_ci = _best0_ci
+    # C2 / F1 (2026-10-19) paired_rescore 语义切换: paired 模式下 delta = cand_pass − parent_pass,
+    # 零假设 = "cand ≤ parent" (delta ≤ 0), 故 best_val_delta 基线应为 0 (而非 cache-anchored 的
+    # init vs s0 差). 否则 promote 门 od > best_val_delta 会拿 paired delta 比 cache-anchored 标量,
+    # 量纲不一致. 置 0 后门退化为 "paired delta 明显为正 (od>0-floor and ol>gate)". flag off 时保留
+    # _best0_delta = 零回归 (cache-anchored 标量, 既有 promote 语义不变). best_val_ci 同理置 0.
+    if getattr(args, "paired_rescore", False):
+        best_val_delta = 0.0
+        best_val_ci = 0.0
+        print(f"  ℹ️ PAIDED_RESCORE ON: best_val_delta 重置为 0.0 (paired 零假设 cand≤parent), "
+              f"3 晋升点 (facet_edit/overlay/expand) 改用 eval_paired 同批配对, 强制 bootstrap CI.", flush=True)
     # best_node 追踪: 诊断需 best 的 facet_label (本轴) 才能正确排除本轴算 non_native_s0_ratio.
     # 仅占位 (首个根叶); TREE-BEST/XOVER-BEST/OVERLAY-BEST 命中处同步更新. 纯追踪, 不改 best 选取逻辑.
     # ⚠️ 若 gen1 4 单轴 child 全未过 ci>0 → best_skill 仍 = init_skill, best_node 仍占位 → 诊断走 corner
@@ -3678,12 +3294,57 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
 
     # ── 算子触发计数 (F08/Q6/RF §6 Step 3, 纯插桩零回归): run_total 跨轮汇总 → 终局 0-promoted 告警 ──
     run_total = _new_operator_counts()
+    # Direction 2 (held-out gate): run-level gate 汇总 (n_gates/n_passed/n_vetoed). flag off → 恒 0, 不落字段.
+    _heldout_run_gates = 0
+    _heldout_run_passed = 0
+    _heldout_run_vetoed = 0
 
     for t in range(1, args.iters + 1):
         t0 = time.time()
+        # paired_rescore 持久化上下文 (2026-10-20 审计前提修复): 当 --paired_rescore 开时,
+        # 为 eval_paired 注入 out_dir/run_id/iter/model_version/scorer_version, 把每次采样的原始
+        # 输出 + 解析结果落 paired_eval_samples.jsonl, 修 run#6d 审计前提缺失 (run_one 只留 last_resp).
+        # flag off 时 persist_ctx=None → eval_paired 行为字节不变 (零回归). 落盘文件已 gitignore (outputs/).
+        _persist_ctx = None
+        # 1′ (2026-10-29): out_dir 无条件暴露, 供 eval_on 写 eval_audit.jsonl (abandoned / 全异常题审计).
+        # 原 eval_on 的 abandoned 只 print 不落盘 → 基线侧偏置不可见. paired_eval_samples 仍只在 paired_rescore 开时写.
+        # 副本 (不污染 main 级 ctx): cand_hash 在每处 eval_on 前按候选刷新 (问题 #16: 原恒空 → 审计无法逐候选核对)
+        _eval_audit_ctx = dict({"out_dir": out_dir, "cand_hash": "", "iter": t})
+        if getattr(args, "paired_rescore", False):
+            _persist_ctx = {
+                "out_dir": out_dir,
+                "run_id": os.path.basename(out_dir),
+                "iter": t,
+                "model_version": f"{os.environ.get('TARGET_BACKEND','?')}/{os.environ.get('QWEN_CHAT_MODEL','?')}",
+                "scorer_version": AIME_SCORER_VERSION,
+                "ts": datetime.now().isoformat(timespec="seconds"),
+            }
         # 每轮每算子计数器 (attempted/guard_rejected/evaluated/admitted/promoted) + pool_filter 三关计数.
         iter_counts = _new_operator_counts()
         pool_gates = _new_pool_filter_gates()
+        # ── Held-out gate per-iter 状态 (Direction 2, 2026-10-26) ──
+        # _heldout_items: AIME30 list (flag off → [] 短路, 零回归). 每轮取一次 (cache 在 loader).
+        # _heldout_by_hash: {cand_md5: {passed, delta, ci}} — 本轮已 gate 过的候选 (去重, 镜像 in-sample 缓存语义).
+        # _heldout_gates: [] 累积本轮 gate 事件 (op_label, cand_hash, delta, ci, passed) → 落 evolver_log.
+        # _ho_<op>_done: 每算子 per-iter "首个过 in-sample 门的候选已 gate" flag. 一旦置位, 同算子后续候选
+        #   跳过 gate AND 跳过晋升 (continue/不赋值) — 强制成本上界 ≤1 gate/op/iter, 不 cascade 查次优.
+        #   镜像 review: "do NOT cascade to second-best".
+        _heldout_items = _get_heldout_items(args)
+        _heldout_by_hash = {}
+        _heldout_gates = []
+        _ho_facet_edit_done = False
+        _ho_crossover_done = False
+        _ho_overlay_done = False
+        _ho_expand_done = False
+        # _run_strengthen 是独立 helper (非闭包), 不能读写本 loop 的 _ho_strengthen_done bool — 故把
+        # strengthen 的 per-iter gate 状态收进一个可变 dict (by-ref 传入), 3 个调用点共享同一 dict:
+        #   ho_done 一旦置位, 同 iter 后续 strengthen 调用跳过 gate AND 跳过晋升 (≤1 gate/op/iter, 不 cascade).
+        _heldout_strengthen_state = {
+            "items": _heldout_items, "by_hash": _heldout_by_hash, "gates": _heldout_gates,
+            "ho_done": False,
+            "out_dir": out_dir, "run_id": os.path.basename(out_dir), "persist_ctx": _persist_ctx,
+        }
+        _run_id = os.path.basename(out_dir)
         print(f"\n{'='*50}\nFacet-Tree Iter {t}/{args.iters} (facet axes={branch_axes}, "
               f"freeze={freeze}, emergence={'OFF(disabled)' if args.no_emergence else 'OFF(stage0)'})"
               f"\n{'='*50}")
@@ -3786,13 +3447,32 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                 if md5(child_skill) == md5(leaf.skill):
                     continue
                 iter_counts["facet_edit"]["evaluated"] += 1  # 进 eval_on 算出 pass/delta/ci
-                cp, cd, _, citem = eval_on(probe_items, child_skill, s0_cache,
-                                          stage="evolver_facet_val", k=args.eval_k,
-                                          eval_deadline_s=EVAL_DEADLINE_S)
-                if args.select_lcb:
-                    cl = lcb_score_from_deltas(citem, s0_cache, args.eval_k)[0]
-                else:
+                # C2 (paired_rescore, 2026-10-19): 同批配对评 child vs parent(leaf.skill),
+                # d=cand_pass−leaf_pass 对消共享采样噪声 (run#4 init 两次 eval ±0.044 摇摆的根因).
+                # paired parent=leaf.skill (本分支 incumbent — facet_edit 变异的是叶). cp 仍取 cand 原始 pass
+                # (LOST 守护 cp<base_pass-0.06 仍 cache-anchored, 不变 — 那是灾难检查非精比). paired delta
+                # 无 s0 项 → 跳过 lcb_score_from_deltas (其 (d+s0p)*k 计数重建不一致), 强制 bootstrap.
+                # flag off → eval_on 对位 s0_cache + select_lcb 可选 = 字节不变 (零回归).
+                if getattr(args, "paired_rescore", False):
+                    _ctx = dict(_persist_ctx) if _persist_ctx else None
+                    if _ctx:
+                        _ctx["cand_hash"] = md5(child_skill)
+                        _ctx["base_hash"] = md5(leaf.skill)
+                    cp, cd, _, citem, _ = eval_paired(
+                        probe_items, child_skill, leaf.skill,
+                        stage="evolver_facet_paired", k=args.eval_k,
+                        eval_deadline_s=EVAL_DEADLINE_S, persist_ctx=_ctx)
                     cl = bootstrap_ci_lower(citem)
+                else:
+                    _eval_audit_ctx["cand_hash"] = md5(child_skill)  # 问题 #16
+                    cp, cd, _, citem = eval_on(probe_items, child_skill, s0_cache,
+                                              stage="evolver_facet_val", k=args.eval_k,
+                                              eval_deadline_s=EVAL_DEADLINE_S,
+                                              persist_ctx=_eval_audit_ctx)
+                    if args.select_lcb:
+                        cl = lcb_score_from_deltas(citem, s0_cache, args.eval_k)[0]
+                    else:
+                        cl = bootstrap_ci_lower(citem)
                 child = _ArchiveNode(child_skill, cslots, ax, parent=leaf.facet_label,
                                      val_delta=cd, val_ci=cl)
                 evald.append((child, cp, citem))
@@ -3857,11 +3537,54 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
             # flag off 时 best_delta_floor=0, best_ci_gate=0 → 退化为既有 strict 门 (零回归).
             for child in sv_nodes:
                 if child.val_delta > best_val_delta - best_delta_floor and child.val_ci > best_ci_gate:
-                    best_val_delta, best_val_ci, best_skill = child.val_delta, child.val_ci, child.skill
-                    best_node = child
-                    promoted_this_iter = True  # 全树 best 刷新 → 本 iter 不计停滞
-                    iter_counts["facet_edit"]["promoted"] += 1  # 成为本轮/历史全局 best
-                    print(f"  ✅ TREE-BEST iter{t}: facet[{ax}] delta={child.val_delta:+.3f} CI={child.val_ci:+.3f}")
+                    # ── Held-out gate (Direction 2, 2026-10-26): flag off → _ho_passed 恒 True, 字节不变 ──
+                    _ho_passed = True
+                    if _heldout_items and not _ho_facet_edit_done:
+                        _ho_passed, _ho_d, _ho_c, _ho_item, _ = _run_heldout_gate(
+                            child.skill, best_skill, args, t, "facet_edit", out_dir, _run_id, _persist_ctx)
+                        _ho_facet_edit_done = True
+                        _heldout_by_hash[md5(child.skill)] = {"passed": _ho_passed, "delta": _ho_d, "ci": _ho_c}
+                        _heldout_gates.append({"op": "facet_edit", "cand_hash": md5(child.skill),
+                                               "delta": round(_ho_d, 4), "ci": round(_ho_c, 4), "passed": _ho_passed})
+                    elif _heldout_items:
+                        _ho_passed = False  # 本算子已 gate 过, 不 cascade 查次优 (成本上界 ≤1 gate/op/iter)
+                    if _ho_passed:
+                        best_val_delta, best_val_ci, best_skill = child.val_delta, child.val_ci, child.skill
+                        best_node = child
+                        promoted_this_iter = True  # 全树 best 刷新 → 本 iter 不计停滞
+                        iter_counts["facet_edit"]["promoted"] += 1  # 成为本轮/历史全局 best
+                        print(f"  ✅ TREE-BEST iter{t}: facet[{ax}] delta={child.val_delta:+.3f} CI={child.val_ci:+.3f}")
+            # F2 (2026-10-16): facet_edit 无 Stage2 晋升 → 看最佳候选的子集/分组信号 (设计场景终于可达).
+            # 默认 off (--rescue_on_reject) = 零回归. survivors 元组 (child, cp, citem) 保留 per-item 评估.
+            if (not promoted_this_iter) and getattr(args, "rescue_on_reject", False) and evald:
+                _bc_node = max(sv_nodes, key=lambda c: c.val_delta)
+                _bc_item = next((it for _nd, _cp, it in survivors if _nd is _bc_node), None)
+                if _bc_item is not None:
+                    _r_promote, _r_sig, _r_src = _combined_rescue(
+                        _bc_item, best_val_delta, meta_mask, group_mask, args)
+                    _eps_floor = 0.05
+                    if _r_promote and _bc_node.val_delta >= best_val_delta - _eps_floor:
+                        # ── Held-out gate (Direction 2): facet_edit 本算子若已在 TREE-BEST gate 过则直接 veto ──
+                        _ho_passed = (not _heldout_items) or _ho_facet_edit_done is False
+                        if _heldout_items and not _ho_facet_edit_done:
+                            _ho_passed, _ho_d, _ho_c, _ho_item, _ = _run_heldout_gate(
+                                _bc_node.skill, best_skill, args, t, "facet_edit", out_dir, _run_id, _persist_ctx)
+                            _ho_facet_edit_done = True
+                            _heldout_by_hash[md5(_bc_node.skill)] = {"passed": _ho_passed, "delta": _ho_d, "ci": _ho_c}
+                            _heldout_gates.append({"op": "facet_edit", "cand_hash": md5(_bc_node.skill),
+                                                   "delta": round(_ho_d, 4), "ci": round(_ho_c, 4), "passed": _ho_passed})
+                        if _ho_passed:
+                            best_val_delta, best_val_ci, best_skill = _bc_node.val_delta, _bc_node.val_ci, _bc_node.skill
+                            best_node = _bc_node
+                            promoted_this_iter = True
+                            rescue_by_source[_r_src] = rescue_by_source.get(_r_src, 0) + 1
+                            iter_counts["facet_edit"]["promoted"] += 1
+                            print(f"  ✅ FACET-RESCUE-REJECT iter{t}[{ax}]: delta={_bc_node.val_delta:+.3f} "
+                                  f"src={_r_src} sig={ {g: round(d.get('ci', d.get('mean',0)),3) for g,d in _r_sig.items()} }",
+                                  flush=True)
+                        else:
+                            print(f"  🚫 HELD-OUT VETO facet_edit iter{t}[{ax}]: in-sample rescue passed but "
+                                  f"held-out 门未过 (或本算子已 gate); parent 留 best", flush=True)
         leaves = new_active  # 活跃叶 = 每分支 top-1 (精英晋级或父叶保留)
 
         # 算子C: 交叉 (gen≥2, crossover 开, archive 有 ≥2 不同 facet 叶). Stage 0 最多触发 1 次.
@@ -3909,9 +3632,10 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                     mp_skill = facet_compose(title, mp_slots)
                     mp_parents = "+".join(k for k, _ in _mp_donors[:_xo_mp_n])
                     iter_counts["crossover"]["evaluated"] += 1  # 进 eval_on
+                    _eval_audit_ctx["cand_hash"] = md5(mp_skill)  # 问题 #16
                     mp_p, mp_d, _, mp_item = eval_on(probe_items, mp_skill, s0_cache,
                                                     stage="evolver_crossover_mp_val", k=args.eval_k,
-                                                    eval_deadline_s=EVAL_DEADLINE_S)
+                                                    eval_deadline_s=EVAL_DEADLINE_S, persist_ctx=_eval_audit_ctx)
                     mp_l = lcb_score_from_deltas(mp_item, s0_cache, args.eval_k)[0] if args.select_lcb else bootstrap_ci_lower(mp_item)
                     mp_node = _ArchiveNode(mp_skill, mp_slots, f"xomp:{mp_parents}",
                                             parent=mp_parents, val_delta=mp_d, val_ci=mp_l)
@@ -3923,24 +3647,52 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                         crossover_fired += 1
                         # Stage2 兜底: best 门 松 (delta>best-best_tol and ci>-best_tol); LOST 守护镜像 2-parent
                         if mp_d > best_val_delta - best_delta_floor and mp_l > best_ci_gate and mp_p >= base_pass - 0.06:
-                            best_val_delta, best_val_ci, best_skill = mp_d, mp_l, mp_skill
-                            best_node = mp_node
-                            promoted_this_iter = True  # 全树 best 刷新
-                            iter_counts["crossover"]["promoted"] += 1  # XOVER-MP-BEST
-                            print(f"  ✅ XOVER-MP-BEST iter{t}: xomp[{mp_parents}] delta={mp_d:+.3f} CI={mp_l:+.3f} "
-                                  f"(n_donors={len(_mp_donors)})", flush=True)
+                            # ── Held-out gate (Direction 2): crossover 本算子首个过 in-sample 门的候选触发 ──
+                            _ho_passed = True
+                            if _heldout_items and not _ho_crossover_done:
+                                _ho_passed, _ho_d, _ho_c, _ho_item, _ = _run_heldout_gate(
+                                    mp_skill, best_skill, args, t, "crossover", out_dir, _run_id, _persist_ctx)
+                                _ho_crossover_done = True
+                                _heldout_by_hash[md5(mp_skill)] = {"passed": _ho_passed, "delta": _ho_d, "ci": _ho_c}
+                                _heldout_gates.append({"op": "crossover", "cand_hash": md5(mp_skill),
+                                                       "delta": round(_ho_d, 4), "ci": round(_ho_c, 4), "passed": _ho_passed})
+                            elif _heldout_items:
+                                _ho_passed = False  # 本算子已 gate 过, 不 cascade
+                            if _ho_passed:
+                                best_val_delta, best_val_ci, best_skill = mp_d, mp_l, mp_skill
+                                best_node = mp_node
+                                promoted_this_iter = True  # 全树 best 刷新
+                                iter_counts["crossover"]["promoted"] += 1  # XOVER-MP-BEST
+                                print(f"  ✅ XOVER-MP-BEST iter{t}: xomp[{mp_parents}] delta={mp_d:+.3f} CI={mp_l:+.3f} "
+                                      f"(n_donors={len(_mp_donors)})", flush=True)
+                            else:
+                                print(f"  🚫 HELD-OUT VETO crossover iter{t}: xomp[{mp_parents}] in-sample passed "
+                                      f"but held-out 门未过 (或本算子已 gate); parent 留 best", flush=True)
                         else:
                             # break-③ 救援统一入口 (2-way subset + N-way group)
                             _promote, _sig, _src = _combined_rescue(mp_item, best_val_delta, meta_mask, group_mask, args)
                             _eps_floor = 0.05
                             if _promote and mp_d >= best_val_delta - _eps_floor:
-                                best_val_delta, best_val_ci, best_skill = mp_d, mp_l, mp_skill
-                                best_node = mp_node
-                                promoted_this_iter = True  # 救援夺 best
-                                iter_counts["crossover"]["promoted"] += 1  # XOVER-MP-RESCUE-BEST (夺 best)
-                                rescue_by_source[_src] = rescue_by_source.get(_src, 0) + 1
-                                print(f"  ✅ XOVER-MP-RESCUE-BEST iter{t}: xomp[{mp_parents}] delta={mp_d:+.3f} "
-                                      f"src={_src} sig={ {g: round(d['ci'],3) for g,d in _sig.items()} }", flush=True)
+                                # ── Held-out gate (Direction 2): crossover 救援路径, 复用本算子 gate 状态 ──
+                                _ho_passed = (not _heldout_items) or _ho_crossover_done is False
+                                if _heldout_items and not _ho_crossover_done:
+                                    _ho_passed, _ho_d, _ho_c, _ho_item, _ = _run_heldout_gate(
+                                        mp_skill, best_skill, args, t, "crossover", out_dir, _run_id, _persist_ctx)
+                                    _ho_crossover_done = True
+                                    _heldout_by_hash[md5(mp_skill)] = {"passed": _ho_passed, "delta": _ho_d, "ci": _ho_c}
+                                    _heldout_gates.append({"op": "crossover", "cand_hash": md5(mp_skill),
+                                                           "delta": round(_ho_d, 4), "ci": round(_ho_c, 4), "passed": _ho_passed})
+                                if _ho_passed:
+                                    best_val_delta, best_val_ci, best_skill = mp_d, mp_l, mp_skill
+                                    best_node = mp_node
+                                    promoted_this_iter = True  # 救援夺 best
+                                    iter_counts["crossover"]["promoted"] += 1  # XOVER-MP-RESCUE-BEST (夺 best)
+                                    rescue_by_source[_src] = rescue_by_source.get(_src, 0) + 1
+                                    print(f"  ✅ XOVER-MP-RESCUE-BEST iter{t}: xomp[{mp_parents}] delta={mp_d:+.3f} "
+                                          f"src={_src} sig={ {g: round(d['ci'],3) for g,d in _sig.items()} }", flush=True)
+                                else:
+                                    print(f"  🚫 HELD-OUT VETO crossover(rescue) iter{t}: xomp[{mp_parents}] "
+                                          f"parent 留 best", flush=True)
                             elif _promote:
                                 print(f"  🔶 XOVER-MP-RESCUE-GATE iter{t}: xomp[{mp_parents}] delta={mp_d:+.3f} "
                                       f"< best{best_val_delta:+.3f}-floor{_eps_floor} "
@@ -3960,6 +3712,39 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                         if args.facet_group_admit:
                             _gsig = group_signal(mp_item, group_mask)
                             xo_event["group_signal"] = {g: round(d["ci"], 4) for g, d in _gsig.items()}
+                        # F2 (2026-10-16): 整体 ci<=0 (未准入) 时仍查子集/分组信号. 默认 off = 零回归.
+                        # mp_node 已在 3299 建好 (admitted 检查之前), 直接复用 (与 overlay/expand 建新 node 不同).
+                        if getattr(args, "rescue_on_reject", False):
+                            _r_promote, _r_sig, _r_src = _combined_rescue(
+                                mp_item, best_val_delta, meta_mask, group_mask, args)
+                            _eps_floor = 0.05
+                            if _r_promote and mp_d >= best_val_delta - _eps_floor:
+                                # ── Held-out gate (Direction 2): crossover RESCUE-REJECT 路径, 复用本算子 gate 状态 ──
+                                _ho_passed = (not _heldout_items) or _ho_crossover_done is False
+                                if _heldout_items and not _ho_crossover_done:
+                                    _ho_passed, _ho_d, _ho_c, _ho_item, _ = _run_heldout_gate(
+                                        mp_skill, best_skill, args, t, "crossover", out_dir, _run_id, _persist_ctx)
+                                    _ho_crossover_done = True
+                                    _heldout_by_hash[md5(mp_skill)] = {"passed": _ho_passed, "delta": _ho_d, "ci": _ho_c}
+                                    _heldout_gates.append({"op": "crossover", "cand_hash": md5(mp_skill),
+                                                           "delta": round(_ho_d, 4), "ci": round(_ho_c, 4), "passed": _ho_passed})
+                                archive.append(mp_node)  # archive 入池不受 held-out 门影响 (交叉素材)
+                                iter_counts["crossover"]["admitted"] += 1
+                                if _ho_passed:
+                                    best_val_delta, best_val_ci, best_skill = mp_d, mp_l, mp_skill
+                                    best_node = mp_node
+                                    promoted_this_iter = True
+                                    rescue_by_source[_r_src] = rescue_by_source.get(_r_src, 0) + 1
+                                    iter_counts["crossover"]["promoted"] += 1
+                                    xo_event["became_best"] = True
+                                    xo_event["rescue_source"] = _r_src
+                                    xo_event["rescue_branch"] = "rejected-not-admitted"
+                                    print(f"  ✅ XOVER-MP-RESCUE-REJECT iter{t}: xomp[{mp_parents}] delta={mp_d:+.3f} "
+                                          f"src={_r_src} sig={ {g: round(d.get('ci', d.get('mean',0)),3) for g,d in _r_sig.items()} }",
+                                          flush=True)
+                                else:
+                                    print(f"  🚫 HELD-OUT VETO crossover(rescue-reject) iter{t}: xomp[{mp_parents}] "
+                                          f"入 archive 但不夺 best; parent 留", flush=True)
                     print(f"  🔀 xover-MP iter{t}: [{mp_parents}] delta={mp_d:+.3f} CI={mp_l:+.3f} "
                           f"pass={mp_p:.3f} admitted={'Y' if mp_admitted else 'N(ci<=0)'} "
                           f"(n_donors={len(_mp_donors)}, directed={getattr(args,'xo_donor_directed',False)})",
@@ -4040,9 +3825,10 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                         iter_counts["crossover"]["guard_rejected"] += 1  # 2-parent: 重组无变化, 未进 eval
                         break
                     iter_counts["crossover"]["evaluated"] += 1  # 2-parent: 进 eval (recombine 产出有效重组)
+                    _eval_audit_ctx["cand_hash"] = md5(x_skill)  # 问题 #16
                     xp, xd, _, xitem = eval_on(probe_items, x_skill, s0_cache,
                                                stage="evolver_crossover_val", k=args.eval_k,
-                                               eval_deadline_s=EVAL_DEADLINE_S)
+                                               eval_deadline_s=EVAL_DEADLINE_S, persist_ctx=_eval_audit_ctx)
                     xl = lcb_score_from_deltas(xitem, s0_cache, args.eval_k)[0] if args.select_lcb else bootstrap_ci_lower(xitem)
                     xo_node = _ArchiveNode(x_skill, x_slots, f"xo:{a_key}+{b_key}",
                                            parent=f"{a_key}+{b_key}",
@@ -4057,12 +3843,27 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                         # Stage2 兜底: best 门 (delta>best and ci>0) → (delta>best-best_tol and ci>-best_tol)
                         # crossover 无 LOST 守护 — 加 xp>=base_pass-0.06 防平均大幅回落 (镜像 overlay/expand).
                         if xd > best_val_delta - best_delta_floor and xl > best_ci_gate and xp >= base_pass - 0.06:
-                            best_val_delta, best_val_ci, best_skill = xd, xl, x_skill
-                            best_node = xo_node  # 同步追踪 (诊断需 best_node.facet_label)
-                            promoted_this_iter = True  # 全树 best 刷新 → 本 iter 不计停滞
-                            print(f"  ✅ XOVER-BEST iter{t}: {a_key}+{b_key} delta={xd:+.3f} CI={xl:+.3f}",
-                                  flush=True)
-                            iter_counts["crossover"]["promoted"] += 1  # 2-parent: TREE-BEST 夺魁
+                            # ── Held-out gate (Direction 2): crossover 2-parent 本算子首个过 in-sample 门候选触发 ──
+                            _ho_passed = True
+                            if _heldout_items and not _ho_crossover_done:
+                                _ho_passed, _ho_d, _ho_c, _ho_item, _ = _run_heldout_gate(
+                                    x_skill, best_skill, args, t, "crossover", out_dir, _run_id, _persist_ctx)
+                                _ho_crossover_done = True
+                                _heldout_by_hash[md5(x_skill)] = {"passed": _ho_passed, "delta": _ho_d, "ci": _ho_c}
+                                _heldout_gates.append({"op": "crossover", "cand_hash": md5(x_skill),
+                                                       "delta": round(_ho_d, 4), "ci": round(_ho_c, 4), "passed": _ho_passed})
+                            elif _heldout_items:
+                                _ho_passed = False  # 本算子已 gate 过, 不 cascade
+                            if _ho_passed:
+                                best_val_delta, best_val_ci, best_skill = xd, xl, x_skill
+                                best_node = xo_node  # 同步追踪 (诊断需 best_node.facet_label)
+                                promoted_this_iter = True  # 全树 best 刷新 → 本 iter 不计停滞
+                                print(f"  ✅ XOVER-BEST iter{t}: {a_key}+{b_key} delta={xd:+.3f} CI={xl:+.3f}",
+                                      flush=True)
+                                iter_counts["crossover"]["promoted"] += 1  # 2-parent: TREE-BEST 夺魁
+                            else:
+                                print(f"  🚫 HELD-OUT VETO crossover iter{t}: {a_key}+{b_key} in-sample passed "
+                                      f"but held-out 门未过 (或本算子已 gate); parent 留 best", flush=True)
                         else:
                             # break-③ 救援统一入口 (2-way subset + N-way group): 整体未超 best, 看子集/分组信号
                             _promote, _sig, _src = _combined_rescue(xitem, best_val_delta, meta_mask, group_mask, args)
@@ -4071,14 +3872,27 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                             # 替换高 delta best (如 +0.380) → best_node 污染 → overlay carry-forward 级联膨胀.
                             _eps_floor = 0.05
                             if _promote and xd >= best_val_delta - _eps_floor:
-                                best_val_delta, best_val_ci, best_skill = xd, xl, x_skill
-                                best_node = xo_node
-                                promoted_this_iter = True  # 救援夺 best
-                                rescue_by_source[_src] = rescue_by_source.get(_src, 0) + 1
-                                print(f"  ✅ XOVER-RESCUE-BEST iter{t}: {a_key}+{b_key} delta={xd:+.3f} "
-                                      f"src={_src} sig={ {g: round(d['ci'],3) for g,d in _sig.items()} }",
-                                      flush=True)
-                                iter_counts["crossover"]["promoted"] += 1  # 2-parent: RESCUE-BEST 救援晋升
+                                # ── Held-out gate (Direction 2): crossover 2-parent 救援路径, 复用本算子 gate 状态 ──
+                                _ho_passed = (not _heldout_items) or _ho_crossover_done is False
+                                if _heldout_items and not _ho_crossover_done:
+                                    _ho_passed, _ho_d, _ho_c, _ho_item, _ = _run_heldout_gate(
+                                        x_skill, best_skill, args, t, "crossover", out_dir, _run_id, _persist_ctx)
+                                    _ho_crossover_done = True
+                                    _heldout_by_hash[md5(x_skill)] = {"passed": _ho_passed, "delta": _ho_d, "ci": _ho_c}
+                                    _heldout_gates.append({"op": "crossover", "cand_hash": md5(x_skill),
+                                                           "delta": round(_ho_d, 4), "ci": round(_ho_c, 4), "passed": _ho_passed})
+                                if _ho_passed:
+                                    best_val_delta, best_val_ci, best_skill = xd, xl, x_skill
+                                    best_node = xo_node
+                                    promoted_this_iter = True  # 救援夺 best
+                                    rescue_by_source[_src] = rescue_by_source.get(_src, 0) + 1
+                                    print(f"  ✅ XOVER-RESCUE-BEST iter{t}: {a_key}+{b_key} delta={xd:+.3f} "
+                                          f"src={_src} sig={ {g: round(d['ci'],3) for g,d in _sig.items()} }",
+                                          flush=True)
+                                    iter_counts["crossover"]["promoted"] += 1  # 2-parent: RESCUE-BEST 救援晋升
+                                else:
+                                    print(f"  🚫 HELD-OUT VETO crossover(rescue) iter{t}: {a_key}+{b_key} "
+                                          f"parent 留 best", flush=True)
                             elif _promote:
                                 # 信号正向但 delta 低于底线 — 入 archive 竞争, 但不夺 best (语义分离)
                                 print(f"  🔶 XOVER-RESCUE-GATE iter{t}: {a_key}+{b_key} delta={xd:+.3f} "
@@ -4099,6 +3913,39 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                         if args.facet_group_admit:
                             _gsig = group_signal(xitem, group_mask)
                             xo_event["group_signal"] = {g: round(d["ci"], 4) for g, d in _gsig.items()}
+                        # F2 (2026-10-16): 整体 ci<=0 (未准入) 时仍查子集/分组信号. 默认 off = 零回归.
+                        # xo_node 已在 3430 建好 (admitted 检查之前), 直接复用.
+                        if getattr(args, "rescue_on_reject", False):
+                            _r_promote, _r_sig, _r_src = _combined_rescue(
+                                xitem, best_val_delta, meta_mask, group_mask, args)
+                            _eps_floor = 0.05
+                            if _r_promote and xd >= best_val_delta - _eps_floor:
+                                # ── Held-out gate (Direction 2): crossover 2-parent RESCUE-REJECT, 复用 gate 状态 ──
+                                _ho_passed = (not _heldout_items) or _ho_crossover_done is False
+                                if _heldout_items and not _ho_crossover_done:
+                                    _ho_passed, _ho_d, _ho_c, _ho_item, _ = _run_heldout_gate(
+                                        x_skill, best_skill, args, t, "crossover", out_dir, _run_id, _persist_ctx)
+                                    _ho_crossover_done = True
+                                    _heldout_by_hash[md5(x_skill)] = {"passed": _ho_passed, "delta": _ho_d, "ci": _ho_c}
+                                    _heldout_gates.append({"op": "crossover", "cand_hash": md5(x_skill),
+                                                           "delta": round(_ho_d, 4), "ci": round(_ho_c, 4), "passed": _ho_passed})
+                                archive.append(xo_node)  # archive 入池不受 held-out 门影响 (交叉素材)
+                                iter_counts["crossover"]["admitted"] += 1
+                                if _ho_passed:
+                                    best_val_delta, best_val_ci, best_skill = xd, xl, x_skill
+                                    best_node = xo_node
+                                    promoted_this_iter = True
+                                    rescue_by_source[_r_src] = rescue_by_source.get(_r_src, 0) + 1
+                                    iter_counts["crossover"]["promoted"] += 1
+                                    xo_event["became_best"] = True
+                                    xo_event["rescue_source"] = _r_src
+                                    xo_event["rescue_branch"] = "rejected-not-admitted"
+                                    print(f"  ✅ XOVER-2P-RESCUE-REJECT iter{t}: {a_key}+{b_key} delta={xd:+.3f} "
+                                          f"src={_r_src} sig={ {g: round(d.get('ci', d.get('mean',0)),3) for g,d in _r_sig.items()} }",
+                                          flush=True)
+                                else:
+                                    print(f"  🚫 HELD-OUT VETO crossover(rescue-reject) iter{t}: {a_key}+{b_key} "
+                                          f"入 archive 但不夺 best; parent 留", flush=True)
                     print(f"  🔀 crossover iter{t}: {a_key}×{b_key} delta={xd:+.3f} CI={xl:+.3f} "
                           f"pass={xp:.3f} admitted={'Y' if admitted else 'N(ci<=0)'} "
                           f"(pair_attempts={len(_xo_attempts)})", flush=True)
@@ -4126,16 +3973,45 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                     continue
                 pick = cands[0] if (t % 2 == 1 or len(cands) == 1) else cands[min(1, len(cands) - 1)]
                 donors[sec_key] = pick
-            # v2: 组装走 _overlay_assemble (carry-forward best_node 的已展开 section).
-            # 旧: dict(root_slots) 重建 → 丢 expand 长出的第5段 (v1 根因2). 新: 携带 + key-set guard.
-            overlay_slots, overlay_skill, ov_slots_chk, ov_ok = _overlay_assemble(
-                title, root_slots, best_node.slots, donors, freeze)
+            # 修 identity-overlay bug (Direction 2 复盘 2026-10-28): donors 空 且 best_node 无超出
+            # root_slots 的 carry-forward 段时, _overlay_assemble 重建出与 parent 逐字节相同的 skill
+            # (overlay_slots = dict(root_slots), 无 graft 无 carry). 把 parent 当候选评 = 纯采样噪声
+            # 被 argmax 选中 → winner's curse (本 run iter3 就此产生 in-sample +0.083 CI+0.037 的
+            # identity 候选, held-out 回归 +0.013 被门 veto). 没有变异段可叠加 = overlay 无活可干, skip.
+            _has_carryforward = any(k not in root_slots for k in best_node.slots)
+            if not donors and not _has_carryforward:
+                iter_counts["overlay"]["identity_skip"] += 1
+                print(f"  ⏭️ OVERLAY-SKIP iter{t}: no mutated donor (val_ci>0) + no carry-forward → "
+                      f"overlay would reconstruct parent (identity); skipped to avoid winner's-curse noise",
+                      flush=True)
+                ov_ok = False
+                overlay_slots, overlay_skill, ov_slots_chk = {}, best_skill, {}
+            else:
+                # v2: 组装走 _overlay_assemble (carry-forward best_node 的已展开 section).
+                # 旧: dict(root_slots) 重建 → 丢 expand 长出的第5段 (v1 根因2). 新: 携带 + key-set guard.
+                overlay_slots, overlay_skill, ov_slots_chk, ov_ok = _overlay_assemble(
+                    title, root_slots, best_node.slots, donors, freeze)
             if ov_ok:  # root 段全存活 且 compose 未丢段 (key-set-only, 无 md5 检查)
                 iter_counts["overlay"]["evaluated"] += 1  # overlay: 进 eval (compose 成功)
-                op, od, _, oitem = eval_on(probe_items, overlay_skill, s0_cache,
-                                           stage="evolver_overlay_val", k=args.eval_k,
-                                           eval_deadline_s=EVAL_DEADLINE_S)
-                ol = lcb_score_from_deltas(oitem, s0_cache, args.eval_k)[0] if args.select_lcb else bootstrap_ci_lower(oitem)
+                # C2 (paired_rescore, 2026-10-19): 同批配对评 overlay_skill vs parent(best_skill),
+                # d_paired = cand_pass − base_pass 对消共享采样噪声. parent=best_skill (overlay 组装在 best_node 之上).
+                # 强制 bootstrap_ci_lower: lcb_score_from_deltas 需按 cache 重建 n_pass=round((d+s0p)*k)
+                # (evolver:691), 与 paired delta (无 s0p 项) 量纲不一致, 故 flag on 时跳过 LCB 分支. flag off 零回归.
+                if getattr(args, "paired_rescore", False):
+                    _ctx = dict(_persist_ctx) if _persist_ctx else None
+                    if _ctx:
+                        _ctx["cand_hash"] = md5(overlay_skill)
+                        _ctx["base_hash"] = md5(best_skill)
+                    op, od, _, oitem, _ = eval_paired(probe_items, overlay_skill, best_skill,
+                                                     stage="evolver_overlay_paired", k=args.eval_k,
+                                                     eval_deadline_s=EVAL_DEADLINE_S, persist_ctx=_ctx)
+                    ol = bootstrap_ci_lower(oitem)
+                else:
+                    _eval_audit_ctx["cand_hash"] = md5(overlay_skill)  # 问题 #16
+                    op, od, _, oitem = eval_on(probe_items, overlay_skill, s0_cache,
+                                               stage="evolver_overlay_val", k=args.eval_k,
+                                               eval_deadline_s=EVAL_DEADLINE_S, persist_ctx=_eval_audit_ctx)
+                    ol = lcb_score_from_deltas(oitem, s0_cache, args.eval_k)[0] if args.select_lcb else bootstrap_ci_lower(oitem)
                 # Stage1 兜底: 入池 ci>0 → ci>pool_ci_gate (flag off 时 pool_ci_gate=0 → 退化为 ci>0, 零回归)
                 admitted = (op >= base_pass - 0.06) and (ol > pool_ci_gate)  # LOST guard + ci>门 准入
                 became_best = False
@@ -4146,28 +4022,56 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                     iter_counts["overlay"]["admitted"] += 1  # overlay: LOST+ci>0 准入入 archive
                     # Stage2 兜底: best 门 (delta>best and ci>0) → (delta>best-best_tol and ci>-best_tol)
                     if od > best_val_delta - best_delta_floor and ol > best_ci_gate:
-                        best_val_delta, best_val_ci, best_skill = od, ol, overlay_skill
-                        best_node = ov_node  # 诊断需 best_node.facet_label="overlay" (无本轴豁免)
-                        became_best = True
-                        promoted_this_iter = True  # 全树 best 刷新
-                        print(f"  ✅ OVERLAY-BEST iter{t}: n_axes={len(donors)} delta={od:+.3f} CI={ol:+.3f}",
-                              flush=True)
-                        iter_counts["overlay"]["promoted"] += 1  # overlay: TREE-BEST 夺魁
+                        # ── Held-out gate (Direction 2): overlay 本算子首个过 in-sample 门候选触发 ──
+                        _ho_passed = True
+                        if _heldout_items and not _ho_overlay_done:
+                            _ho_passed, _ho_d, _ho_c, _ho_item, _ = _run_heldout_gate(
+                                overlay_skill, best_skill, args, t, "overlay", out_dir, _run_id, _persist_ctx)
+                            _ho_overlay_done = True
+                            _heldout_by_hash[md5(overlay_skill)] = {"passed": _ho_passed, "delta": _ho_d, "ci": _ho_c}
+                            _heldout_gates.append({"op": "overlay", "cand_hash": md5(overlay_skill),
+                                                   "delta": round(_ho_d, 4), "ci": round(_ho_c, 4), "passed": _ho_passed})
+                        elif _heldout_items:
+                            _ho_passed = False  # 本算子已 gate 过, 不 cascade
+                        if _ho_passed:
+                            best_val_delta, best_val_ci, best_skill = od, ol, overlay_skill
+                            best_node = ov_node  # 诊断需 best_node.facet_label="overlay" (无本轴豁免)
+                            became_best = True
+                            promoted_this_iter = True  # 全树 best 刷新
+                            print(f"  ✅ OVERLAY-BEST iter{t}: n_axes={len(donors)} delta={od:+.3f} CI={ol:+.3f}",
+                                  flush=True)
+                            iter_counts["overlay"]["promoted"] += 1  # overlay: TREE-BEST 夺魁
+                        else:
+                            print(f"  🚫 HELD-OUT VETO overlay iter{t}: n_axes={len(donors)} in-sample passed "
+                                  f"but held-out 门未过 (或本算子已 gate); parent 留 best", flush=True)
                     else:
                         # break-③ 救援统一入口 (2-way subset + N-way group): 整体未超 best, 看子集/分组信号
                         _promote, _sig, _src = _combined_rescue(oitem, best_val_delta, meta_mask, group_mask, args)
                         # Bug C floor guard: 见 crossover 同名守卫注释. 救援晋升 best 不得显著拉低 delta.
                         _eps_floor = 0.05
                         if _promote and od >= best_val_delta - _eps_floor:
-                            best_val_delta, best_val_ci, best_skill = od, ol, overlay_skill
-                            best_node = ov_node
-                            became_best = True
-                            promoted_this_iter = True  # 救援夺 best
-                            rescue_by_source[_src] = rescue_by_source.get(_src, 0) + 1
-                            print(f"  ✅ OVERLAY-RESCUE-BEST iter{t}: n_axes={len(donors)} delta={od:+.3f} "
-                                  f"src={_src} sig={ {g: round(d['ci'],3) for g,d in _sig.items()} }",
-                                  flush=True)
-                            iter_counts["overlay"]["promoted"] += 1  # overlay: RESCUE-BEST 救援晋升
+                            # ── Held-out gate (Direction 2): overlay 救援路径, 复用本算子 gate 状态 ──
+                            _ho_passed = (not _heldout_items) or _ho_overlay_done is False
+                            if _heldout_items and not _ho_overlay_done:
+                                _ho_passed, _ho_d, _ho_c, _ho_item, _ = _run_heldout_gate(
+                                    overlay_skill, best_skill, args, t, "overlay", out_dir, _run_id, _persist_ctx)
+                                _ho_overlay_done = True
+                                _heldout_by_hash[md5(overlay_skill)] = {"passed": _ho_passed, "delta": _ho_d, "ci": _ho_c}
+                                _heldout_gates.append({"op": "overlay", "cand_hash": md5(overlay_skill),
+                                                       "delta": round(_ho_d, 4), "ci": round(_ho_c, 4), "passed": _ho_passed})
+                            if _ho_passed:
+                                best_val_delta, best_val_ci, best_skill = od, ol, overlay_skill
+                                best_node = ov_node
+                                became_best = True
+                                promoted_this_iter = True  # 救援夺 best
+                                rescue_by_source[_src] = rescue_by_source.get(_src, 0) + 1
+                                print(f"  ✅ OVERLAY-RESCUE-BEST iter{t}: n_axes={len(donors)} delta={od:+.3f} "
+                                      f"src={_src} sig={ {g: round(d['ci'],3) for g,d in _sig.items()} }",
+                                      flush=True)
+                                iter_counts["overlay"]["promoted"] += 1  # overlay: RESCUE-BEST 救援晋升
+                            else:
+                                print(f"  🚫 HELD-OUT VETO overlay(rescue) iter{t}: n_axes={len(donors)} "
+                                      f"parent 留 best", flush=True)
                         elif _promote:
                             print(f"  🔶 OVERLAY-RESCUE-GATE iter{t}: n_axes={len(donors)} delta={od:+.3f} "
                                   f"< best{best_val_delta:+.3f}-floor{_eps_floor} "
@@ -4195,6 +4099,43 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                         overlay_event["group_signal"] = {g: round(d["ci"], 4) for g, d in _gsig.items()}
                     print(f"  🔗 overlay iter{t}: n_axes={len(donors)} delta={od:+.3f} CI={ol:+.3f} "
                           f"admitted=N (lost={op < base_pass - 0.06}) not-meta_ci={_sig['not_meta']['ci']:+.3f}", flush=True)
+                    # F2 (2026-10-16): 整体 CI<=0 (候选被拒) 时仍查子集/分组信号 (设计场景终于可达).
+                    # 默认 off (--rescue_on_reject) = 零回归 (else 分支仅诊断, 字节不变). on 时:
+                    # 救援晋升 best (建 node + archive), 不得显著拉低 delta (floor guard).
+                    if getattr(args, "rescue_on_reject", False):
+                        _r_promote, _r_sig, _r_src = _combined_rescue(
+                            oitem, best_val_delta, meta_mask, group_mask, args)
+                        _eps_floor = 0.05
+                        if _r_promote and od >= best_val_delta - _eps_floor:
+                            # ── Held-out gate (Direction 2): overlay RESCUE-REJECT, 复用本算子 gate 状态 ──
+                            _ho_passed = (not _heldout_items) or _ho_overlay_done is False
+                            if _heldout_items and not _ho_overlay_done:
+                                _ho_passed, _ho_d, _ho_c, _ho_item, _ = _run_heldout_gate(
+                                    overlay_skill, best_skill, args, t, "overlay", out_dir, _run_id, _persist_ctx)
+                                _ho_overlay_done = True
+                                _heldout_by_hash[md5(overlay_skill)] = {"passed": _ho_passed, "delta": _ho_d, "ci": _ho_c}
+                                _heldout_gates.append({"op": "overlay", "cand_hash": md5(overlay_skill),
+                                                       "delta": round(_ho_d, 4), "ci": round(_ho_c, 4), "passed": _ho_passed})
+                            _r_node = _ArchiveNode(overlay_skill, overlay_slots, "overlay",
+                                                   parent="overlay", val_delta=od, val_ci=ol)
+                            archive.append(_r_node)  # archive 入池不受 held-out 门影响 (交叉素材)
+                            iter_counts["overlay"]["admitted"] += 1
+                            if _ho_passed:
+                                best_val_delta, best_val_ci, best_skill = od, ol, overlay_skill
+                                best_node = _r_node
+                                became_best = True
+                                promoted_this_iter = True
+                                rescue_by_source[_r_src] = rescue_by_source.get(_r_src, 0) + 1
+                                iter_counts["overlay"]["promoted"] += 1
+                                overlay_event["became_best"] = True
+                                overlay_event["rescue_source"] = _r_src
+                                overlay_event["rescue_branch"] = "rejected-not-admitted"
+                                print(f"  ✅ OVERLAY-RESCUE-REJECT iter{t}: n_axes={len(donors)} delta={od:+.3f} "
+                                      f"src={_r_src} sig={ {g: round(d.get('ci', d.get('mean',0)),3) for g,d in _r_sig.items()} }",
+                                      flush=True)
+                            else:
+                                print(f"  🚫 HELD-OUT VETO overlay(rescue-reject) iter{t}: n_axes={len(donors)} "
+                                      f"入 archive 但不夺 best; parent 留", flush=True)
             else:
                 overlay_event = {"admitted": False, "reason": "compose-section-loss",
                                  "n_axes_combined": len(donors),
@@ -4228,7 +4169,7 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                                         s0_cache, probe_items, base_pass, meta_mask, archive,
                                         best_val_delta, best_val_ci, best_skill, expand_event,
                                         op_counts=iter_counts, pool_gates=pool_gates, stage_gates=stag_fb,
-                                        group_mask=group_mask)
+                                        group_mask=group_mask, heldout_state=_heldout_strengthen_state)
                     if isinstance(expand_event, dict) and expand_event.get("became_best"):
                         promoted_this_iter = True  # strengthen 夺 best → 本 iter 不计停滞
                         if expand_event.get("rescue_source"):  # 仅计救援来源 (非 TREE-BEST)
@@ -4282,10 +4223,23 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                             continue
                         ex_skill = facet_compose(title, ex_slots)
                         iter_counts["expand"]["evaluated"] += 1  # expand: 进 eval (guard 通过)
-                        ep, ed, _, eitem = eval_on(probe_items, ex_skill, s0_cache,
-                                                   stage="evolver_expand_val", k=args.eval_k,
-                                                   eval_deadline_s=EVAL_DEADLINE_S)
-                        el = lcb_score_from_deltas(eitem, s0_cache, args.eval_k)[0] if args.select_lcb else bootstrap_ci_lower(eitem)
+                        # C2 (paired_rescore, 2026-10-19): 同批配对评 ex_skill vs parent(best_skill),
+                        # parent=best_skill (expand 在 best_node 之上长新段). 同 overlay 的 paired 处理.
+                        if getattr(args, "paired_rescore", False):
+                            _ctx = dict(_persist_ctx) if _persist_ctx else None
+                            if _ctx:
+                                _ctx["cand_hash"] = md5(ex_skill)
+                                _ctx["base_hash"] = md5(best_skill)
+                            ep, ed, _, eitem, _ = eval_paired(probe_items, ex_skill, best_skill,
+                                                             stage="evolver_expand_paired", k=args.eval_k,
+                                                             eval_deadline_s=EVAL_DEADLINE_S, persist_ctx=_ctx)
+                            el = bootstrap_ci_lower(eitem)
+                        else:
+                            _eval_audit_ctx["cand_hash"] = md5(ex_skill)  # 问题 #16
+                            ep, ed, _, eitem = eval_on(probe_items, ex_skill, s0_cache,
+                                                       stage="evolver_expand_val", k=args.eval_k,
+                                                       eval_deadline_s=EVAL_DEADLINE_S, persist_ctx=_eval_audit_ctx)
+                            el = lcb_score_from_deltas(eitem, s0_cache, args.eval_k)[0] if args.select_lcb else bootstrap_ci_lower(eitem)
                         # Stage1 兜底: 入池 ci>0 → ci>pool_ci_gate (flag off 时 pool_ci_gate=0 → 退化为 ci>0, 零回归)
                         admitted = (ep >= base_pass - 0.06) and (el > pool_ci_gate)  # LOST guard + ci>门 准入 (镜像 overlay)
                         became_best = False
@@ -4329,13 +4283,28 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                                   f"pass={ep:.3f} admitted=Y n_sections={len(ex_slots)}", flush=True)
                             # Stage2 兜底: best 门 (delta>best and ci>0) → (delta>best-best_tol and ci>-best_tol)
                             if ed > best_val_delta - best_delta_floor and el > best_ci_gate:
-                                best_val_delta, best_val_ci, best_skill = ed, el, ex_skill
-                                best_node = ex_node  # facet_label="expand:{name}", 进遗传池
-                                expand_event["became_best"] = True
-                                promoted_this_iter = True  # 全树 best 刷新
-                                print(f"  ✅ EXPAND-BEST iter{t}: +{exp_key} [{target}] delta={ed:+.3f} CI={el:+.3f}",
-                                      flush=True)
-                                iter_counts["expand"]["promoted"] += 1  # expand: TREE-BEST 夺魁
+                                # ── Held-out gate (Direction 2): expand 本算子首个过 in-sample 门候选触发 ──
+                                _ho_passed = True
+                                if _heldout_items and not _ho_expand_done:
+                                    _ho_passed, _ho_d, _ho_c, _ho_item, _ = _run_heldout_gate(
+                                        ex_skill, best_skill, args, t, "expand", out_dir, _run_id, _persist_ctx)
+                                    _ho_expand_done = True
+                                    _heldout_by_hash[md5(ex_skill)] = {"passed": _ho_passed, "delta": _ho_d, "ci": _ho_c}
+                                    _heldout_gates.append({"op": "expand", "cand_hash": md5(ex_skill),
+                                                           "delta": round(_ho_d, 4), "ci": round(_ho_c, 4), "passed": _ho_passed})
+                                elif _heldout_items:
+                                    _ho_passed = False  # 本算子已 gate 过, 不 cascade
+                                if _ho_passed:
+                                    best_val_delta, best_val_ci, best_skill = ed, el, ex_skill
+                                    best_node = ex_node  # facet_label="expand:{name}", 进遗传池
+                                    expand_event["became_best"] = True
+                                    promoted_this_iter = True  # 全树 best 刷新
+                                    print(f"  ✅ EXPAND-BEST iter{t}: +{exp_key} [{target}] delta={ed:+.3f} CI={el:+.3f}",
+                                          flush=True)
+                                    iter_counts["expand"]["promoted"] += 1  # expand: TREE-BEST 夺魁
+                                else:
+                                    print(f"  🚫 HELD-OUT VETO expand iter{t}: +{exp_key} [{target}] in-sample passed "
+                                          f"but held-out 门未过 (或本算子已 gate); parent 留 best", flush=True)
                             else:
                                 # break-③ 救援统一入口 (2-way subset + N-way group): 整体未超 best, 看子集/分组信号
                                 # (expand-v2 的价值正落在 not-meta/单域子集, 整体被 meta/已解出题淹没时需救援)
@@ -4343,19 +4312,32 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                                 # Bug C floor guard: 见 crossover/overlay 同名守卫注释. 救援晋升 best 不得显著拉低 delta.
                                 _eps_floor = 0.05
                                 if _promote and ed >= best_val_delta - _eps_floor:
-                                    best_val_delta, best_val_ci, best_skill = ed, el, ex_skill
-                                    best_node = ex_node
-                                    expand_event["became_best"] = True
-                                    expand_event["rescue_source"] = _src
-                                    promoted_this_iter = True  # 救援夺 best
-                                    rescue_by_source[_src] = rescue_by_source.get(_src, 0) + 1
-                                    expand_event["subset_promote"] = {
-                                        "not_meta_ci": round(_sig["not_meta"]["ci"], 4) if "not_meta" in _sig else None,
-                                        "not_meta_n": _sig["not_meta"]["n"] if "not_meta" in _sig else None}
-                                    print(f"  ✅ EXPAND-RESCUE-BEST iter{t}: +{exp_key} [{target}] delta={ed:+.3f} "
-                                          f"src={_src} sig={ {g: round(d['ci'],3) for g,d in _sig.items()} }",
-                                          flush=True)
-                                    iter_counts["expand"]["promoted"] += 1  # expand: RESCUE-BEST 救援晋升
+                                    # ── Held-out gate (Direction 2): expand 救援路径, 复用本算子 gate 状态 ──
+                                    _ho_passed = (not _heldout_items) or _ho_expand_done is False
+                                    if _heldout_items and not _ho_expand_done:
+                                        _ho_passed, _ho_d, _ho_c, _ho_item, _ = _run_heldout_gate(
+                                            ex_skill, best_skill, args, t, "expand", out_dir, _run_id, _persist_ctx)
+                                        _ho_expand_done = True
+                                        _heldout_by_hash[md5(ex_skill)] = {"passed": _ho_passed, "delta": _ho_d, "ci": _ho_c}
+                                        _heldout_gates.append({"op": "expand", "cand_hash": md5(ex_skill),
+                                                               "delta": round(_ho_d, 4), "ci": round(_ho_c, 4), "passed": _ho_passed})
+                                    if _ho_passed:
+                                        best_val_delta, best_val_ci, best_skill = ed, el, ex_skill
+                                        best_node = ex_node
+                                        expand_event["became_best"] = True
+                                        expand_event["rescue_source"] = _src
+                                        promoted_this_iter = True  # 救援夺 best
+                                        rescue_by_source[_src] = rescue_by_source.get(_src, 0) + 1
+                                        expand_event["subset_promote"] = {
+                                            "not_meta_ci": round(_sig["not_meta"]["ci"], 4) if "not_meta" in _sig else None,
+                                            "not_meta_n": _sig["not_meta"]["n"] if "not_meta" in _sig else None}
+                                        print(f"  ✅ EXPAND-RESCUE-BEST iter{t}: +{exp_key} [{target}] delta={ed:+.3f} "
+                                              f"src={_src} sig={ {g: round(d['ci'],3) for g,d in _sig.items()} }",
+                                              flush=True)
+                                        iter_counts["expand"]["promoted"] += 1  # expand: RESCUE-BEST 救援晋升
+                                    else:
+                                        print(f"  🚫 HELD-OUT VETO expand(rescue) iter{t}: +{exp_key} [{target}] "
+                                              f"parent 留 best", flush=True)
                                 elif _promote:
                                     expand_event["subset_gated"] = {
                                         "not_meta_ci": round(_sig["not_meta"]["ci"], 4) if "not_meta" in _sig else None,
@@ -4377,6 +4359,41 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                             if args.facet_group_admit:
                                 _gsig = group_signal(eitem, group_mask)
                                 expand_event["group_signal"] = {g: round(d["ci"], 4) for g, d in _gsig.items()}
+                            # F2 (2026-10-16): 整体 CI<=0 (候选被拒) 时仍查子集/分组信号 (设计场景终于可达).
+                            # 默认 off (--rescue_on_reject) = 零回归. on 时救援晋升 best (建 node + archive).
+                            if getattr(args, "rescue_on_reject", False):
+                                _r_promote, _r_sig, _r_src = _combined_rescue(
+                                    eitem, best_val_delta, meta_mask, group_mask, args)
+                                _eps_floor = 0.05
+                                if _r_promote and ed >= best_val_delta - _eps_floor:
+                                    # ── Held-out gate (Direction 2): expand RESCUE-REJECT, 复用本算子 gate 状态 ──
+                                    _ho_passed = (not _heldout_items) or _ho_expand_done is False
+                                    if _heldout_items and not _ho_expand_done:
+                                        _ho_passed, _ho_d, _ho_c, _ho_item, _ = _run_heldout_gate(
+                                            ex_skill, best_skill, args, t, "expand", out_dir, _run_id, _persist_ctx)
+                                        _ho_expand_done = True
+                                        _heldout_by_hash[md5(ex_skill)] = {"passed": _ho_passed, "delta": _ho_d, "ci": _ho_c}
+                                        _heldout_gates.append({"op": "expand", "cand_hash": md5(ex_skill),
+                                                               "delta": round(_ho_d, 4), "ci": round(_ho_c, 4), "passed": _ho_passed})
+                                    _r_node = _ArchiveNode(ex_skill, ex_slots, f"expand:{exp_key}",
+                                                           parent=best_node.facet_label, val_delta=ed, val_ci=el)
+                                    archive.append(_r_node)  # archive 入池不受 held-out 门影响 (交叉素材)
+                                    iter_counts["expand"]["admitted"] += 1
+                                    if _ho_passed:
+                                        best_val_delta, best_val_ci, best_skill = ed, el, ex_skill
+                                        best_node = _r_node
+                                        promoted_this_iter = True
+                                        rescue_by_source[_r_src] = rescue_by_source.get(_r_src, 0) + 1
+                                        iter_counts["expand"]["promoted"] += 1
+                                        expand_event["became_best"] = True
+                                        expand_event["rescue_source"] = _r_src
+                                        expand_event["rescue_branch"] = "rejected-not-admitted"
+                                        print(f"  ✅ EXPAND-RESCUE-REJECT iter{t}: +{exp_key} [{target}] delta={ed:+.3f} "
+                                              f"src={_r_src} sig={ {g: round(d.get('ci', d.get('mean',0)),3) for g,d in _r_sig.items()} }",
+                                              flush=True)
+                                    else:
+                                        print(f"  🚫 HELD-OUT VETO expand(rescue-reject) iter{t}: +{exp_key} [{target}] "
+                                              f"入 archive 但不夺 best; parent 留", flush=True)
                     # expand 候选循环结束. 若因单类型饱和而 break (expand_event.reason == "type-saturated"),
                     # 该类型已有专段且新变体 delta 回落 → 交 strengthen 加固既有专段 (复用 target is None 同一入口).
                     # (用户: "已有专段且新变体 delta < 旧段 delta 才判饱和, 否则 expand 抢先" — 此处正是判饱和后
@@ -4387,7 +4404,7 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                                             s0_cache, probe_items, base_pass, meta_mask, archive,
                                             best_val_delta, best_val_ci, best_skill, expand_event,
                                             op_counts=iter_counts, pool_gates=pool_gates, stage_gates=stag_fb,
-                                            group_mask=group_mask)
+                                            group_mask=group_mask, heldout_state=_heldout_strengthen_state)
                         if isinstance(expand_event, dict) and expand_event.get("became_best"):
                             promoted_this_iter = True  # strengthen 夺 best
                             if expand_event.get("rescue_source"):  # 仅计救援来源 (非 TREE-BEST)
@@ -4416,7 +4433,7 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
                                                 s0_cache, probe_items, base_pass, meta_mask, archive,
                                                 best_val_delta, best_val_ci, best_skill, expand_event,
                                                 op_counts=iter_counts, pool_gates=pool_gates, stage_gates=stag_fb,
-                                                group_mask=group_mask)
+                                                group_mask=group_mask, heldout_state=_heldout_strengthen_state)
                             if isinstance(expand_event, dict) and expand_event.get("became_best"):
                                 promoted_this_iter = True  # strengthen 夺 best
                                 if expand_event.get("rescue_source"):  # 仅计救援来源 (非 TREE-BEST)
@@ -4462,18 +4479,23 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
         # 【Bug B 修复】每轮落盘完整 archive (含 overlay/crossover/expand 复合节点 + slots).
         # 旧版仅终局 archive_final.json, 中途 kill 丢复合 best (PID 53188 死锁时 n_sec=6 overlay
         # best 被丢). 现 per-iter 落 archive_iter{t}.json + best_skill_iter{t}.md, 中断可恢复.
-        archive_dump = [{"facet": nd.facet_label, "parent": nd.parent,
-                         "hash": md5(nd.skill),
-                         "val_delta": round(nd.val_delta, 4),
-                         "val_ci": round(nd.val_ci, 4),
-                         "n_sec": len(nd.slots),
-                         "slots": nd.slots, "skill": nd.skill} for nd in archive]
+        archive_dump = []
+        for nd in archive:
+            _nd = {"facet": nd.facet_label, "parent": nd.parent,
+                   "hash": md5(nd.skill),
+                   "val_delta": round(nd.val_delta, 4),
+                   "val_ci": round(nd.val_ci, 4),
+                   "n_sec": len(nd.slots),
+                   "slots": nd.slots, "skill": nd.skill}
+            # Direction 2 (held-out gate): 仅当该节点被 gate 过才附字段 (flag off → 全无, 字节不变).
+            _ho = _heldout_by_hash.get(md5(nd.skill))
+            if _ho is not None:
+                _nd["heldout_delta"] = round(_ho["delta"], 4)
+                _nd["heldout_ci"] = round(_ho["ci"], 4)
+                _nd["heldout_gated"] = True
+            archive_dump.append(_nd)
         json.dump(archive_dump, open(os.path.join(out_dir, f"archive_iter{t}.json"), "w",
                                      encoding="utf-8"), ensure_ascii=False, indent=2)
-        # 本轮被评测的全部候选逐题 delta — 仅在非 facet_tree 路径可用 (scored 变量定义
-        # 于 main() 的 data_driven_focus 路径, _run_facet_tree 的 _ArchiveNode 不存 per_item).
-        # facet_tree 路径已有独立落盘: tree_iter{t}.json + archive_iter{t}.json + best_skill_iter{t}.md.
-        # 这段仅用于标注"后续在 main 里统一追加", 本函数不执行 (issue #88.5 scored NameError).
         # best skill 单独存 md (直接可用, 无需解析 archive)
         open(os.path.join(out_dir, f"best_skill_iter{t}.md"), "w", encoding="utf-8").write(best_skill)
         _accumulate_counts(run_total, iter_counts)  # 跨轮汇总 → 终局 0-promoted 告警 (F08/Q6/RF §6 Step 3)
@@ -4483,23 +4505,29 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
             no_improve_iter += 1
         # stag_fb 字段补记本 iter 最终 promoted_this_iter (上面 stage 计算时尚无此值, 此处终态覆盖)
         stag_fb["promoted_this_iter"] = promoted_this_iter
-        log["iters"].append({"t": t, "facet_tree": True, "secs": round(time.time() - t0, 1),
-                             "n_active": len(leaves), "n_archive": len(archive),
-                             "best_val_delta": round(best_val_delta, 4),
-                             "best_val_ci": round(best_val_ci, 4),
-                             "best_n_sec": len(best_node.slots),
-                             "best_facet": best_node.facet_label,
-                             "crossover": xo_event,
-                             "overlay": overlay_event,
-                             "expand": expand_event,
-                             "cumulative_diag": cumulative_diag,
-                             "branch_failure_types": branch_failure_types.get(t, {}),
-                             "operator_counts": iter_counts,
-                             "pool_filter_gates": pool_gates,
-                             "stagnation_fb": stag_fb})
+        _iter_log = {"t": t, "facet_tree": True, "secs": round(time.time() - t0, 1),
+                     "n_active": len(leaves), "n_archive": len(archive),
+                     "best_val_delta": round(best_val_delta, 4),
+                     "best_val_ci": round(best_val_ci, 4),
+                     "best_n_sec": len(best_node.slots),
+                     "best_facet": best_node.facet_label,
+                     "crossover": xo_event,
+                     "overlay": overlay_event,
+                     "expand": expand_event,
+                     "cumulative_diag": cumulative_diag,
+                     "branch_failure_types": branch_failure_types.get(t, {}),
+                     "operator_counts": iter_counts,
+                     "pool_filter_gates": pool_gates,
+                     "stagnation_fb": stag_fb}
+        # Direction 2 (held-out gate): 仅当本轮有 gate 事件才附字段 (flag off → _heldout_gates 恒空, 字节不变).
+        if _heldout_gates:
+            _iter_log["heldout_gates"] = _heldout_gates
+            _heldout_run_gates += len(_heldout_gates)
+            _heldout_run_passed += sum(1 for g in _heldout_gates if g["passed"])
+            _heldout_run_vetoed += sum(1 for g in _heldout_gates if not g["passed"])
+        log["iters"].append(_iter_log)
         json.dump(log, open(os.path.join(out_dir, "evolver_log.json"), "w",
                             encoding="utf-8"), ensure_ascii=False, indent=2)
-        dump_token_usage(out_dir)
     # archive 落盘 (终局 probe-replay 的素材池)
     json.dump([{"facet": nd.facet_label, "parent": nd.parent, "hash": md5(nd.skill),
                 "val_delta": round(nd.val_delta, 4), "val_ci": round(nd.val_ci, 4),
@@ -4510,12 +4538,19 @@ def _run_facet_tree(args, init_skill, s0_cache, probe_items, diag_items, base_pa
     log["archive_size"] = len(archive)
     log["operator_counts"] = run_total  # 全 run 算子计数汇总 (供 main() 终局 0-promoted 告警; F08/Q6/RF §6 Step 3)
     log["rescue_by_source"] = rescue_by_source  # break-③ 救援来源汇总: None 项不计, 仅 subset/group:Domain
+    # Direction 2 (held-out gate): run-level 汇总, 仅当本 run 有 gate 触发才落字段 (flag off → 不落, 字节不变).
+    if _heldout_run_gates:
+        log["heldout_gate_summary"] = {
+            "n_gates": _heldout_run_gates,
+            "n_passed": _heldout_run_passed,
+            "n_vetoed": _heldout_run_vetoed,
+        }
     return best_skill, best_val_delta, best_val_ci
 
 
 def main():
     ap = argparse.ArgumentParser(description="Skill 自进化迭代器 (免训练, 超 SkillOpt-best)")
-    ap.add_argument("--init_skill", default=V2_SKILL_DEFAULT, help="起点 skill (默认 AIME S₀)")
+    ap.add_argument("--init_skill", default=V2_SKILL_DEFAULT, help="起点 skill (默认 v2 当前)")
     ap.add_argument("--s0", default=S0_DEFAULT)
     ap.add_argument("--split_dir", default=SPLIT_DEFAULT)
     ap.add_argument("--s0_cache", default=S0_CACHE_DEFAULT, help="S₀ cache json (同条件 k 投票连续值)")
@@ -4536,11 +4571,10 @@ def main():
         help="Step1: N 候选多样性来源. auto=变体角度提示注入 FACET_EDIT_PROMPT (默认); "
              "temp=每候选 set_temp 扰动 (串行, 失并行). 仅 --n_parallel>1 生效")
     ap.add_argument("--n_diag", type=int, default=8, help="每轮诊断失败题数")
-    ap.add_argument("--train_n", type=int, default=18,
-                    help="选择集用 train 题数 (AIME24 共 30 题, train/val=18/12; 仅用于截断 train, 不改划分)")
+    ap.add_argument("--train_n", type=int, default=35, help="选择集用 train 题数")
     ap.add_argument("--consolidate_every", type=int, default=3, help="每 N 轮慢更新")
     ap.add_argument("--patience", type=int, default=3, help="连续 N 轮无提升则探索/停")
-    ap.add_argument("--out_dir", "--output_dir", dest="out_dir", default=OUT_DIR_DEFAULT)
+    ap.add_argument("--out_dir", default=OUT_DIR_DEFAULT)
     # ── 机制消融 (leave-one-out, 互斥使用; 无 flag = FULL 完整 evolver, 与主结果路径一致) ──
     ap.add_argument("--ablate_gepa", action="store_true", help="A1: K=1 单候选, 消融多候选种群+选择 (M1)")
     ap.add_argument("--ablate_failure", action="store_true", help="A2: 通用 patch 不喂诊断失败, 消融失败驱动 patch (M2)")
@@ -4553,19 +4587,10 @@ def main():
     ap.add_argument("--allow_modify", action="store_true", help="dir-4: 允许 patcher 定向删除/替换 S₀ 中有害内容 (默认纯追加, 保主结果)")
     ap.add_argument("--learn_positive", action="store_true", help="dir-5: 从 skill 解对的难题蒸馏正信号 (成功解法->可推广决策程序), 与失败模式互补")
     ap.add_argument("--meta_contrast", action="store_true", help="路径B (2026-09-10): 诊断对照对称化. collect_failures 额外收集 skill 解对的 meta 题 (零额外 API), 把每道 meta 错题配对一道同构 meta 对题并列展示, 让 patcher 从 '同是 meta 题, 做对的选了 meta 选项' 自主归纳规则 (不注入结论文字). 默认关=字节复现既有路径")
+    ap.add_argument("--staleness", action="store_true", help="A-Step2 (2026-10-29): 题级 staleness 负例. 从 collect_failures 已有 wins 派生 '别弄坏' 负例 (skill 稳定解对且 S₀ 难的题), 渲染进 STALENESS_SECTION. 零额外 API (复用 wins). 默认关 → staleness_section 空串 → 模板字节近不变 (零回归). 仅 --staleness 开启时 patcher 才看到 DO-NOT-BREAK 护栏")
     ap.add_argument("--gate_consolidate", action="store_true", help="M3-gate: consolidate 后 re-eval 选择集, delta 下降超 GATE_MARGIN 则回退 (治盲压缩损质, RunA/B 均观测到 consolidate 后 failure 上扬)")
     ap.add_argument("--data_driven_focus", action="store_true", help="Task3: focus 按已诊断失败的多数类型选 (classify_failure_type), 非固定 round-robin; 默认关=保主结果复现. 根因: val 最难失败 ~93%% 是 meta-option, 原 round-robin 早 iter 用错方向 patch")
     ap.add_argument("--coverage_diagnosis", action="store_true", help="Task4: collect_failures 返回全失败分布 (零额外 API), focus 选 '尚未覆盖类型' (find_uncovered_type 填洞) 非多数类型; patcher 看全分布 tally+分层样本. 默认关=保主结果复现. 治 val 过拟合 + 为 C 结构自进化提供分布数据基底")
-    ap.add_argument("--budget_focus", action="store_true", help="issue #76 (2026-11-16): 让 'Budget-Exhausted (truncated)' 成为可选 focus. 改前 budget 是'永远未覆盖'的哨兵且不在 FAILURE_FOCI 里 → 4 轮 data-driven focus 全落在答错轴, evolver 从没被要求降低截断. 开=强制 data-driven 路径 + budget 有覆盖签名 (写了收尾纪律即'已覆盖') + 平票优先 + 未覆盖时优先. 默认关=逐字节复现改前路径")
-    ap.add_argument("--forced_focus", default="", help="issue #76 对照用: 强制每轮 focus 为指定字符串 (空=不强制). 用于 A/B 隔离'focus 轴'这一唯一变量")
-    ap.add_argument("--dual_gate", action="store_true", help="issue #69/#80 Step 3: 长度轴双门. 让'减少计算'成为可过门的目标之一. 开=在原有准确率门 (delta>best ∧ ci>0) 之上, 追加 token 侧约束: 候选的 clean_pass_tokens 必须 <= best 的 (1 − --token_min_drop). 准确率侧同时要求相对 baseline 的跌落不超过 --acc_max_drop (方案六预登记: ≤2pp). 默认关=逐字节复现改前路径")
-    ap.add_argument("--acc_max_drop", type=float, default=0.02, help="--dual_gate: 允许的准确率跌落上限 (相对 baseline pass, 小数). 方案六预登记值 0.02")
-    ap.add_argument("--token_min_drop", type=float, default=0.20, help="--dual_gate: 要求的 token 降幅下限 (相对 best 的 clean_pass_tokens, 小数). 方案六预登记值 0.20")
-    ap.add_argument("--token_clip_tail", type=float, default=0.10, help="--dual_gate: 长度口径剔除最长比例 (截尾均值). 实测依据 run2: 基线干净样本 mean 2169 / median 1278 / max 14388, 均值被少数超长轨迹主导. 0=用普通均值")
-    ap.add_argument("--trunc_gate", action="store_true", help="issue #81 建议1: 防截断门, 每轮进化对候选做一次截断检验 (与 --dual_gate 独立: 那个管'必须变短才给奖励', 这个管'不许把截断搞坏'). 三道判据: 整体 候选截断率 <= best×(1+--trunc_max_increase); 配对 截断率上升的题不超过 --trunc_paired_max 且平均上升 >25pp 才算退化. 缺 harness 证据 → 不拦 (旧 run 可 resume). 默认关")
-    ap.add_argument("--trunc_max_increase", type=float, default=0.01, help="--trunc_gate: 整体截断率允许的相对涨幅 (0.01 = 最多涨 1 个百分点相对值, 再加 1 个样本容差). 预登记值 0.01")
-    ap.add_argument("--trunc_paired_max", type=float, default=0.25, help="--trunc_gate: 逐题配对里允许的'截断率上升题'占比上限 (0.25 = 30 题里最多 7 题; 且这些题平均上升须 >25pp 才判退化). 预登记值 0.25")
-    ap.add_argument("--no_token_gate", action="store_true", help="--dual_gate 的消融: 只留准确率侧跌落约束, 去掉 token 侧要求 (用于隔离'长度轴'贡献)")
     ap.add_argument("--structure_evolution", action="store_true", help="Phase C: 结构自进化. 每轮额外生成 Kc 个结构变体候选 (内容重组 v2 skill, 不注入新内容), 与 K 个 patch 候选同台竞争 pass_rate. 治 Task4 根因 (同内容不同结构=10pp 差, 结构是因果变量). 默认关=字节复现既有路径; 关时 generate_structure_candidates 永不被调用, mutation_kinds 恒为 ['patch']*K")
     ap.add_argument("--Kc", type=int, default=4, help="Phase C: 每轮结构变体候选数 (仅 --structure_evolution 时生效)")
     ap.add_argument("--struct_temp", type=float, default=1.0, help="Phase C: 结构生成采样温度 (仅 --structure_evolution 时生效); 默认 1.0 高温促结构多样性 (规则5 防 SkillOpt 病: padding 泛泛建议由 validator CI>0+novel 兜底)")
@@ -4715,6 +4740,30 @@ def main():
              "NumberTheory/Algebra, 零 API 确定性). 整体未超 best 时, '某组 ci>0 且无组退步超 ε' "
              "仍可晋升 best (救援被整体淹没的单域增益, 典型几何: 61/73/81 全 0 分). 默认 off=零回归; "
              "--facet_group_admit 开. 镜像 --subset_admit 但从 2-bucket 推广到 N-bucket.")
+    # F2 (2026-10-16) 救援可达 + veto softening: 修 run#3 0 admit 的测量上限 (非算法失效).
+    # 默认全 off = 零回归 (else 分支仅诊断, veto 用 ci<-eps 旧行为).
+    ap.add_argument("--rescue_on_reject", action="store_true",
+        help="F2: 整体 CI<=0 (候选未 admitted) 时仍查子集/分组信号. _combined_rescue 从 if admitted: "
+             "内移到 else 分支 (设计场景终于可达); facet_edit 无 ci>0 晋升时也对最佳候选查救援. "
+             "默认 off = 零回归 (else 分支字节不变, facet_edit 只走 Stage2).")
+    ap.add_argument("--veto_upper_bound", action="store_true",
+        help="F2: 交叉否决改用 ci_upper (置信上界) < 0 而非 ci (下界) < -eps. 仅当'连最好的情况都<0'才否决退步, "
+             "对噪声更宽容 (整体 CI<=0 但某子集置信上界>0 时仍允许救援). 默认 off = 零回归 (ci<-eps).")
+    ap.add_argument("--veto_skip_n1", action="store_true",
+        help="F2: n<2 的子集/分组不否决 (单样本无法证退步). AIME meta 子集 n=1 否则永远 -inf 否决. "
+             "默认 off = 零回归 (n<2 仍 -inf 否决).")
+    # C2 / F1 (2026-10-19) paired_rescore: 同批配对重评 parent baseline, 对消共享采样噪声.
+    # run#4 暴露: init skill 两次 eval (k=8) 仍 ±0.044 摇摆, 把采样噪声误判为 +0.008 提升 (overlay
+    # n_axes=0 恒等候选). paired 改为同批测 cand + parent 两 skill → d=cand_pass−parent_pass 直接对消噪声.
+    # 仅作用于 3 个 facet-tree 主晋升点 (facet_edit/overlay/expand); 每算子的 paired parent = 其自然父
+    # (facet_edit→leaf.skill, overlay/expand→best_skill). paired delta 流经 bootstrap/subset/group/
+    # spike/_combined_rescue 零改动 (纯 delta-based). 配套: best_val_delta 置 0 (paired 零假设 = cand<=parent).
+    # 默认 off = 零回归 (eval_on 对位 s0_cache, best_val_delta 保持 cache-anchored, --select_lcb 可选).
+    ap.add_argument("--paired_rescore", action="store_true",
+        help="C2 (F1): 同批配对重评 parent baseline, delta=cand_pass−parent_pass 对消共享采样噪声. "
+             "init skill 两次 eval 的 ±0.044 摇摆 → paired 下 identity 候选 delta≈0. 仅作用 facet_edit/"
+             "overlay/expand 三晋升点. 配套: best_val_delta 置 0 (parent 为零假设), 强制 bootstrap (跳过 "
+             "--select_lcb, 因 paired delta 无 s0 项致 lcb 计数重建不一致). 默认 off=零回归.")
     ap.add_argument("--pool_filter", action="store_true",
         help="fix-① 候选池准入 (2026-09-15): archive.append 前过三关 — ①质量关(整体 meanΔ>=-eps 平均不回落) "
              "②尖峰关(5峰中有峰 CI下界>0) ③多样性关(git-diff 归一化相似度<0.95 实质 diff). ②或③任一过(尖峰/多样性 "
@@ -4734,16 +4783,30 @@ def main():
         help="Stage1 入池门松到 CI > -pool_tol (弱信号候选降级入 archive 作交叉素材, 不入 best).")
     ap.add_argument("--best_tol", type=float, default=0.03,
         help="Stage2 best 门松到 CI > -best_tol 且 delta > best-best_tol (弱正信号上位, LOST 守护不动).")
+    # --- Held-out gate (2026-10-26, Direction 2): 把 held-out eval 做成 selection pressure ---
+    # 病灶 (rep5): iter1 "pollution bullet" 因 base-low 采样偏置 (base/parent 13/30 abandoned=0 pass)
+    # 过了 in-sample 门 (paired delta +0.1042), 锁死 best_skill, 后续无法进化. AIME25 post-hoc
+    # 显示该 bullet 实为噪声 (Δ=+0.0069 < σ≈0.044). 解法: 候选过了 in-sample 门后, 再过 AIME25
+    # held-out paired 门 (bootstrap CI > gate) 才能夺 best. 会 veto 该 iter1 bullet.
+    # 零回归: 默认全 off. held_out_gate off → _get_heldout_items 返回 [] → 门 skipped (字节不变).
+    # 泄露红线: AIME25 items 仅喂 eval_paired (B-model generate + C-model score), 不入 collect_failures/
+    # rewriter/任何 A-model 输入. 独立 list, 独立加载, 与 load_split/probe_items 物理隔离.
+    ap.add_argument("--held_out_split_dir", default="",
+        help="Held-out gate 数据路径 (aime25.jsonl). 默认空=关. 非空且 --held_out_gate 开时启用 held-out 门.")
+    ap.add_argument("--held_out_gate", action="store_true",
+        help="Direction 2: 候选过 in-sample 门后, 再过 AIME25 held-out paired 门 (bootstrap CI > "
+             "held_out_ci_gate) 才能夺 best_skill. 默认 off=零回归. 作用 facet_tree 路径的 PROMOTE 点.")
+    ap.add_argument("--held_out_k", type=int, default=8,
+        help="Held-out 门每题采样投票次数 (独立于 in-sample eval_k; held-out 仅 30 题可放大 k 稳 CI). 默认 8.")
+    ap.add_argument("--held_out_ci_gate", type=float, default=0.0,
+        help="Held-out 门 bootstrap CI 下界阈值 (NO-CI strict: CI>0 才过). 默认 0.0, 镜像 in-sample ci>0 门.")
     args = ap.parse_args()
 
     # 算子H 总开关落定: --strengthen 同时激活 classify_failure_type 后移 + 饱和分支 strengthen.
     # 置模块级 _STRENGTHEN_ON 让 classify_failure_type (早于 main 调用栈) 看到.
-    global _STRENGTHEN_ON, _BUDGET_FOCUS_ON
+    global _STRENGTHEN_ON
     if getattr(args, "strengthen", False) and getattr(args, "expand", False):
         _STRENGTHEN_ON = True
-    if getattr(args, "budget_focus", False):
-        _BUDGET_FOCUS_ON = True
-        print("🔧 budget_focus ON: Budget-Exhausted 轴参与 focus 选择 (issue #76)")
 
     if args.self_test_facet:
         _self_test_facet()
@@ -4763,10 +4826,6 @@ def main():
         # out_dir 尚未建 (在下方 ts 块); 先用占位, ts 块建好后 _EFL._path 迁移到 run 子目录.
         _EFL = FacetLibrary(os.path.join(args.out_dir, "_efl_tmp.json"), llm_fn=llm)
         _EFL.seed_from_foci(FAILURE_FOCI, _TYPE_COVERAGE_SIG, meta_index=5)
-        # issue #88 (Bug 2): 注入 budget facet 的可覆盖签名 (与 _coverage_sig 的 EFL-OFF 路径同词表),
-        # 让 get_signature("Budget Exhausted") 返回 _BUDGET_COVERAGE_SIG 而非哨兵. 无跨文件 import.
-        if _BUDGET_FOCUS_ON:
-            _EFL._budget_cov_sig = tuple(_BUDGET_COVERAGE_SIG)
         print(f"🧬 EFL ON: seeded {_EFL and len(_EFL.all)} facets from FAILURE_FOCI "
               f"(min_failures={args.efl_min_failures}, min_problems={args.efl_min_problems})")
 
@@ -4812,14 +4871,10 @@ def main():
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_dir = os.path.join(args.out_dir, f"run_{ts}")
+    # 1′ (2026-10-29, 问题 #16): 无条件暴露审计上下文, main() 的 eval_on (baseline / 非 facet-tree 路径)
+    # 与 _run_facet_tree 共用同一 out_dir. 后者会各自派生带 cand_hash 的副本.
+    _eval_audit_ctx = {"out_dir": out_dir, "cand_hash": "", "iter": 0}
     os.makedirs(out_dir, exist_ok=True)
-    # 调用级过程日志 → <out_dir>/trace/<stage>.jsonl (unless TRACE_DIR=off 已由 _env 设成 "")
-    if os.environ.get("TRACE_DIR", "").strip().lower() not in ("off", "0", "none", "false", ""):
-        try:
-            from skillopt.model import set_trace_dir
-            set_trace_dir(os.path.join(out_dir, "trace"))
-        except Exception:
-            pass
 
     # EFL path 迁移 (2026-10-13): EFL 在上方用 _efl_tmp.json 占位初始化 (out_dir 尚未建);
     # 此处 out_dir 已建, 把库迁到 run 子目录并持久化 (后续每轮 _EFL.persist() 写这里).
@@ -4915,24 +4970,12 @@ def main():
         print(f"💊 药三 select_exclude_train: probe(计分/晋升)→纯 val {len(probe_items)} 题, "
               f"diag(诊断)→仍 {len(diag_items)} 题 (train 已退出选择集)")
 
-    def _write_aime_s0_cache(cache):
-        # F07 manifest 落盘 (AIME 版): math 的 build_cache_manifest 读 correct_choice/choices (MCQ 专有),
-        # 数值题没有 → 调用即 KeyError → 整个 dump 失败 → 磁盘上永远是"无 _manifest 的旧格式",
-        # 下次运行被 load_s0_cache_with_manifest 拒绝 → 每次都静默重算 S₀ (多花一轮全量 eval).
-        # 身份维度只用 AIME 真有的: k / eval_temp / shuffle_seed(无选项可洗) / skill_hash / 题集 hash.
-        # 直接复用 math 的 build_cache_manifest (schema 已改成 .get 容错, AIME 数值题不报错),
-        # 保证写/读两侧选择集与 hash 口径逐字节一致 (手写容易漏掉 select_items[:train_n] 截断).
-        cache["_manifest"] = build_cache_manifest(
-            s0, args.eval_k, EVAL_TEMP, args.shuffle_seed, select_items,
-            args.split_dir, "train+val")
-        json.dump(cache, open(os.path.join(out_dir, "s0_cache.json"), "w", encoding="utf-8"),
-                  ensure_ascii=False, indent=2)
-
     if args.s0_cache and os.path.exists(args.s0_cache):
-        # F07: cache 带 manifest, 按 k/shuffle_seed/skill_hash/choice_arrangement_hash 校验口径.
+        # F06: cache 带 manifest, 按 k/shuffle_seed/skill_hash/answer_hash 校验身份口径
+        # (AIME 数值题用 it["answer"], 非 correct_choice → math 版 build_cache_manifest 会 KeyError).
         # 旧 json.load 只看文件存在 → 换 k/换 seed/换 S₀ 仍静默复用旧 cache, 污染 delta.
         # manifest 不匹配 (或旧 cache 无 manifest) → 返回 None, 现场重算 select set 全集.
-        s0_cache = load_s0_cache_with_manifest(
+        s0_cache = load_s0_cache_with_manifest_aime(
             args.s0_cache, s0, args.eval_k, args.shuffle_seed,
             select_items, args.split_dir, "train+val")
         if s0_cache is None:
@@ -4941,24 +4984,37 @@ def main():
             # AIME precompute_s0 签名 (items, s0_content, k, stage) — 无 shuffle_seed/split_dir
             # (数值题 shuffle-invariant, 无 choices 可洗). math 版有这些 kwarg 但此处导入的是 AIME 版.
             s0_cache = precompute_s0(select_items, s0, args.eval_k,
-                                     stage="evolver_s0_trainval")
-            _write_aime_s0_cache(s0_cache)
+                                     stage="evolver_s0_trainval",
+                                     write_manifest=True, shuffle_seed=args.shuffle_seed,
+                                     split_dir=args.split_dir, split_name="train+val")
+            json.dump(s0_cache, open(os.path.join(out_dir, "s0_cache.json"), "w", encoding="utf-8"),
+                      ensure_ascii=False, indent=2)
         else:
             # manifest 已校验 k/seed/口径一致, 但仍需覆盖 select set 题 (cache 可能是子集).
             missing = [str(it["id"]) for it in select_items if str(it["id"]) not in s0_cache]
             if missing:
                 print(f"⚠️ s0_cache 缺 {len(missing)} 题, 补算 ...")
                 extra = precompute_s0([it for it in select_items if str(it["id"]) in missing], s0,
-                                      args.eval_k, stage="evolver_s0_partial")
+                                      args.eval_k, stage="evolver_s0_partial",
+                                      write_manifest=True, shuffle_seed=args.shuffle_seed,
+                                      split_dir=args.split_dir, split_name="train+val")
                 s0_cache.update(extra)
-                _write_aime_s0_cache(s0_cache)
+                # F06: extra 的 _manifest 只反映 missing 子集 → 重建全集 manifest
+                s0_cache["_manifest"] = build_cache_manifest_aime(
+                    s0, args.eval_k, EVAL_TEMP, args.shuffle_seed, select_items,
+                    args.split_dir, "train+val")
+                json.dump(s0_cache, open(os.path.join(out_dir, "s0_cache.json"), "w", encoding="utf-8"),
+                          ensure_ascii=False, indent=2)
     else:
         print(f"⏳ precomputing S₀ on select set (k={args.eval_k}, EVAL_TEMP={EVAL_TEMP}, "
               f"shuffle_seed={args.shuffle_seed}) ...", flush=True)
         # AIME precompute_s0 签名 (items, s0_content, k, stage) — 无 shuffle_seed/split_dir.
         s0_cache = precompute_s0(select_items, s0, args.eval_k,
-                                 stage="evolver_s0_trainval")
-        _write_aime_s0_cache(s0_cache)
+                                 stage="evolver_s0_trainval",
+                                 write_manifest=True, shuffle_seed=args.shuffle_seed,
+                                 split_dir=args.split_dir, split_name="train+val")
+        json.dump(s0_cache, open(os.path.join(out_dir, "s0_cache.json"), "w", encoding="utf-8"),
+                  ensure_ascii=False, indent=2)
     print(f"📄 init_skill: {len(init_skill)} chars | select(train+val): {len(select_items)} | "
           f"S₀ cache: {len(s0_cache) - 1} 题 (含 _manifest) | eval_k={args.eval_k} | shuffle_seed={args.shuffle_seed}")
 
@@ -4967,24 +5023,15 @@ def main():
     if prior is not None:
         bv = prior["baseline_val"]
         base_pass, base_delta, base_ci = bv["pass"], bv["delta"], bv["ci"]
-        # resume 无 harness 记录 (旧 run 目录) → 空 dict, 双门会因"无可判长度证据"而 BLOCK, 这是保守正确
-        _h0 = dict(bv.get("harness") or {})
-        print(f"📊 [resume] baseline 跳过 (prior recorded): pass={base_pass:.3f} delta={base_delta:+.3f} CI={base_ci:.3f}")
+        print(f"📊 [resume] baseline 跳过 (prior recorded): pass={base_pass:.3f} delta={base_delta:+.3f} CI={base_ci:+.3f}")
     else:
+        _eval_audit_ctx["cand_hash"] = md5(init_skill)  # 问题 #16
         base_pass, base_delta, _, base_per = eval_on(probe_items, init_skill, s0_cache,
                                                      stage="evolver_base", k=args.eval_k,
-                                                     eval_deadline_s=EVAL_DEADLINE_S)
+                                                     eval_deadline_s=EVAL_DEADLINE_S, persist_ctx=_eval_audit_ctx)
         base_ci = bootstrap_ci_lower(base_per)
-        from tf_global_v2_aime import LAST_HARNESS_AGG as _HA0
-        _h0 = dict(_HA0 or {})
-        dump_eval_items(out_dir, "iter00_baseline", init_skill, base_per, probe_items, harness=_h0)
-        print(f"📊 init skill select: pass={base_pass:.3f} delta={base_delta:+.3f} CI_lower={base_ci:+.3f}"
-              + ("" if not _h0 else
-                 f" | tr={_h0.get('n_truncated_rate', 0):.3f} "
-                 f"ck={_h0.get('clean_pass_tokens') or 0:.0f}"))
+        print(f"📊 init skill select: pass={base_pass:.3f} delta={base_delta:+.3f} CI_lower={base_ci:+.3f}")
 
-    # 双门的长度基准 (issue #80 Step 3): 以 baseline 的 harness 为起点, 每次 accept 随 best 滚动.
-    best_harness = {k: _h0.get(k) for k in _HARNESS_KEEP}
     best_skill = init_skill
     if prior is not None:
         # 恢复 prior 末轮状态: best_skill 已 = prior 末轮 skill_iter; delta/ci/no_improve 从 log 取.
@@ -5005,9 +5052,7 @@ def main():
         no_improve = 0
     log = {"ts": ts, "init_skill": args.init_skill, "init_skill_hash": md5(init_skill),
            "ablation": ablation_label,
-           "baseline_val": {"pass": base_pass, "delta": base_delta, "ci": base_ci,
-                            # issue #80: 长度/截断基准随 log 落盘, 使 --resume 能恢复双门基准
-                            "harness": dict(best_harness)},
+           "baseline_val": {"pass": base_pass, "delta": base_delta, "ci": base_ci},
            "iters": [], "args": vars(args),
            # Task5: 诊断-选择解耦溯源 (flag 关时 n_select=probe=diag, 0.462 复现路径)
            "probe_split": args.probe_split, "probe_n": len(probe_items),
@@ -5046,17 +5091,14 @@ def main():
             f.write(best_skill)
         json.dump(log, open(os.path.join(out_dir, "evolver_log.json"), "w",
                             encoding="utf-8"), ensure_ascii=False, indent=2)
-        dump_token_usage(out_dir)
-        dump_rejected_patches(out_dir, list(log.get("rejected_patches", []) or []), args)
-        build_analysis(out_dir)
         final_hash = md5(best_skill)
         init_hash = md5(init_skill)
         print(f"\n{'='*50}\n✅ Facet-Tree done. init val delta={base_delta:+.3f} → "
               f"best val delta={best_val_delta:+.3f} (CI={best_val_ci:+.3f})")
         print(f"   skill: {len(init_skill)} → {len(best_skill)} chars | hash {init_hash} → {final_hash}")
         print(f"   产出: {out_dir}/best_skill_evolved.md + tree_iter*.json")
-        print(f"   评测: python eval_aime24_multiseed.py --skills s0,{out_dir}/best_skill_evolved.md --eval_k 3 --seeds 3")
-        print(f"         python eval_aime25_multiseed.py --skills s0,{out_dir}/best_skill_evolved.md --eval_k 3 --seeds 3")
+        print(f"   评测 test=106: cd /data/zhuldz/lunwen && python rl/train/verl1/eval_test_multiseed.py "
+              f"--skills s0,evolver --evolver_best {out_dir}/best_skill_evolved.md --eval_k 3 --seeds 2")
         # RF §6 Step 3: 终局 0-promoted 告警 — 开启的算子全程 0 次晋升 best 就告警 (写到 stderr + log)
         _op_alerts = _zero_promoted_alert(log.get("operator_counts", {}), args)
         log["zero_promoted_alerts"] = _op_alerts
@@ -5071,9 +5113,7 @@ def main():
         # focus 选择: 默认 round-robin (保主结果复现). --data_driven_focus / --coverage_diagnosis
         # 时延迟到 collect_failures 之后, 按已诊断失败的类型选 (Task3 多数 / Task4 未覆盖类型).
         # A4 消融固定为通用 focus.
-        # issue #76: --budget_focus 强制走 data-driven 路径 (否则 round-robin 永不选 Budget 轴).
-        focus_deferred = (not args.ablate_antideg) and (args.data_driven_focus or args.coverage_diagnosis
-                                                        or _BUDGET_FOCUS_ON)
+        focus_deferred = (not args.ablate_antideg) and (args.data_driven_focus or args.coverage_diagnosis)
         focus = "General mathematical reasoning improvement" if args.ablate_antideg else (
             None if focus_deferred else _efl_round_robin(t)
         )
@@ -5144,16 +5184,7 @@ def main():
         # round-robin 在早 iter 用错方向 patch. 这里用已诊断失败的真实类型分布定向 patcher.
         # Task4: --coverage_diagnosis 模式由下方 coverage 块独占 focus (supersede), 此块跳过避免冗余.
         if focus_deferred and not args.coverage_diagnosis:
-            # issue #76: 显式指定的 focus (--forced_focus, 用于 A/B 对照) 覆盖数据驱动选择.
-            if args.forced_focus:
-                focus = args.forced_focus
-                print(f"  [data_driven_focus] override by --forced_focus: {focus}")
-                _forced = True
-            else:
-                _forced = False
-            if _forced:
-                pass
-            elif failures:
+            if failures:
                 counts = {}
                 for f in failures:
                     lbl = classify_failure_type(f)
@@ -5227,13 +5258,25 @@ def main():
         # 生成 K 候选. 保底 current_skill 不进候选竞争 (只作下界), 避免原地踏步被误判改进.
         # A1 消融 K_eff=1; A2 消融 failure_driven=False; A4 消融不喂 rejected 反面教材
         rejected_feed = "" if args.ablate_antideg else "; ".join(rejected_patches[-3:])
+        # A-Step2 (2026-10-29): 题级 staleness 负例 — 从 collect_failures 已有 wins 派生, 零额外 API.
+        # 口径: skill 稳定解对 (skill_pass>=0.5) 且 S₀ 真难 (s0_pass<0.5) 的题, 双重护栏价值.
+        # wins 已按 (s0_pass, -gain) 排序 (S₀ 全错的硬题优先), 此处仅过滤不重排 (保持确定性).
+        # 默认 args.staleness=False → stable_solved=None → staleness_section 空串 (零回归).
+        stable_solved = None
+        if args.staleness and wins:
+            stable_solved = [
+                {"id": w["id"], "item": w["item"],
+                 "skill_pass": w["skill_pass"], "s0_pass": w["s0_pass"]}
+                for w in wins if w.get("skill_pass", 0) >= 0.5 and w.get("s0_pass", 1.0) < 0.5
+            ]
         cands = generate_candidates(best_skill, failures, focus, rejected_feed,
                                     K_eff, explore=(explore and args.fix_exploration),
                                     failure_driven=not args.ablate_failure,
                                     allow_modify=args.allow_modify,
                                     wins=wins, learn_positive=args.learn_positive,
                                     coverage_bundle=coverage_bundle,
-                                    meta_contrast=((all_failures if (all_failures is not None and getattr(args, "meta_contrast", False)) else failures), meta_passes) if meta_passes is not None else None)
+                                    meta_contrast=((all_failures if (all_failures is not None and getattr(args, "meta_contrast", False)) else failures), meta_passes) if meta_passes is not None else None,
+                                    staleness_negatives=stable_solved)
         # mutation_kinds: 每个候选的变异来源. --structure_evolution 关时恒 ["patch"]*K (字节复现既有路径);
         # 开时 patch 候选标 "patch", 结构候选标 "structure" (内容重组 v2 的决策程序).
         # Phase C: 结构候选与 patch 候选同台竞争 pass_rate, 让数据决哪种变异有效 (研究主张: 结构 > 内容为瓶颈).
@@ -5261,35 +5304,18 @@ def main():
         # 评测所有候选 (k 投票, 与 baseline 同条件)
         scored = []
         for ci_idx, cand in enumerate(cands):
+            _eval_audit_ctx["cand_hash"] = md5(cand)  # 问题 #16
             cp, cd, _, citem = eval_on(probe_items, cand, s0_cache,
                                        stage="evolver_val", k=args.eval_k,
-                                       eval_deadline_s=EVAL_DEADLINE_S)
-            # harness 信号 (issue #80 Step 1): AIME eval_on 已把它聚合成 LAST_HARNESS_AGG,
-            # 这里取出来写进候选分数, 使截断率/干净长度与 delta 同处一个对象 (门控与落盘都可读).
-            from tf_global_v2_aime import LAST_HARNESS_AGG as _HA
-            hagg = dict(_HA or {})
+                                       eval_deadline_s=EVAL_DEADLINE_S, persist_ctx=_eval_audit_ctx)
             cl = lcb_score_from_deltas(citem, s0_cache, args.eval_k)[0] if args.select_lcb else bootstrap_ci_lower(citem)
             kind = mutation_kinds[ci_idx] if args.structure_evolution else ""
-            scored.append({"idx": ci_idx, "skill": cand, "hash": md5(cand), "per_item": citem,
+            scored.append({"idx": ci_idx, "skill": cand, "hash": md5(cand),
                            "kind": kind,
-                           "pass": cp, "delta": cd, "ci": cl, "len": len(cand),
-                           "n_truncated": hagg.get("n_truncated"),
-                           "n_truncated_rate": hagg.get("n_truncated_rate"),
-                           "clean_pass_tokens": hagg.get("clean_pass_tokens"),
-                           "clean_tok_list": hagg.get("clean_tok_list"),
-                           "clean_tok_q50": hagg.get("clean_tok_q50"),
-                           "clean_tok_q90": hagg.get("clean_tok_q90"),
-                           "mean_out_tokens": hagg.get("mean_out_tokens"),
-                           "n_gen_samples": hagg.get("n_gen_samples"),
-                           "per_item_trunc": hagg.get("per_item_trunc")})
+                           "pass": cp, "delta": cd, "ci": cl, "len": len(cand)})
             # kind_tag 空 (flag off) 时此行与既有字节一致; 开时加 [structure]/[patch] 标注.
             kind_tag = f" [{kind}]" if kind else ""
-            _tr_s = (" tr=?" if hagg.get("n_truncated_rate") is None
-                     else f" tr={hagg['n_truncated_rate']:.3f}")
-            _ck_s = (" ck=?" if not hagg.get("clean_pass_tokens")
-                     else f" ck={hagg['clean_pass_tokens']:.0f}")
-            print(f"  cand{ci_idx}{kind_tag}: delta={cd:+.3f} CI={cl:+.3f} pass={cp:.3f} len={len(cand)}"
-                  f"{_tr_s}{_ck_s} "
+            print(f"  cand{ci_idx}{kind_tag}: delta={cd:+.3f} CI={cl:+.3f} pass={cp:.3f} len={len(cand)} "
                   f"novel={md5(cand) != current_hash}", flush=True)
 
         # winner 选择: 仅在 novel (hash != current) 且 ci>0 的候选里选 delta 最高.
@@ -5312,15 +5338,6 @@ def main():
                 winner = None
                 reject_reason = "no novel candidate generated (all == current)"
 
-        try:
-            dump_iter_candidates(out_dir, t, current_hash, scored,
-                                 winner["hash"] if winner else None,
-                                 winner.get("kind", "patch") if winner is not None else "",
-                                 reject_reason, focus,
-                                 admissible=None)
-        except Exception as _e:  # noqa: BLE001
-            print(f"   ⚠ dump_iter_candidates: {_e!r}", file=sys.stderr, flush=True)
-
         # winner_kind (前向兼容字段): winner 的变异来源. --structure_evolution 关时为 "patch" (既有路径);
         # 开时为 "patch" 或 "structure". 用于诊断研究主张: 若 structure 占非平凡比例 = 结构是瓶颈.
         winner_kind = winner.get("kind", "patch") if (winner is not None and args.structure_evolution) else "patch"
@@ -5330,33 +5347,6 @@ def main():
         if winner is not None:
             improved = (winner["delta"] > best_val_delta and winner["ci"] > 0
                         and winner["hash"] != current_hash)
-            # 长度轴双门 (issue #69 / #80 Step 3): 默认关, 开时在准确率门之上追加 token 侧约束.
-            if improved and getattr(args, "dual_gate", False):
-                _ok, _why = dual_gate_decision(
-                    winner, best_harness, base_pass, enabled=True,
-                    acc_max_drop=args.acc_max_drop, token_min_drop=args.token_min_drop,
-                    use_token=not args.no_token_gate,
-                    trim=getattr(args, "token_clip_tail", 0.10))
-                print(f"  🚦 dual_gate: {'PASS' if _ok else 'BLOCK'} — {_why}")
-                if not _ok:
-                    improved = False
-                    reject_reason = f"dual_gate blocked: {_why}"
-                    rejected_patches.append(f"iter{t} dual_gate: {_why}")
-            # 防截断门 (issue #81 建议1): 每轮都对"是否把截断搞坏"做一次检验. 与 dual_gate 独立 ——
-            # 前者管"不许退化", 后者管"必须变短 (才给奖励)". 两门都过才 ACCEPT.
-            if improved and getattr(args, "trunc_gate", False):
-                _tok, _tw, _td = trunc_gate_decision(
-                    winner, best_harness, enabled=True,
-                    trunc_max_increase=getattr(args, "trunc_max_increase", 0.01),
-                    paired_max=getattr(args, "trunc_paired_max", 0.25))
-                print(f"  🚧 trunc_gate: {'PASS' if _tok else 'BLOCK'} — {_tw}")
-                if _td:
-                    log.setdefault("trunc_gate", []).append({"iter": t, "ok": bool(_tok),
-                                                             "reason": _tw, **{k: _td[k] for k in _td}})
-                if not _tok:
-                    improved = False
-                    reject_reason = f"trunc_gate blocked: {_tw}"
-                    rejected_patches.append(f"iter{t} trunc_gate: {_tw}")
             if not args.ablate_antideg and winner["pass"] < base_pass - 0.06:
                 print(f"  ⚠️ winner pass {winner['pass']:.3f} << base {base_pass:.3f}, REJECT (LOST risk)")
                 improved = False
@@ -5368,9 +5358,6 @@ def main():
             best_skill = winner["skill"]
             best_val_delta = winner["delta"]
             best_val_ci = winner["ci"]
-            # 长度基准随 best 一起滚动 (issue #80 Step 3): 双门比较的是"相对当前 best 的降幅",
-            # 若不更新, 几轮之后 best 早已变短而门还拿旧基准, 会被轻易放行.
-            best_harness = {k: winner.get(k) for k in _HARNESS_KEEP}
             no_improve = 0
             kind_tag = f" [{winner_kind}]" if args.structure_evolution else ""
             print(f"  ✅ ACCEPT iter{t}: delta={winner['delta']:+.3f} CI={winner['ci']:+.3f} "
@@ -5393,9 +5380,10 @@ def main():
                 print(f"  🔧 consolidated: no change (clean_skill reverted to original)")
             elif args.gate_consolidate:
                 # M3-gate: re-eval 压缩后 skill, delta 下降超 GATE_MARGIN 则回退 (治盲压缩损质)
+                _eval_audit_ctx["cand_hash"] = md5(cand_skill)  # 问题 #16
                 gp, gd, _, gitem = eval_on(probe_items, cand_skill, s0_cache,
                                            stage="evolver_consol_gate", k=args.eval_k,
-                                           eval_deadline_s=EVAL_DEADLINE_S)
+                                           eval_deadline_s=EVAL_DEADLINE_S, persist_ctx=_eval_audit_ctx)
                 gcl = lcb_score_from_deltas(gitem, s0_cache, args.eval_k)[0] if args.select_lcb else bootstrap_ci_lower(gitem)
                 if gd >= best_val_delta - GATE_MARGIN:
                     best_skill = cand_skill
@@ -5426,8 +5414,6 @@ def main():
                                     if k == "structure" and md5(c) != current_hash) if args.structure_evolution else 0,
             "reject_reason": reject_reason,
             "best_val_delta": round(best_val_delta, 4), "best_val_ci": round(best_val_ci, 4),
-            # issue #80 Step 3: 每轮记录当前长度基准, 便于回放"若开双门会拦哪一轮"
-            "best_harness": dict(best_harness),
             "improved": improved, "no_improve": no_improve, "consolidated": consolidated,
             # 两段式兜底诊断 (用户指令 2026-10-09): 哪轮触发哪段 + 当轮 gate 放宽幅度.
             # flag off 时全为 False/0.0, 零回归.
@@ -5467,9 +5453,6 @@ def main():
     with open(os.path.join(out_dir, "best_skill_evolved.md"), "w", encoding="utf-8") as f:
         f.write(best_skill)
     json.dump(log, open(os.path.join(out_dir, "evolver_log.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-    dump_rejected_patches(out_dir, rejected_patches, args)
-    _write_manifest(out_dir, args, init_skill, best_skill, base_delta, best_val_delta, best_val_ci)
-    build_analysis(out_dir)
 
     final_hash = md5(best_skill)
     init_hash = md5(init_skill)
@@ -5481,8 +5464,8 @@ def main():
     else:
         print(f"   ✅ 产物已改动 (hash 不同), 可进 test 复评.")
     print(f"   产出: {out_dir}/best_skill_evolved.md")
-    print(f"   评测: python eval_aime24_multiseed.py --skills s0,{out_dir}/best_skill_evolved.md --eval_k 3 --seeds 3")
-    print(f"         python eval_aime25_multiseed.py --skills s0,{out_dir}/best_skill_evolved.md --eval_k 3 --seeds 3")
+    print(f"   评测 test=106: cd /data/zhuldz/lunwen && python rl/train/verl1/eval_test_multiseed.py "
+          f"--skills s0,evolver --evolver_best {out_dir}/best_skill_evolved.md --eval_k 3 --seeds 2")
 
 
 if __name__ == "__main__":

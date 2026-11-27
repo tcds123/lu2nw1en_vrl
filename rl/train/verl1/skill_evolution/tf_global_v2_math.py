@@ -152,10 +152,18 @@ def extract_experiences(text: str) -> str:
 # B 模型生成 + 验证 (保留 response 文本用于失败模式诊断)
 # ===================================================================
 def run_one(item: dict, skill_content: str, stage: str = "tf_v2_b", k: int = 1,
-            retries: int = 2) -> dict:
+            retries: int = 2, capture_cb=None) -> dict:
     """对单题用 skill 评测 k 次 (采样温度由调用方 set_temp 设定), 返回连续 pass_rate = 通过次数/k.
     k=1 时退化为单次 0/1 (兼容旧 rollout_group 变体诊断). response/pred 取最后一次采样.
-    retries: eval 投票路径默认 2 (卡死 socket 失败更快, k 已提供噪声缓冲); 候选生成路径可传 5."""
+    retries: eval 投票路径默认 2 (卡死 socket 失败更快, k 已提供噪声缓冲); 候选生成路径可传 5.
+
+    capture_cb (2026-11-24 移植自 AIME tf_global_v2_aime.run_one, 默认 None=零回归): 若提供, 对每次
+    采样调用 cb(sample_dict) 持久化该次原始输出 + 解析结果. 仅 eval_paired 在 paired_rescore 下传 cb,
+    其余 (eval_on/collect_failures/precompute_s0) 不传 → 字节不变. sample_dict 带 MCQ 字段
+    (predicted_label/correct_label), 非 AIME 的 predicted_answer/correct_answer.
+
+    n_error (2026-11-24 移植自 AIME): 采样级异常计数. eval_paired 据此区分 "真 0 次通过" 与
+    "k 次采样全部异常 (API 挂/解析崩)" — 后者进 delta 会单向拉低该题, 须排除而非计 0."""
     qid = str(item["id"])
     res = {"id": qid, "theorem_type": item.get("theorem_type", "?"),
            "pass_rate": -3.0, "agent_ok": False, "fail_reason": "",
@@ -164,8 +172,10 @@ def run_one(item: dict, skill_content: str, stage: str = "tf_v2_b", k: int = 1,
     system = _build_system(skill_content)
     user = _build_user(item)
     n_pass = 0
+    k_err = 0  # 采样级异常计数 (见函数尾部 n_error)
     last_ev = None
     last_resp = ""
+    s_idx = 0
     for _ in range(max(1, k)):
         try:
             response, _ = chat_target(system=system, user=user, max_completion_tokens=4096,
@@ -174,14 +184,45 @@ def run_one(item: dict, skill_content: str, stage: str = "tf_v2_b", k: int = 1,
             last_ev, last_resp = ev, response
             if ev["em"]:
                 n_pass += 1
+            if capture_cb is not None:
+                try:
+                    capture_cb({
+                        "sample_idx": s_idx,
+                        "raw_response": response,
+                        "extracted_answer": ev.get("predicted_label", ""),
+                        "correct_answer": ev.get("correct_label", ""),
+                        "em": ev["em"],
+                        "parse_status": "parsed" if ev.get("predicted_label") else "no_label",
+                        "fail_reason": "",
+                    })
+                except Exception:
+                    pass  # 持久化失败不影响评测主链
         except Exception as e:
             res["fail_reason"] = f"exception: {e!r}"
+            k_err += 1
+            if capture_cb is not None:
+                try:
+                    capture_cb({
+                        "sample_idx": s_idx,
+                        "raw_response": "",
+                        "extracted_answer": None,
+                        "correct_answer": item.get("correct_choice", {}).get("label", ""),
+                        "em": 0.0,
+                        "parse_status": "exception",
+                        "fail_reason": f"exception: {e!r}",
+                    })
+                except Exception:
+                    pass
+        s_idx += 1
     if last_ev is not None:
         res.update({"pass_rate": n_pass / max(1, k), "agent_ok": True,
                     "response": last_resp,
                     "predicted_label": last_ev.get("predicted_label", ""),
                     "correct_label": last_ev.get("correct_label", ""),
                     "fail_reason": "" if n_pass == 0 and k == 1 else res.get("fail_reason", "")})
+    # 区分 "真 0 次通过" 与 "k 次采样全部异常". 后者 pass_rate 计 0 与 abandoned 同病:
+    # 进 delta 即单向拉低该题. 调用方 (eval_paired) 据此排除而非计 0.
+    res["n_error"] = k_err
     res["n_pass"], res["n_samples"] = n_pass, max(1, k)
     return res
 
@@ -464,6 +505,154 @@ def eval_on(items, skill_content, s0_cache, stage="tf_v2_val", k=1, eval_deadlin
     mean_pass = sum(r["pass_rate"] if r["pass_rate"] >= 0 else 0.0 for _, r in results) / len(items)
     mean_delta = sum(deltas) / max(1, len(deltas))
     return mean_pass, mean_delta, len(deltas), per_item
+
+
+def eval_paired(items, cand_skill, base_skill, stage="tf_v2_paired", k=1, eval_deadline_s=None,
+                persist_ctx=None):
+    """配对评测 (C2 / F1, 2026-11-24 移植自 tf_global_v2_aime.eval_paired): 分两批串行评
+    cand_skill 与 base_skill, 返回 cand 的 paired delta. d_paired_q = cand_pass_q − base_pass_q.
+
+    动机: eval_on 的 delta 对位 s0_cache 固定快照 (stale snapshot), baseline 与候选的共享采样噪声
+    (同 EVAL_TEMP / 同 API 负载下的 k 次投票波动 σ≈0.044) 不被对消 → identity 候选两次 eval 仍
+    ±0.044 摇摆, 把采样噪声误判为提升. paired 改为同 EVAL_TEMP / 同 items 测两 skill,
+    d=cand−base 对消共享噪声 → identity 候选 paired delta≈0.
+
+    分两批串行: 先评 base (N tasks, 40 worker), 完成后再评 cand (同款). 每批独立 deadline.
+    paired 对消前提 (同 EVAL_TEMP / 同 items / 同 iter 窗口) 仍成立 — base 与 cand 不必"同时同批",
+    只要 EVAL_TEMP 一致且 items 相同, d=cand_pr−base_pr 的共享采样噪声对消有效.
+
+    返回 eval_on 同款 4-tuple (mean_pass, mean_delta, n, per_item) + 第 5 元素 base_per_item,
+    使下游 bootstrap_ci_lower / subset_signal / group_signal / _combined_rescue 零改动复用
+    (这些消费者纯 delta-based, 不重建计数).
+
+    persist_ctx (默认 None=零回归): 若提供 dict, 把每次采样的原始输出 + 解析结果追加持久化到 jsonl.
+    flag off (persist_ctx=None) → eval_paired 行为字节不变. 落盘由调用方注入 out_dir/run_id 等.
+    原始 response 含模型推理文本, 仅落 run 目录, 不入 git (data/outputs 已 gitignore).
+
+    task-agnostic: 本函数调 run_one (内部走 math_evaluate MCQ 评分), 不含任何 AIME/数值评分逻辑.
+    与 AIME 版唯一差异 = stage 默认前缀 tf_v2_paired (避缓存键串扰) + sample field 名 (label 非 answer)."""
+    from concurrent.futures import TimeoutError as _FuturesTimeoutError
+    set_temp(EVAL_TEMP)
+
+    _persist_fp = None
+    _persist_lock = None
+    if persist_ctx is not None:
+        from threading import Lock as _Lock
+        out_dir = persist_ctx.get("out_dir")
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
+            _persist_path = os.path.join(out_dir, "paired_eval_samples.jsonl")
+            _persist_fp = open(_persist_path, "a", encoding="utf-8", buffering=1)
+            _persist_lock = _Lock()
+
+    _scorer_ver = persist_ctx.get("scorer_version", "unknown") if persist_ctx else "unknown"
+    _model_ver = persist_ctx.get("model_version", "unknown") if persist_ctx else "unknown"
+    _run_id = persist_ctx.get("run_id", "") if persist_ctx else ""
+    _iter = persist_ctx.get("iter") if persist_ctx else None
+    _ts_base = persist_ctx.get("ts", datetime.now().isoformat(timespec="seconds")) if persist_ctx else ""
+
+    def _make_cb(qid, skill_role):
+        if _persist_fp is None:
+            return None
+
+        def _cb(sample):
+            rec = {
+                "run_id": _run_id,
+                "item_id": qid,
+                "seed_idx": sample.get("sample_idx", 0),
+                "skill_role": skill_role,
+                "skill_version": persist_ctx.get(f"{skill_role}_hash", ""),
+                "model_version": _model_ver,
+                "raw_response": sample.get("raw_response", ""),
+                "extracted_answer": sample.get("extracted_answer"),
+                "correct_answer": sample.get("correct_answer"),
+                "parse_status": sample.get("parse_status", ""),
+                "score": sample.get("em", 0.0),
+                "scorer_version": _scorer_ver,
+                "stage": stage,
+                "iter": _iter,
+                "ts": _ts_base,
+            }
+            line = json.dumps(rec, ensure_ascii=False)
+            with _persist_lock:
+                _persist_fp.write(line + "\n")
+
+        return _cb
+
+    def _run_batch(batch_skill, batch_stage, skill_role):
+        ex = ThreadPoolExecutor(max_workers=40)
+        futs = {}
+        for it in items:
+            qid = str(it["id"])
+            cb = _make_cb(qid, skill_role) if persist_ctx is not None else None
+            futs[ex.submit(run_one, it, batch_skill, batch_stage, k, capture_cb=cb)] = it
+        if eval_deadline_s is None:
+            done = as_completed(futs)
+        else:
+            done = as_completed(futs, timeout=eval_deadline_s)
+        out = {}
+        try:
+            for fut in done:
+                out[str(futs[fut]["id"])] = fut.result()
+        except (TimeoutError, _FuturesTimeoutError):
+            stuck = [f for f in futs if not f.done()]
+            for f in stuck:
+                f.cancel()
+            if stuck:
+                print(f"   ⚠ eval_paired[{batch_stage}] deadline({eval_deadline_s}s) hit: "
+                      f"{len(stuck)}/{len(futs)} tasks abandoned (treated as 0 pass)", flush=True)
+        try:
+            ex.shutdown(wait=False, cancel_futures=True)
+        except TypeError:
+            ex.shutdown(wait=False)
+        for it in items:
+            qid = str(it["id"])
+            if qid not in out:
+                out[qid] = {"pass_rate": 0.0, "n_pass": 0, "n_samples": k,
+                            "abandoned": True}
+                if _persist_fp is not None:
+                    rec = {
+                        "run_id": _run_id, "item_id": qid, "seed_idx": 0, "skill_role": skill_role,
+                        "skill_version": persist_ctx.get(f"{skill_role}_hash", "") if persist_ctx else "",
+                        "model_version": _model_ver, "raw_response": "",
+                        "extracted_answer": None, "correct_answer": it.get("correct_choice", {}).get("label", ""),
+                        "parse_status": "abandoned", "score": 0.0, "scorer_version": _scorer_ver,
+                        "stage": batch_stage, "iter": _iter, "ts": _ts_base,
+                    }
+                    with _persist_lock:
+                        _persist_fp.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        return out
+
+    base_res = _run_batch(base_skill, stage + "_base", "base")
+    cand_res = _run_batch(cand_skill, stage + "_cand", "cand")
+    if _persist_fp is not None:
+        try:
+            _persist_fp.flush()
+            _persist_fp.close()
+        except Exception:
+            pass
+    deltas, per_item, base_per_item = [], {}, {}
+    _n_drop = 0
+    for qid, cr in cand_res.items():
+        br = base_res.get(qid, {})
+        _bad = (cr.get("abandoned") or br.get("abandoned")
+                or (k > 0 and cr.get("n_error", 0) >= k) or (k > 0 and br.get("n_error", 0) >= k))
+        if _bad:
+            _n_drop += 1
+            continue
+        cpr = cr["pass_rate"] if cr["pass_rate"] >= 0 else 0.0
+        bpr = br.get("pass_rate", 0.0)
+        bpr = bpr if bpr >= 0 else 0.0
+        d = cpr - bpr
+        deltas.append(d)
+        per_item.setdefault(qid, []).append(d)
+        base_per_item[qid] = bpr
+    if _n_drop:
+        print(f"   ⚠ eval_paired[{stage}] {_n_drop}/{len(cand_res)} pairs dropped "
+              f"(abandoned or all-k-exception) — not counted as 0", flush=True)
+    mean_pass = sum(cr["pass_rate"] for cr in cand_res.values() if cr["pass_rate"] >= 0) / max(1, len(deltas))
+    mean_delta = sum(deltas) / max(1, len(deltas))
+    return mean_pass, mean_delta, len(deltas), per_item, base_per_item
 
 
 def per_item_counts(results, items):

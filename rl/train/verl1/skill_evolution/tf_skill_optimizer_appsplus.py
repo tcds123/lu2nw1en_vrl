@@ -1254,6 +1254,13 @@ def main():
     # P0-3 (用户审查): Arm2/Arm4 干预覆盖率 (删除/抑制的 fn-call 题数) 写 final_summary。
     # P0-4 (用户审查): 预注册 δ=0.03; 配对净增益 (rescue−regress) + 精确 CI + 四象限判断。
     print(f"\n{'='*50}\n[#48 arm={args.ablation_arm}] Final test 评测 (独立非路由, 撤 Oracle 泄漏)\n{'='*50}")
+    # Issue #123 守卫: launcher 若因全量 test S₀ cache 缺失而回退到小 cache, 这里会静默只评子集
+    # (100 题跑了 9.8 h 才发现) → 规模不符即中止, 不烧 API。
+    if len(test_items) != 2765:
+        raise SystemExit(f"[#48] ABORT: test_items={len(test_items)} ≠ 2765 (评测集会静默缩小, 见 Issue #123)")
+    _miss = {str(it["id"]) for it in test_items} - set(s0_cache_test)
+    if _miss:
+        raise SystemExit(f"[#48] ABORT: test S₀ cache 缺 {len(_miss)} 题 (见 Issue #123)")
     ind = eval_independent(test_items, best_S, stage="tf_test_indep", infra_retries=1)
     ind_by_id = {qid: r for qid, r in ind["cand_by_id"].items() if r["agent_ok"]}
     ind_hard = ind["hard_count"]

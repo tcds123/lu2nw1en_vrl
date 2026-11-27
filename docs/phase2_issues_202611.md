@@ -2350,17 +2350,26 @@ base_rule 内容 (5 条 token 阈值指令: 超 6000 token 强制决策 / 7000 t
 **口径 (用户指定的六阶段分桶, 避免重复计)**:
 1. ① 优化器调用 / ② 候选生成 (Rollout) / ③ Selection Eval 三者构成**训练预算**。
 2. ④ Smoke Test 单列 (本次两臂主 run 均 0; 独立 `smoke_48_20261117` 9 次不属于主 run, 不计)。
-3. ⑤ 重试单列 (两臂均 0: 无空响应、无 retry/429 日志)。
+3. ⑤ 重试单列 — 语义是"**0 可观测**"(无空响应、无 retry/429 日志), **不是"确实为 0"**; 原因见下方"重试盲区"。
 4. **⑥ 2765 题正式评测不计入训练预算**; SkillOpt 的 300 题 test chunk 亦单列 (两臂共享成本)。
 5. 请求数 = HTTP 请求。SkillOpt 每步 40 个有效样本 → 140 请求 (g=4 + 2 次 async REVISE) → 8 步 = 320 有效样本 / **1120 请求**; 交接文档的 "Rollout 320" 是有效样本数。
 6. 被拒候选照样计入; Arm1 token 无日志 → 明确标 "NOT RECORDED"。
 
 **实测数 (初稿数错已更正, 旧 1840/1925/1622/3325/2322 全部作废)**:
 - SkillOpt 训练 = **2525**: ①优化器 85 (analyst 47 + merge 24 + ranking 8 + guidance 3 + meta 记忆 3); ②候选生成 1240 (1120 + 120 slow 对比); ③Selection Eval 1200 (800 步内 + 100 S₀ 基线 + 300 slow)。其中带 token 记录的 1622 (4,960,681 tok); 丢弃的 REVISE 中间稿 ≈1.1M tok (估算)。
-- Arm1 训练 = **1050**: ①优化器 411 (rewriter 324 + distill 81 + merge/compose 6); ②候选生成 429 (324 B-eval + 105 val 门控); ③单列 0 (105 已并入 ②, 不重复计)。
-- ④ Smoke: 两臂 0。⑤ 重试: 两臂 0。
+- Arm1 训练 = **1050** = ①411 (rewriter 324 + distill 81 + merge/compose 6) + ②324 (B-eval) + ③105 (val 门控, 展示上并入 ② 的 429)。
+- ④ Smoke: 两臂 0。⑤ 重试: 两臂 0 可观测。
 - ⑥ 正式评测: SkillOpt 600 (300 题 ⊆ 2765); Arm1 2765 + 215 retention + 85 routed。
 - 方法学花费 (训练 + 非共享评测): SkillOpt 3125 vs Arm1 1350 (0.43×); 含共享 2765 总计 5890 vs 4115。
+
+**计数差额定案 (用户 2026-11-24 追问后回原始日志/代码核实)**:
+1. **Arm1 的 210 (411+429=840 vs 1050) 定案已撤回** ~~差 210 = 2 × 105, 被拒轮门控仍付费~~: 该算术在 1050 上不成立 (411+324+105+315 = 1155 ≠ 1050)。现状见 #83: 代码推导每轮 = 279 + G, G=35 (代码路径已核实) → 3 轮 840, 与台账 1050 差 **210, 未闭合**; 历史 run 未设 TRACE_DIR, 不推算不填补。展示层仍把 ③ 单列 105 并注明"已含在 ② 内"。
+2. **SkillOpt 74 → 85 的剩余 5 次无法从日志重构**: guidance 3 + meta 记忆 3 只解释 6/11; `step_record.tokens` 里 47+24+8 = 79, 74 与 79 都不自洽。**以 85 为准**, 剩余 5 次落在未记 token 的写入调用上, 日志不提供更细粒度, 停止追查 (不编造归属)。
+3. **compose 是真实 LLM 调用, 不是本地拼接**: `compose_global_skill` L575–589 实际调 `llm(..., stage="tf_compose")`。旧稿"本地拼接"有误; ~~每轮 350 = … + val 门控 105~~ (**2026-11-24 更正, 见 #83**: 105 是 3 轮合计; 每轮 = 108+27+1+1+108+G, G=35 → 280, 见 #83)。
+
+**重试盲区**: `code/skillopt/model/azure_openai.py::_chat_impl` (L362–436) 对任意异常 `sleep(min(2**attempt,30))` 后整条重发, `retries=5`, **不打印日志**; Arm1 的 `llm()` 与 SkillOpt 每步都走该路径。→ 日志无 retry 行只能写"未观测到重发"。Arm1 `eval_on_routed` 另有 future-exception 兜底: 5 次全失败则该题不再产生请求 (只减不增)。
+
+**失败池 × 训练请求 (为 #14 核实, 代码 L1157–1161)**: `fail_items_all` = train 中 hard==0 的题 (hard 优先排序), `train_items = fail_items_all[:train_n]`。flash run.log L8: train 80 / S₀-fail 27 / 取前 27。关系 (**2026-11-24 更正, 见 #83**): 每轮训练 = 9·min(池, train_n) + 2 + G。池 ≤ train_n 时只有 rewriter/distill/B-eval 随池线性增长 (9 次/题); **门控 G 只取决于 val 缓存 S₀-fail 题数, 与训练池无关** (G=35; 旧稿"每轮恒为 350、门控随池"错误)。池 27/40/80 → 每轮 280/397/757 → 3 轮合计 840/1,191/2,271。
 
 **三个结论**:
 1. **调用预算差异**: Arm1 训练**更省** (1050 vs 2525 = 0.40×; 带 token 记录下界 1622 → 0.65×; 估 token ~1.3M vs ~6.2M) → "Arm1 赢在预算更多" **已排除, 方向相反**。
@@ -2369,9 +2378,575 @@ base_rule 内容 (5 条 token 阈值指令: 超 6000 token 强制决策 / 7000 t
 
 **产物** (未入库, outputs/ gitignore):
 - `rl/train/verl1/outputs/crossmodel_baseline/phase4a-audit-20261120/skillopt_vs_arm1_call_audit.md` (口径/逐阶段表/三结论/论文措辞允许与禁止)
-- `.../skillopt_vs_arm1_call_ledger.20261124.json` (机器可读台账, 每个数字带日志来源路径)
+- `.../skillopt_vs_arm1_call_ledger.20261124.json` (机器可读台账, 每个数字带日志来源路径; 含 `handover_reconciliation`、`fail_pool`)
+- `.../issue14-crossmodel-repro-budget-v1.md` (#14 跨模型设计与条件化预算, 0 API)
 - `memory/skillopt-vs-arm1-call-audit-20261124.md`
 
 **未解决**: Arm1 token 无日志 → token 对比只能以估算呈现, 不得作为实测引用; 若要硬证据需给 Arm1 加 token 计数后重跑 (需授权, 本次未做)。
 
-**教训**: ① 第一版把 800 次步内 selection_eval 算作"方法自测"、漏了 100 次 S₀ selection 基线、又编了一个无来源的"300 计入项", 还把 Arm1 的 105 次 val 重复计入 639 → 总数虚高。必须按 ①②③④⑤⑥ 六阶段逐项列日志来源。② 两法总请求数不能直接比, 必须先把 2765 共享评测与 smoke/重试拆出去。③ 交接文档里的 "Rollout 320 / Optimizer 74" 是有效样本与近似值, 实测为 1120 请求 / 85 调用, 引用前必须回日志核。
+**教训**: ① 第一版把 800 次步内 selection_eval 算作"方法自测"、漏了 100 次 S₀ selection 基线、又编了一个无来源的"300 计入项", 还把 Arm1 的 105 次 val 重复计入 639 → 总数虚高。必须按 ①②③④⑤⑥ 六阶段逐项列日志来源。② 两法总请求数不能直接比, 必须先把 2765 共享评测与 smoke/重试拆出去。③ 交接文档里的 "Rollout 320 / Optimizer 74" 是有效样本与近似值, 实测为 1120 请求 / 85 调用, 引用前必须回日志核。④ 遇到计数差额先查"展示归并"(本例两处都是), 再查"日志缺行"; 查不出的部分必须明写"不可从日志重构", 不得用假设补齐 (未替 210 次补数、未替 5 次编归属)。
+
+## #83 (2026-11-24) #14 预算 v1 的 6,945 是重复计入; Arm1 训练 1050 vs 代码推导 840 (G=35, 已核实) 差 210 未闭合; 历史逐轮 val 指标逐题口径未闭合
+
+**症状**:
+1. `issue14-crossmodel-repro-budget-v1.md` 每模型 **6,945** = 80 + 100 + 1,050 + 2,765 + 2,765 — 2,765 出现两次 (Arm1 独立评测与 S₀ 独立评测各一次, 但 S₀ val/test cache 又单列), 且 6,945 被当成"每模型总量"引用。
+2. Arm1 台账训练 = 1050; 按代码逐轮公式 (rewriter g·min(池,train_n) + distill + B-eval + merge 1 + compose 1 + 门控 G) 得 3 × (279 + 35) = **840**, 差 **210**。
+3. ~~val 门控规模 42 未经核实~~ → **2026-11-24 代码复核已定: 门控 = 35**。`tf_skill_optimizer_appsplus.py` L1118 把 `args.s0_cache_val` 只当**输入**; L1131 `rebuild_fn_call_cache` 用 D5 重写成 `out_dir/s0_cache_val_d5.json`; L1216 `eval_on_routed(..., s0_cache_val)` 用的是**重建版**。实跑目录 `s0_cache_val_d5.json`: 100 题中 hard==1 65 / hard==0 **35**, base pass 0.6950 (21 道 fn-call, 7 道由 0 翻为 1, 0 道反向)。**原始缓存 (args 指向) 的 42 只是输入**, 42 与 35 不能再互相覆盖, 但代码路径决定实际门控请求数为 35。
+4. **新发现: 历史逐轮 val 指标逐题口径未闭合**。`val_new_pass` 0.8017/0.7667/0.7783、`val_new_delta` 0.1067/0.0717/0.0833 在聚合层自洽 (pass−delta ≈ 0.695 = base, delta·100 ≤ 35), 但与 35 道门控题的逐题软分对位矛盾: 35 道中 10 道是 partial pass (0.33×6 / 0.50×1 / 0.67×3, 软分合计 4.5), 隐含救回 10.7/7.2/8.3 题 > 25 道结构全失败题; 若要求"纯救回", 这 10 道每题须 +0.5 以上 (其中 3 道最大只能 +0.67); 按题对位重算 rescue 为负 (69.5 + 80 > 100)。仓库内无任何现有实现能同时复现两组数字。
+
+**根因**: v1 把"3 轮门控 105"塞进单轮公式 (每轮 350 的错误来源), 并在拆 5530 时把 2765 拆成 105 + 2765 + 2765 又把 test S₀ cache 与 S₀ 独立评测混叠。门控与训练请求的可核实性受限于历史 run **未设 TRACE_DIR**, 无逐调用 trace; 逐题口径还受限于 run 只落聚合 val 指标、不落逐题新分。
+
+**解决**: 只读代码/配置/日志 → `scripts/preflight_crossmodel_0api.py` (标准库, 0 API) 输出 PASS/WARN/BLOCKED/NOT_YET_RUN JSON + Markdown。当前: PASS 0 / WARN 2 (失败池、API Key) / BLOCKED 3 (解码、价格、重试) / NOT_YET_RUN 2 (缓存、需 API 实测)。更正后每模型请求 (G=35): 池 27/40/80 → **3,785 / 4,136 / 5,216** (训练 840 / 1,191 / 2,271); 敏感性 (G=42): 3,806 / 4,157 / 5,237。**训练差额 210 (G=35) 与逐题 val 口径均标未闭合, 不推算不填补**。
+
+**教训**: ① 多轮循环里的"固定项"先确认是否已按轮次乘过 — 105 是 3 轮合计, 放进单轮导致每轮 350 与台账自相矛盾。② 台账数字与代码推导不一致时, 先跑恒等式检查, 差的部分必须写"未闭合", 不能用一个算术巧合把它"解释掉" (本会话一度得出 210 = 2×105 的定论, 实测该算术不成立, 已撤回)。③ 缓存文件的内部汇总与同 run 的指标要交叉核对, 否则会把"缓存错"当成"门控已确认"。④ **"args 指向的缓存" ≠ "实际使用的缓存"**: 中间有重建步骤时, 必须沿代码路径找到实际传入评测函数的那个对象, 否则会把输入当门控规模。⑤ 聚合指标自洽不等于逐题可复现: 聚合层两个等式都对得上, 仍可能与逐题分对位矛盾 — 只要 run 没落逐题产物, 就只能报"未闭合"。
+
+## Issue #118 — RQ3-A deepseek-v4-pro 长输出题在 AIMP 网关 HTTP 500 (2026-11-25, 有 API)
+
+**症状**: train[:80] S₀ 中 4 题 (4497 / 6482 / 6563 / 2760) 在 `qwen_backend` 的 5 次重发后仍失败:
+`HTTP 500 {"error":{"message":"","type":"api_error","code":null}}` / `Remote end closed connection` /
+`The read operation timed out`。单题耗时 ≈ 1500 s。重试全部同题再失败 (4497/6482/6563 跨 3 个 run 稳定复现);
+**2760 在第一次 run 超时失败, 第二次 run 正常通过** → 至少部分是瞬时故障。
+
+**排除项** (探针, 每题 1~2 次调用):
+- 不是端点整体不可用: 最小请求 (5 prompt tokens) 1.9 s 返回。
+- 不是题面内容问题: 同一 payload 加 `chat_template_kwargs.enable_thinking=False` 仍 500;
+  同 payload `max_tokens=512` 18 s 正常返回 (`finish_reason=length`, `content_chars=2026`,
+  `reasoning_chars=0` → **v4-pro 服务端未开 thinking, 输出即正文**)。
+- 不是 `max_tokens=16384` 本身: `max_tokens=12288` 同样 300 s 后 500。
+
+**根因 (未闭合)**: 更可能是"长生成"本身的网关/后端上限 (超时或上游崩溃), 而非参数。
+另有 3 题 (`5987`/`1430`/`5449`/`3516`) 是 `agent_ok=True` 但 `soft=0`, 属正常评测失败, 与本节无关。
+
+**补充边界定位 (2026-11-25, `outputs/rq3/mt_test*.log`)**: 同题 6482 按 max_tokens 扫描 —
+16384 → 299.8 s HTTP 500; 12288 → 300.1 s HTTP 500; 8192 → 269.3 s **OK** (`completion_tokens=8192`,
+`finish_reason=length`); 4096 → 135.3 s **OK** (`finish_reason=length`)。
+失败点稳定落在 **≈300 s 墙钟**, 与 `run_one` 传入的 `timeout=300` 同量级; 成功点的延迟与 max_tokens 近似线性。
+即: 问题在"单次请求总时长 ≥ ~300 s"而非 token 数本身 (8192 在 269 s 完成)。网关侧 300 s 上限的具体来源仍未核。
+
+**当前处置**: 4 题在 `train_s0_cache.json` 中保留为 `hard=0, agent_ok=False` (标记 `infra_fail_ids`),
+计入失败池 = **训练池含基础设施失败**, 这是对 Arm1 不利的保守口径。题面均无 thinking 依赖, 不改变冻结协议。
+
+**教训**:
+1. `qwen_backend._chat` 的 stage 级 `tracker.record` 只在成功时计数, 失败重发不记账 → 必须用进程外 attempt 计数
+   (本 run 已在 `scripts/rq3_a_s0_train.py` 里 wrap `_post_chat_completion` 解决)。
+2. `precompute_s0` 的幂等缓存会**吸收**瞬时失败为永久 `hard=0`; 生产脚本复用旧 cache 时需先扫 `agent_ok=False`。
+3. 探针删掉已有结果题会重新全跑 → 本次改成 `--only-ids` 只重算指定题并 merge 回 cache (`outputs/rq3/.../train_s0_cache.pre_resume.json` 保留了 merge 前快照)。
+
+## Issue #119 — RQ3-B 协议偏离与两处操作事故 (2026-11-25)
+
+**背景**: RQ3-B 直接用生产 `launch_tf_appsplus_routing.sh` 会引入两处**隐含的跨模型耦合** (本会话读代码发现, 0 API):
+1. `--s0_cache_val` 默认是 **flash 在 100 道 val 题上的 S₀ 缓存**。`eval_on_routed` 对 S₀-pass 题直接复用 cache 结果
+   (`L626-627`), 只对 S₀-fail 题调候选 → 若沿用 flash cache, Arm1 的 val 门控分里混入了 flash 的能力, 且 turn1 的
+   通过/失败判定不是目标模型的。
+2. `--s0_cache_test` 同理 (flash test S₀, 300 题), `--best_results` 是 flash+SkillOpt 的 test 结果。
+
+**决定 (属协议偏离, 记录在案)**:
+- RQ3 的 val S₀ 在目标模型上**重算** (`scripts/rq3_b_eval_val.py`), 题集仍取"flash val cache 覆盖的 100 题"以保证同口径;
+  产物为逐题 dict (与 `precompute_s0` 同形), 挂到 `--s0_cache_val`。
+- RQ3-B 的 Evolver 产出只依赖 **train 失败池 + val 门控**, 这两项都在目标模型上重算; 算法 (算子/门控/iters/g/池上限) 不动。
+- test 侧 cache (`--s0_cache_test` / `--best_results`) 在 RQ3-B 期间保留 flash 口径 — 它们只影响 run 末的 flash 打分日志,
+  **不进入 RQ3-C 的 2765 配对评测** (RQ3-C 单独在目标模型上跑 Arm1 vs S₀ 配对)。
+
+**操作事故 1 (已回收)**: 启动器 `/tmp/rq3_run_eval.sh` 把额外参数透传丢了, `--dry-run` 未生效 → 实际发出 **38 次真实 val 评测调用**
+(14:31–14:33, RPM=20/burst=2, 未超并发上限), 人工 `kill` 停止; 无 cache 落盘, 仅留下
+`outputs/rq3/deepseek-v4-pro/calls_val_s0.jsonl` 中 `ts` ≤ 14:33 的 38 行。这批行与原定正式 run 的调用在参数上完全相同
+(同 model / 同 16384 / 同温度 / 同题面), 区别只是被中断、未进入缓存 → **不影响结果, 但计入调用量**。
+修复: 启动器显式加 `DRY=` 透传, 并先跑 dry-run 验证 `0 请求` 再放量。
+
+**操作事故 2 (能力边界)**: `qwen_backend` 的 `chat_target` 只把 completion 转写进 `tracker` 的累计 usage, **不落响应文本**;
+`run_one` 也丢弃 `response` → `train_s0_cache.json`/`val_s0_cache.json` **不含 response 字段**。因此 SkillOpt v2 cache 上那条
+"D5 路径 B (用存储 response 重评 fn-call 题, 0 调用)" 对 RQ3 记录不可复现。如果后续发现 D5 harness 对 v4-pro 输出有系统性差异,
+只能**重新生成**来核验 — 届时错误会与生成抖动耦合, 需单独报。
+
+**教训**: ① "复用生产 launcher" 之前必须逐条核对它喂进去的 cache 是**谁**在该模型上的结果; launcher 的环境变量改的是模型,
+不会把随 run 固化的 cache 一起换掉。② 干跑必须验证"未发请求", 不能只看命令返回。③ `tracker` 只记数不记内容 — 想要事后重评,
+必须自己落 response。
+
+## Issue #120 — RQ3-B iter1: API 失败题以 pass_rate=−3 进失败池, 训练 delta 出现 >+1 离群 (2026-11-25, 有 API)
+
+**症状**: iter 1 跑到 14/21 时, 6563 与 6482 的 `best_delta` 分别是 **+3.667 / +4.000**, 而 delta = 变体 pass_rate − S₀ pass_rate,
+两者都在 [−1, +1] 才对。
+
+**根因 (代码既有口径, 非本轮新增 bug)**:
+- `run_one` 在 API 层失败时返回 `{"hard":0,"soft":0.0,"pass_rate":-3.0,"agent_ok":False}` (`tf_skill_optimizer_appsplus.py` L298–338/444)。
+- `train_s0_cache.json` 中因此有 **4 道题 pass_rate=−3.0**: `2760 4497 6482 6563` — 全部是
+  `Qwen chat call failed after 5 retries` (read timeout ×2 / remote closed / HTTP 500), **不是模型答错**。
+- 训练侧 `rollout_group` 用该值做减法 → 变体 pass=0.667 时 delta = 0.667−(−3) = 3.667。
+
+**为什么现在**才能暴露: flash 的 train cache 里 API 失败题可能都带 response; 而 v4-pro 服务端 thinking 实测开启 (completion 均值 36.5k),
+单次延迟均值 100 s / 最大 1534 s, 网关 ~300 s 墙钟限制 (issue #118) → 长输出题触发 5 次重试全失败的概率显著上升。
+
+**影响面 (逐项核对)**:
+| 项 | 是否受影响 |
+|---|---|
+| val 门控 (`eval_on_routed`) | **否 (已逐行核实)**: val 侧 4 道 API 失败题为 `4199 4232 5445 7067` (pass=−3, agent_ok=False, 与 train 侧 4 题不相交)。它们 `hard=0` → 每次门控被当作 S₀-fail 重评 candidate, `keep_better` 取 max → routed 分**只会更高**, 不会压基线与新 skill 的对比; 且双分支的 delta/mean **都过滤 `pass_rate>=0`** (L632/L634) → −3 不进入门控指标。**弱化项**: 门控分母 100 含 4 道无论 skill 如何都必判 fail 的题 → 门控信号被稀释 ~4%, 对 ACCEPT/KEEP 判定是保守方向 (更难 accept) |
+| 训练经验蒸馏 | **是**: 这 2 道题送进 `distill_experiences` 的 variants 有 delta≈3.6–4.0, 但变体本身是真实生成的代码, 只是 baseline 被压成 −3 → 蒸馏文本本身不含分数, 影响限于"题目被当成高收益题" |
+| `train_mean_best_delta` 日志 | **是**: 被 2 道离群题主导 (近 21 题均值被抬高约 0.4) |
+| RQ3-C 正式评测 (2765) | **否**: 独立跑 Arm1 vs S₀, 不读这些 cache |
+
+**处置 (本轮不改代码, 算法/协议冻结)**:
+1. 保留现状跑完 3 轮 — 改动 `run_one` 口径 = 改算法, 不在 RQ3 允许范围。
+2. 报告口径: `train_mean_best_delta` 在 RQ3 报告中**不用作结论指标**, 或按 agent_ok 过滤后单列 19 题均值。
+3. 待核 (下轮前): val cache 中 4 道 agent_ok=False 题 (`agent_fail_ids` 已在 `val_s0_summary.json`) 若被 `eval_on_routed`
+   当作"需重评"的 S₀-fail 题, 则有 4/100 的 val 门控信号来源可疑 → 用 `val_s0_summary.json.agent_fail_ids` 与
+   `run_*/s0_cache_val_d5.json` 对位即可 (0 API)。
+4. 对 GLM-5.2 (RQ3-D): 启动前先用 `agent_fail_ids` 数一下; 若 >5% 则考虑对这批题重发 (属"补测"而非改算法, 需用户裁定)。
+
+**教训**: "API 失败"与"模型答错"在 cache 里只靠 `agent_ok`/`pass_rate==−3` 区分, 下游所有做减法的指标都会被污染。
+跨模型复现时, 新模型的长输出特性会把这类失败从边缘问题放大成可观测的离群。
+
+## Issue #121 — RQ3-B val 门控: D5 重建把 21 道 fn-call 题打成 EmptyCode, 门控基线失真 (2026-11-25, 0 API)
+
+**症状**: iter 1 门控日志 `val routed delta=+0.9300 (pass=0.7883)`, 与"100 题全量基线 0.6083"的差是 +18 pp,
+但按 `eval_on_routed` 的 delta 公式 (分母 = routed 中 pass≥0 的题) +0.93 意味着全部 19 道可救题都被救回 — 不可能与
+训练信号 (21 题中 9 题被救) 相符 → **两个数不自洽**。
+
+**根因 (逐行核实, 0 API)**:
+1. `run_one` 返回的 dict **不含 response 字段**, 该模型 train/val S₀ cache 因此**全部 100 条无 response**
+   (RQ3-A 是进程外重算的; 生产 cache 由 `load_cache` 读入, 带 response — flash val cache 实测 100/100 带 response)。
+2. `rebuild_fn_call_cache` (路径 B) 用 `stored_response = r.get("response","") or r.get("code","")` = `""` 调
+   `_evaluate_d5("")` → `if not code` → `EmptyCode: extraction failed`, **pass_rate = −3.0**。
+   日志里 `recovered 0→1=0, unchanged=9` 与 `hard 68→56` 并列出现, 掩盖了"21 题全部变成 −3"这一事实 —
+   报告只比 hard, 不看 pass_rate。
+3. 后果: D5 val cache 里 **25 条 pass=−3** (21 道 fn-call + 4 道真实 API 失败), 其中 12 道原 S₀-hard=1 的题被标成 fail。
+   门控因此只在 75 题 (hard=1 的 56 + 可救 19) 上算分, 基线与候选**都在这个失真子集上**评分。
+4. 自洽性验算: 0.7883 × 75 = 59.1 = 56 + 3.1 → iter1 skill 只救了 **3 道**题; delta=+0.93 是本轮 skill 的增量 delta
+   (分母 19), 不是相对 S₀ 的净增益。
+
+**影响面**:
+| 项 | 结论 |
+|---|---|
+| iter1 门控判定 ACCEPT | 不算错: 两种口径下 (原始 hard 68 / D5 hard 56) 都是 3/19 左右的正向 rescue, 且能救 3 题本身是真信号 |
+| 门控**绝对分** (0.7883 / 0.9300) | **不可引用**: 基线被 D5 破坏, 不代表该模型在 100 题上的真实水平 |
+| 训练侧 (train cache) | 不受影响: 训练 cache 本来就是 `run_one` 直接产出, 未经过 D5 重建 |
+| RQ3-C 2765 配对评测 | 不受影响: 独立跑 Arm1 vs S₀, 但 **RQ3-C 的 harness 必须由 `run_one` 现场生成评测, 不能沿用 D5 缓存路径** |
+| 后续轮次门控 | 同 iter1, 仍在该失真子集上比较 — 相对比较仍有效, 绝对分无效 |
+
+**处置**:
+1. 跑完 3 轮 (算法冻结; 门控判定方向已核实未受污染), 但 RQ3 报告里 **val 门控绝对分一律不用**, 只用「rescue 题数 + 相对 ACCEPT/KEEP」。
+2. RQ3-C 单独构造评测脚本, 证据链 = `run_one` 现场结果 (含 response) → 三组: S₀ / Arm1-skill 在同一批 2765 上配对;
+   **不复用**本 run 的 D5 cache 文件。
+3. 产物核对入口: `outputs/rq3/deepseek-v4-pro/arm1/run_20261125_154821/s0_cache_val_d5.json` 中
+   `evaluator_version=="d5_function_call_v1" and pass_rate<0` 的 21 条即受损条目。
+
+**教训**: ① "路径 B 0 调用重评"依赖 cache 里有 response; 换评测框架/换产出方式时必须**先验证 response 字段存在**,
+否则失败会被静默地写成一个合法但错误的分数 (−3), 日志里的 hard 变化还会看起来"正常"。
+② 门控日志同时打印 delta 与 pass 时, 必须做 `pass × 分母 − 已知 hard 数` 的自洽验算, 否则离群 delta 不会暴露。
+
+---
+
+## 2026-11-25 LiveMath 新机制 smoke r2 — 10 候选 0 晋升 (RF §6 告警)
+
+**症状**: LiveMathBench 新机制移植后 smoke r2 (PID 127644, V3.2, iters=2, 5机制ON) 跑完, 终局告警 `facet_edit(attempted=6,promoted=0) overlay(attempted=2,promoted=0) expand(attempted=2,promoted=0)` — 10 候选全 0 promoted, best_skill 保持 S₀ (hash 68571cb2 未变)。
+
+**关键数据** (paired_rescore, best_val_delta 重置 0):
+- iter1 facet_edit: +0.023/-0.011/-0.002 (全 CI 跨零拒)
+- iter2 facet_edit: +0.016/+0.025/+0.000 (全 CI 跨零拒)
+- expand iter1: +0.014 CI-0.014 (not_meta_ci=0.0 踩线) | iter2: +0.002 CI-0.026
+- overlay iter1: -0.012 | iter2: -0.002
+- rescue_by_source 全空 (无子集 ci>0 可救)
+
+**根因分析 (待 codex 审)**:
+1. **CI 单点否决偏严**: n=10 (not_meta 子集), σ_pair≈0.044, CI>0 需 mean delta≈0.04+, 真实 +0.02 信号注定跨零。Option Comparison 两轮 delta 都正 (+0.023,+0.016) 但两轮被拒。
+2. **单轮 delta 噪声极大**: Theorem-Level iter1 -0.011 → iter2 +0.025, 方向都翻。
+3. **候选生成力度小**: facet_edit 单 slot 微调, delta 天花板低。
+
+**不是 bug**: 6 移植机制端到端跑通 (paired_rescore 5-tuple MCQ 不崩 / F6 manifest 写入 / bootstrap CI / rescue 正确不触发)。RF §6 告警本身是设计内的"算子静默失效检测", 正常触发。deadline 900→5400 修复后无丢题 (r1 的 0.025 是 deadline 致 62/71 abandoned 污染, r2 真实 S₀=0.238)。
+
+**处置**: 不改代码。整理交付包 `for_review_20261125.tar.gz` 交 codex 审"CI 是否应作为唯一晋升门" (审点 A)。我们的当前判断: CI 防误晋升目的对但小样本偏严, 建议加"多轮方向一致"轨迹信号层而非放宽 CI。
+
+**教训**: smoke 验证了"机制跑通"但暴露了"门控在 LiveMath 小样本上系统性误杀真信号"——这是移植前未预见的测量问题, 本身有论文价值 (诚实量化门控代价)。
+
+## Issue #122 — RQ3-B launcher 把 val cache 当 test S₀ cache 传入: 最终 test 段全部退化 (2026-11-25 发现, 有 API)
+
+**症状**: 读 deepseek-v4-pro Arm1 run 产物时发现 `run_20261125_154821/s0_cache_test_d5.json` 只有 **100 条**,
+而 test split 是 **2765 题**; 逐 id 核对: 该 cache 与 `arm1/val_s0_cache_list.json` **100% 重合**,
+与 test split 的 2765 个 id **零交集**。
+
+**根因**: `scripts/rq3_b_train_arm1.py` 当时把 `--s0_cache_test` 直接指到了 `val_s0_cache_list.json`
+(从 `outputs/rq3/<model>/val_s0_cache.json` 转换而来)。生产代码里 test 段的全部分母/基线都来自这个
+cache (`tf_skill_optimizer_appsplus.py` L1119 `_test_cache_raw`, L1260 `base_hard`, L1270 `mcnemar_paired`),
+于是 val 缓存被无条件当作 test 基线使用, 且**没有任何 id 覆盖度校验** (代码从不检查 cache 覆盖了 split)。
+
+**影响面 (仅对正在跑的 run_20261125_154821; 训练 3 轮本身不受影响)**:
+| 输出 | 结论 |
+|---|---|
+| `test_independent_results.json` (ind["cand_by_id"]) | ✅ **有效**: 逐题 rollout 候选 skill, 不依赖 test cache (只用于取 id 与后来配对)。这是 RQ3-C 要用的东西 |
+| `[独立] McNemar vs S₀` / `net_gain` / `layer1` | ❌ 无效: id 零交集 → n_common=0 → rescue=regress=0, p=1.0 |
+| `base_hard` / `hard/300` 打印 | ❌ 无效: 分子是 2765 题候选, 分母硬编码 300, 基线是 100 道 val 题 |
+| `routed` 诊断 (`eval_on_routed`) | ❌ 无效: 路由基线来自 val cache, 与 test item id 不匹配 |
+| `retention` (通道 B) | ❌ 无效: `n_s0_pass` 在 test_items 上按 val id 匹配 = 0 |
+| `best_comparison` (vs SkillOpt best) | ❌ 无效: `--best_results` 同样指向 val 列表 |
+| 训练 3 轮 gate (iter1 ACCEPT / iter2·3 KEEP PREV) | ✅ 不受影响 (只看 `--s0_cache_val`) |
+
+**处置**:
+1. **不杀进程**: 15h31m 的训练已完成, 正在跑的 Final test 独立评测是 RQ3-C 的必要输入 (2765 题逐题候选结果,
+   每次调用都真实发生), 让它跑完照常落盘 `test_independent_results.json`。
+2. **该 run 的 final summary 一律不进结论** (`tf_appsplus_routing_result.json` 的 test 段、
+   所有 `/300` 打印、McNemar/routed/retention/best 对照), 只在 `memory/` 里登记为"失效输出"。
+3. **launcher 修复** (`scripts/rq3_b_train_arm1.py`):
+   - 新增必备输入 `outputs/rq3/<model>/test_s0_cache.json` (全量 2765 test 题, 由
+     `scripts/rq3_b_eval_test_s0.py` 产出); 不存在则直接 BLOCKED 退出, 不再静默退化。
+   - 新增 id 覆盖度校验: test split 的 2765 个 id 必须被该 cache 全覆盖, 缺一道即 BLOCKED。
+   - `--s0_cache_test` 改为指向 `out_dir/test_s0_cache_list.json`。
+   - `--best_results` 仍指 val 列表 → 在代码/docstring 中显式标注"该段输出无效", 后续要跑
+     "vs SkillOpt" 对照时须改用与 test split 同 id 集的 best 缓存。
+4. **RQ3-C 的基线**: 必须用新产出的 `test_s0_cache.json` (目标模型自己在 2765 题上的 S₀), 不得使用
+   D5 缓存、val 缓存或 flash 的任何 test 数字。
+
+**教训**: 与 Issue #121 同源 — **换 S₀ 来源时必须先做 id 集合对齐校验**。两次事故都是"分数看起来正常、
+其实是空集/错集上算的": #121 是 ids 对但 response 空, #122 是 response 有但 ids 错。凡是接受"外部 cache
++ 内部 split"两个来源的地方, 都必须在入口断言 `set(cache) ⊇ set(split)`, 否则失败会以"合法但错误"的形式
+(空交集 McNemar 返回 p=1.0、净增益 0) 静默通过。
+
+---
+
+## 问题 #123 (2026-11-26) LiveMath 完整 run 预算护栏 C — skillopt HTTP 层 patch 可达性静态核查
+
+**背景**: 冻结 LiveMath Option A 方案要求 60k calls / 36h 墙钟硬停 (用户三条执行边界之一)。
+evolver 现无预算硬上限机制 (只有 EVAL_DEADLINE_S=5400 控单次 eval 超时)。需挂载 API 请求计数。
+用户硬要求: 不改 skillopt 第三方包源码, 所有改动留本项目 git; 计数必须覆盖每次真实 HTTP attempt (含重试)。
+
+**核查项1 — skillopt 安装方式**:
+- 路径 `/data/zhuldz/skillopt/skillopt/`, editable/源码路径安装 (PYTHONPATH 指向), 非 pip site-packages
+- skillopt 是独立 git 仓库 (HEAD detached-ish, qwen_backend.py 已有本地改动但不归本项目管)
+- **决定: 不改 skillopt 源码** (用户要求 + 改动不进本项目版本控制)
+
+**核查项2 — patch 可达性 (决定性)**:
+真实 HTTP 调用链: `chat_target` → `_chat_messages_impl` (薄包装) → `for attempt in range(retries)` (L305) → `_post_chat_completion` (L311) → `urlopen` (L255)
+
+静态证据 (Python 命名解析):
+1. `_post_chat_completion` 与 `_chat_messages_impl` **同模块** `skillopt.model.qwen_backend` (`__module__` 一致)
+2. `_chat_messages_impl.__globals__['_post_chat_completion'] is qb._post_chat_completion` = **True** (impl 的 globals 里持有模块全局符号)
+3. L311 调用是**裸名** `_post_chat_completion(payload, timeout, config)` → 运行时查定义模块的 globals
+4. **无任何代码** `from skillopt.model.qwen_backend import _post_chat_completion` 固化引用 (只 import 了 TARGET_CONFIG/_get_rate_limiter)
+→ **patch `qb._post_chat_completion` 模块属性, L311 会解析到包装版, 每次 retry attempt 都计数** ✓
+
+**进程模型**: evolver 单进程 + `ThreadPoolExecutor(max_workers=40)` (eval 内并发跑题), 无 multiprocessing/ProcessPool。
+冻结 `n_parallel=1` → 候选串行, 但 eval 40 线程并发。
+→ 计数器只需**线程安全** (`threading.Lock` + 模块级), **不需跨进程共享**。
+
+**实现方案 (C)**:
+- 本项目内新建受控调用适配层 `budget_guard.py` (本项目 git 管理)
+- evolver 启动时 monkey-patch `qb._post_chat_completion` 为带预算预留的包装
+- 预算账本 `budget_ledger.json` 落盘 run 目录, `--resume` 时加载累计 (断点续跑不清零)
+- 墙钟: run 目录记录 `start_ts`, resume 时沿用最早 start_ts
+- 原子预留: HTTP attempt 发出前 `with lock: if count>=max: raise BudgetExceeded; count+=1` (并发安全)
+- 不改算法: 包装不触碰 payload/response/异常/重试顺序, 只在 urlopen 前计数
+
+**根因教训**: 用户指出"包装 _chat_messages_impl 入口不够" — 正确。一次 chat_target 调用 = 最多 retries 次 HTTP attempt,
+函数级计数漏掉重试。计数必须挂在 `_post_chat_completion` (每次 attempt 调用一次的真实请求收口点)。
+
+---
+
+## Issue #123 — #48 Final test 独立评测实际只覆盖 100 题 (不是 2765), 且已跑 9.6 h 未结束 (2026-11-26 发现, 有 API)
+
+**症状**: PID 7554 (`scripts/rq3_b_train_arm1.py` → `tf_skill_optimizer_appsplus.py` #48 Final test 段)
+07:10 进入 `eval_independent(test_items, ...)`, 至 16:56 已 9.8 h 未结束。而 launch log 早在 15:48:5x
+就打印了 "#48 arm=full] Final test 评测" — 即 D5 重建 (15:48:21 落盘 `s0_cache_test_d5.json`) 之后才进 Final 段。
+
+**根因 (代码可知, 非猜测)**:
+1. `tf_skill_optimizer_appsplus.py:1122` `test_items = load_split(args.split_dir, "test")`
+   默认 `truncate=True`, **不做截断** (L465–468 只截 test_code, 不减题数)。
+2. `eval_independent` (L925) 对整个 `test_items` 逐题 `run_one` — 它**没有**像 `eval_on_routed` 那样按
+   `s0_cache` 过滤 (L967 注释仍写着 "全量 300 题", 属旧口径残留)。
+3. 但 **07:10 时 `outputs/rq3/deepseek-v4-pro/test_s0_cache.json` 尚不存在** (#20 未跑)。
+   `scripts/rq3_b_train_arm1.py:87` 的 `RQ3_TEST_CACHE` 回退路径因此指向
+   `outputs/rq3/deepseek-v4-pro/arm1/run_20261125_154821/s0_cache_test_d5.json` (100 题, val 侧缓存)。
+   evolver 用这 100 题重建 D5 cache 后, 又把 **`s0_cache_test` (100 题) 当最终评测集**。
+4. 因此 Final test 段真实规模 ≈ **100 题 × 2 轮 (首轮 + 1 轮 infra 重试)** ≈ 200 次调用,
+   不是 2765。9.8 h 全烧在这 200 次调用上。
+
+**为什么慢 (仍未完全解释)**: 100 次调用 @20 RPM 理论 ≤5 min; 实测 9.8 h ⇒ 每次调用 ~50 min 级。
+进程健康证据: 8 条 ESTABLISHED → 10.247.120.142:443 且对端在数分钟内轮换; 290 线程中有 ~6 条
+阻塞在 `sock.recv`; 767654 utime + 837092 stime jiffies (≈70 min CPU, 说明确有工作)。
+**不能把这段耗时归因给 2765 题规模** —— 规模本身只有 100。真实瓶颈 (网关长排队? 单请求极慢?)
+目前**未核**, 不编造解释。
+
+**影响 (必须写进论文/报告)**:
+- `test_independent_results.json` 若产出, **只覆盖 ≈100 个 id, 且与 test split 的 2765 题不等**。
+  它不是 RQ3-C 的合法 Arm1 结果; #18 会因覆盖不完整直接 BLOCKED。
+- 该 100 题 id 与 `val_s0_cache.json` 的 id 集合是否相同**未核** (val cache 无 question_hash)。
+  → #18 不能隐式改用 val 上的结果。
+
+**结论/处置 (待用户裁定, 未擅自重启)**:
+- #17 继续跑完 (用户既定: 不中断 7554), 结果保留为"Early Arm1 signal on ≈100 test ids(?)", 不作正式配对。
+- #20 (2765 全量 S₀) 仍按方案 2 在 7554 退出后自动启动; 本次已加**每 5 题落盘** + 补跑中条目不进盘上 cache
+  (resume 会重提), 让 2765 段进度可观测。
+- 正式 Arm1 (2765) 需要**用 2765 S₀ cache 重跑 #48 段**, 即 7554 退出后新起一个 arm1 run (不再受 100 题 cap 约束)。
+  evolver 用的 skill 已冻结在 `run_20261125_154821/tf_global_skill.md` (3361 chars), 可直接复用, 不必重训 3 轮。
+
+**教训**: `run_one` 的评测集必须在**启动时**校验 ①与 test split id 对齐 ②规模符合预期,
+不能靠"下游 paired 脚本会 BLOCKED"兜底 —— 那样会先白白烧掉 10 h API。
+
+---
+
+## Issue #124 — #20 test S₀ (pro) 第一遍结束仍有 76 题未定稿; 补跑器三处坑 (2026-11-27, 有一次 1524 s 无效调用)
+
+**症状**
+1. 第一遍 (`rq3_b_eval_test_s0.py`, 16 workers, RPM 20) 结束时 `test_s0_cache.json` 只有 2689 条,
+   `test_s0_summary.json` 却写 `coverage_complete: true / n_missing: 0`。**两者不一致**。
+2. 用 `--only-ids` 续跑 → `todo=0` 直接退出; 线程池版补跑器 (`_only.py`) 跑 11 min 无任何结果落盘。
+3. 串行补跑器 (`_retry.py`) 首次启动 28 min 无输出, 补跑的第一题 (495) 耗时 1524 s 后 5xx 失败。
+
+**根因 (逐条核实)**
+1. `finalize()` 把"仍在 `resubmits` 中"的 id 从落盘 cache 中**排除**, 但 summary 用内存 cache 计数 →
+   summary 的 `coverage_complete` 不能代表盘上状态。**以盘上 cache 的 `len(cache)` 为准**。
+   第一遍真实状态: **2689/2765 定稿, 76 题未定稿** (211 行调用日志, 全部是
+   `RuntimeError('Qwen chat call failed after 5 retries: ...')`, 即内层 5 次重试耗尽)。
+2. 主脚本 resume 分支 `todo = [it for it in items if id not in cache]` 与 `--only-ids` 组合时,
+   cache 已覆盖绝大多数 id ⇒ todo 为空 ⇒ 0 请求退出。子集补跑必须走独立 merge 脚本。
+3. 线程池版: 个别 `run_one` 在内部阻塞不返回 (单题 1300–1500 s), 结果被 future 扣住、无人落盘。
+   → 改为**串行** + 每题 SIGALRM 超时 + 每题写盘。
+4. **`KEY=$(...) nohup python3 ... &` 写法失效**: 赋值在后台子 shell 中执行, 父 shell 的 `$KEY` 为空。
+   第一次串行启动因此立刻 `未设置 QWEN_CHAT_API_KEY` 退出 (但 stdio 重定向掩盖了它), 表现为"进程在但不产出"。
+   修正: **先 `export QWEN_CHAT_API_KEY=...` 再启动**; 启动脚本 `/tmp/rq3_start20c.sh` 已加
+   `pgrep` 防重复启动 (旧写法会把 pgrep 自身命令行也算进去)。
+
+**环境侧事实 (须写进报告, 不许美化)**
+- 第一遍全程 `429 = 0`; 失败全部来自 5xx / timeout / conn。调用日志中 `completion_tokens` 字段是
+  `get_token_summary()` 的**累计值**(逐行递增, 中位数约 137 万), 不是单题用量, 单题用量须由
+  `test_s0_summary.json` 的 tracker 总量 / 有效调用数估算。
+- 76 道未定稿题不是"题目特殊": 其余 2689 题同样有大量 5xx, 只是重试最终成功。因此第二遍
+  (串行、实例续跑、RPM 20) 属合理的**协议内补跑**, 不改变题目、提示构造与判分口径。
+
+**处置**
+- 第二遍: `/tmp/rq3_start20c.sh` → `rq3_b_eval_test_s0_retry.py --max-attempts 2 --item-timeout 600`,
+  启动前仍跑一致性审计 (fail-closed, 0 API)。每题前打印 `[retry] start ...` 心跳。
+- 若第二遍结束仍有未定稿题, **如实在 summary/报告中列出 id**, 不把它们当作"已评测"或"答错"。
+
+**教训**
+- 进度类 summary 必须从**盘上事实**计算, 不能从内存状态计算。
+- 后台启动的命令行里不要混用 `VAR=$(...)` 与 `&`; 要么先 export, 要么写进脚本。
+- 长任务必须有"每题/每步"心跳, 否则"卡住"与"在算"无法区分。
+
+## Issue #125 — #20 第二遍的 72 题"必挂"真相: 网关对完整提示粘滞回 500; SIGALRM 无效 (2026-11-27 12:20)
+
+**症状**
+- 串行补跑器在 id=495 上, `item_timeout=600` 到点后**既不报超时也不继续**, 心跳停在 10:25:51, 进程仍活着。
+- 之后点对点诊断 (`/tmp/diag495.py`): 每次 `POST` 都占满 `timeout=300`, 连续 4 次, 第 4 次在 11:19:40 发出后依旧无返回。
+
+**根因 (逐层分离, 每层都有对照实验)**
+1. **SIGALRM 打不断阻塞的 `sock.recv`**: `signal.alarm()` 只在 Python 层面投递, 线程卡在 C 层 socket 读取时
+   不会返回。⇒ 单题超时只能靠**子进程 + `killpg(SIGKILL)`** (`start_new_session=True`)。
+2. **"单题 1500 s"不是因为外层重试慢, 而是每次请求都在 `timeout=300` 整点放弃**:
+   `_chat_messages_impl(retries=5)` 第 k 次 `time.sleep(min(2**k,30))`, 单题最坏 ≈ 5×300 + 62 s ≈ 1560 s。
+3. **真正的失败是网关 HTTP 500, 不是超时**: 用裸 `urllib` (不经 `_post_chat_completion`) 打到 300 s,
+   网关在第 299 s 返回 `HTTP 500 {"error":{"message":"","type":"api_error","code":null}}`。
+   即请求**在服务端执行了 ~300 s 才失败**。
+4. **触发条件是"完整提示"的定性性质, 不是长度**:
+   - `S₀系统提示 + 真实题目` (id 495): 60/90/240 s cap8192/cap16384 → **全部超时**, 裸请求 300 s → **HTTP 500**;
+   - 同一题目换成短 system prompt → **43.3 s OK**; 截断题目前缀 200 字 → 34.7 s OK;
+   - 同一 `S₀系统提示` + 另一道已在 cache 里的题 (id 5272) → **10.9 s OK**;
+   - 另两道未定稿题 (id 628, id 898) 全提示 → 240 s 超时;
+   - **判别实验** (`/tmp/probe10.py`, 同一 system prompt): 普通题 3.2 s / 树结构自相似题 14.0 s /
+     **同一 1 段 McDic 二叉树题改写 60.1 s 超时** / 字符串题 11.7 s / fn-call 题 18.1 s。
+   ⇒ **特定题目 × S₀ 指令下, 模型进入超长推理 (分析×实现循环) 把网关打爆**; 1442/1732/4187/4638/5360
+     等在低并发下已成功, 说明是**概率+负载**共同作用, 不是单题确定性缺陷。
+5. **模型侧自由变量**: `run_one` 硬编码 `chat_target(..., retries=5, timeout=300)`,
+   `QWEN_CHAT_TIMEOUT_SECONDS` 在 `qwen_backend.configure` 里才生效, runner 设了但**没被 `run_one` 读**。
+
+**处置 (不改口径, 只改执行层; 协议预注册后落盘)**
+- 新补跑器 `--plan` 支持**预注册尝试计划**: `pass2_plan.json` =
+  `{"stage":"rq3b0_test_s0_pass2","attempts":[{"item_timeout":900,"max_attempts":1}]}`。
+  事先只声明一轮/900 s/1 次, 跑完不再追加 (避免"看到结果再改参数")。
+- 启动 `/tmp/rq3_start20_v2.sh`, fail-closed 双门: (a) `rq3_testset_parity_audit.py` 必须 PASS;
+  (b) `/tmp/rq3_make_manifest.py` (0 API) 落盘 72 题的 `question/test_code/user_prompt/full_prompt`
+  sha256 + S₀ sha + `send_cfg` → `outputs/rq3/deepseek-v4-pro/s0_prompt_manifest_pass2/`,
+  并核对 Flash `all_results.json` 中 **72/72 id 均有结果** ⇒ 重跑同一题面的 provenance 清楚可查。
+- 启动器自匹配坑: `pgrep -f 'rq3_b_eval_test_s0_retry.py'` 会把**启动器自身命令行**算进去,
+  永远"已运行" → 改为 `pgrep -f '[r]q3_b_eval_test_s0_retry[.]py --model'`。
+- 子进程 worker 的 `global` 声明必须放在函数唯一赋值之前; 重复声明 → `SyntaxError` 使启动"成功但立刻死",
+  日志只出现在 out 文件里 → **启动后必须 `cat` out 文件前 10 行确认 `[retry] start` 心跳**, 不能只看 PID。
+
+**教训**
+- 遇到"某题必挂", 先做**对照实验** (换题/换 system prompt/换长度/判题型), 再判死;
+  "超时"与"网关 500"要分开验证, 不能把超时当成唯一解释。
+- 预注册只写"计划", 不写"结果"; 计划一旦落盘, 本轮执行期间不修改。
+
+---
+
+## Issue #126 — 补跑器把「调用层失败」单次落盘成 final; item_timeout 小于一轮 shell 的真实耗时 (2026-11-27 12:29)
+
+**症状**
+- v2 补跑 (PID 33890, plan: item_timeout=900, max_attempts=1) 运行 4 min 时, `calls_test_s0.jsonl` 出现
+  `id=495 attempt=1 latency_s=1524.1 agent_ok=false fail_reason="Qwen chat call failed after 5 retries: ... HTTP 500"`,
+  且 `[retry] start` 心跳仍停在 `1/72 id=495`。
+- 即: 子进程 900 s 到点没有被 kill, 而是在 ~1524 s 自己返回了 HTTP 500 结果。
+
+**根因 (两条, 叠加)**
+1. **超时口径**: `item_timeout` 是父进程对子进程的 wall-clock 超时, 但 `run_one` 内部 `chat_target(retries=5,
+   timeout=300)` + `min(2**attempt,30)` 退避, 表面最坏 5×300+62≈1562 s。改 900 → 子进程被 kill 时其实正处在
+   第 4 次重试中; 900 s 的 kill 才是"真正的超时", 而 1524 s 的 HTTP 500 是 shell 自己跑完的失败。
+2. **重试判定 bug**: 旧代码 `kind = classify_fail(fail_reason)`。`classify_fail` 认不出
+   `"Qwen chat call failed after 5 retries: ... HTTP 500"` → 归为 `"model"` → 循环 `break` 且 `last = r`,
+   单次调用层失败被当成确定性判分失败写进 cache (本应算 infra 重试)。
+
+**影响**
+- v2 若不干预, 72 题会以「1 次 HTTP-500 shell」落盘成 final, 全部变成"未定稿", 且不会重试。
+- 本次已 kill (PID 33890/33956), cache 仍为 2693, id 495 未写入 → 无污染。
+
+**修复**
+- 判分口径: `kind = "model" if r.agent_ok else "infra"` —— 有产出才可能是确定性失败; 调用层失败一律 infra 重试。
+- 预注册 v3 计划 (`outputs/rq3/deepseek-v4-pro/pass2_plan.json`, 12:29:08 落盘):
+  `attempts=[{item_timeout:1620, max_attempts:1}, {item_timeout:1620, max_attempts:1}]`
+  (覆盖一轮 shell 最坏 1562 s + 余量), 另含 `stop_condition`: 若 80% 的题第 1 次即 run_one 层 HTTP 500 → 停止并按未定稿上报。
+- 以 `/tmp/rq3_start20_v3.sh` 重启 (双门重跑通过, 12:29:24 起 PID 46719)。
+
+**教训**
+- 父进程超时必须 > 子进程内层最坏耗时, 否则"超时"记录的是 kill, 不是真实失败形态;
+  先测一轮的真实耗时 (本例 1524 s), 再定 item_timeout。
+- 重试判定要**白名单** (只有明确"有产出但判分失败"才不重试), 不要依赖对错误字符串的黑盒分类。
+
+---
+
+## Issue #127 — 启动脚本里的"已在运行"守卫在 Bash 工具下必然误报 (2026-11-27 14:33)
+
+**症状**: `/tmp/rq3_start48.sh` 报 `[start48] BLOCKED: another eval running` 并 exit 7, 但
+`pgrep -af 'rq3_arm1_test_eval[.]py'` 手工执行无任何输出。
+
+**根因**: `pgrep -f <pattern>` 匹配的是**整条命令行**; Bash 工具把整段脚本作为 `bash -c "..."` 的命令行参数执行,
+于是脚本正文里的 pattern 字符串本身就出现在某个进程的命令行上 → 自匹配。之前的 v2/v3 launcher 之所以没触发,
+是因为它们的 pattern (`[r]q3_b_eval_test_s0_retry[.]py --model`) 正好被脚本内容里的方括号写法绕开;
+本次子串 `rq3_arm1_test_eval.py --model` 作为普通文本出现在 `nohup ... /tmp/rq3_arm1_test.out` 之后的行里 → 命中。
+
+**修复 (可复用的写法)**:
+```bash
+[ -n "$(pgrep -f 'rq3_arm1_test_eval[.]py --model')" ] || ...
+```
+即: **先命令替换再判空**, pattern 里的 `[.]` 让它在自匹配时也匹配不上自己 (因为命令行里是字面 `[.]`)。
+
+**教训**: 自匹配守卫不能只看 "用了 `[x]` 就安全", 要保证 pattern 字符串**完整地**以方括号形式出现;
+或者干脆在 pattern 前加 `bash -c` 也不会出现的前缀 (`scripts/` 相对路径不一定出现在命令行上)。
+
+---
+
+## Issue #128 — 缺失并非随机: 网关 500 的题显著更长 (2026-11-27 14:50)
+
+**症状**: S₀/ Arm1 两侧缺失的题 (共 89 个 id 至少一侧缺失, 其中 40 个两侧都缺) 与可配对题在静态特征上
+系统性不同, 直接剔除会把"偏难的题"整体切掉, 从而影响配对结论的可外推性。
+
+**证据** (`outputs/rq3/deepseek-v4-pro/rq3c_missing_sensitivity_prelim.json`, 0 API):
+Mann-Whitney 双侧 p vs 可配对 2676 题 —
+
+| 组 | n | 题面字符 中位 | p | 参考答案字符 中位 | p |
+|---|---|---|---|---|---|
+| 可配对 | 2676 | 1607 | — | 485.5 | — |
+| Arm1 缺 (S₀ 有) | 18 | 1992 | 0.0030 | 1256.5 | 0.0005 |
+| S₀ 缺 (Arm1 有) | 31 | 2106 | 0.0011 | 854 | <0.0005 |
+| 两侧都缺 | 40 | 2149.5 | 0.0002 | 762 | 0.0012 |
+
+测试用例数无差异 (p 0.57~0.84)。缺失题在**另一臂**的通过率: Arm1 缺题经 S₀ 评测 0.487x, S₀ 缺题经 Arm1 评测 0.571x
+(相对可配对题) → 缺失集确实偏难。
+
+**根因**: 网关对"长题面 × 完整 skill 提示"的请求在 ~1532 s 后 500, 题面越长约容易触发 (Issue #125/#126 同一机制)。
+
+**处置 (不改协议)**: #18 主分析仍以双方有效交集 (2676) 为准, 同时报最有利/最不利边界 (把 89 题按极端补齐后
+重算 McNemar + CP CI), 并在论文中说明缺失非随机 (MNAR) 及方向。
+
+**教训**: 网络/网关类缺失会让"难样本"系统性丢失 —— 缺失率只在 2.5% 也不能当作完全随机处理, 必须做边界分析。
+
+## Issue #129 — GLM-5.2 S₀ train 吞吐异常低 (10 min 4 题, 单 tmux 窗口不可见) (2026-11-27 15:45)
+
+**症状**: `scripts/launch_rq3_glm.sh` 15:27 起跑 train S₀ (80 题, workers=4, rpm=20)，
+到 15:41 仅 4 条 `calls_s0.jsonl`, 全部 agent_ok (86/20/27 s), 无 500、无 429、无 traceback。
+
+**排查 (0 API)**:
+- 进程 CPU 0.2%, 线程 8 个, `ss -tnp` 在本环境看不到 socket 归属 (ss 无 sock_diag 权限), 不能据此判定挂起。
+- 正常项 20–86 s 完成, 说明路由 (aimp-glm/v1) 与 GLM key 正确。
+- 同机并跑的 pro #48 (workers=4) 处在连续 ~1531 s 粘滞 500 阶段, 实际占满 4 个 worker。
+
+**根因 (待证)**: 客户端 RPM 限流是 `_TokenBucket` 进程级 (QWEN_CHAT_MAX_RPM/BURST), 每个进程 20 RPM;
+但网关对两个模型可能共享排队/并发额度。pro 侧 worker 正卡在长尾请求上, 直连 AIGP 网关整体变慢。
+
+**处理**: 未改任何协议参数; 保持 workers=4 / rpm=20, 继续观察。若 30 min 内吞吐仍 <10 题/10 min,
+按「运行资源竞争」下修 GLM workers 至 2 (不改方法、不改门控)。
+
+**教训**: 并行两模型时, 单看"已出结果数"无法区分「网关慢」与「客户端挂起」; ss 权限不可用时应以
+`calls_*.jsonl` 的 latency 分布 + 另一进程的 worker 占用状态做联合诊断。
+
+**追记 (15:45)**: 第 4 题 latency 491 s (仍 agent_ok), 且两条线此后 10 min 无新记录 → 不是客户端卡死
+(无 socket 泄漏证据), 而是网关在并发长尾请求下整体队列化。判定: 资源竞争成立。
+
+**处置 (15:46)**: 保持 #48 的 workers=4 (它只剩 ~20 题, 且长尾项本来就吃满 worker); GLM 的 launch
+重启到 `--workers 2 --rpm 12` (仅为并发资源竞争下的调度参数, 不改任何评测口径/门控/训练参数)。
+
+**追记 2 (15:46)**: 查 `rq3_a_s0_train.py:168` — cache 只在 `main()` 末尾统一落盘, 中途 kill 会丢失
+已完成条目 (call log 保留)。重启前已把 `calls_s0.jsonl` 备份为 `calls_s0.pre_restart_20261127T1546.jsonl`;
+被中断的 4 题会重发 (预算影响 ≤4 次调用)。此为准生产脚本的 resume 缺陷, 记入教训, 本轮不改代码以免
+在 #48/GLM 运行期改动公共路径。
+
+**追记 3 (15:57)**: 降并发后 GLM 仍 10 min 只多 1 题 (99.9 s, 成功)。**注意: 此时结论仅为「与我方
+worker 数无关」的推断, 网关资源竞争尚未被证实** —— GLM 4 题全部成功, 未出现 pro 那种连续 500,
+不能因速度慢就认定 GLM 有同样问题 (用户裁决 2026-11-27, 见下「裁决」)。原草稿中「说明不是我方
+worker 数问题」的强断言按此修正为观察记录。
+同时 pro #48 那边长尾 500 已连成一串 (901 / 1734 / 2916 / 1122 全部 ~1531 s 失败), 而 #48 剩余题正是
+S₀ 侧也 500 的那批。合理解释: 网关对这批「内容 × 长提示」的组合进入**异构粘滞**状态, 与请求方并发无关;
+GLM 的慢是同一现象的边缘波及。
+
+**处置**: 保持 workers=2 / rpm=12 不动 (不再调参); pro #48 按原计划跑完剩余长尾, 其后不再为这 31 题新增
+重试预算 (用户裁决 B 已定)。GLM 继续跑, 若 1 h 内 train S₀ 完成率 <30%, 再评估是否整体让路 (等 #48 结束
+后再提并发放回 4)。
+
+**用户裁决 (2026-11-27, 16:00) — 监控决策规则 (替代此前处置段)**:
+1. 网关资源竞争是**合理推断, 不是已证实根因**; GLM 4 题全成功, 不因速度慢就认定同病。
+2. 下一轮监控后的处理:
+   | 观察 | 处理 |
+   |---|---|
+   | GLM 吞吐回升 | 保持当前并发, 继续 |
+   | GLM 仍慢但持续产生有效结果 | 继续运行, **不反复重启** |
+   | GLM 大量 HTTP 500 | 按实际异常率判断是否进一步隔离两条线 |
+   | Pro 长尾陆续退出 | 继续完成剩余题, 遵守既定停止条件 |
+   | Pro 长尾退出后 GLM 明显提速 | 为资源竞争假设提供进一步证据 |
+3. **不得仅因一个监控窗口吞吐偏低就再调参或重启 GLM**; 当前仅 4 道延迟数据, 不足判稳定吞吐。
+4. cache resume 缺陷本轮不修, 但保留三点: (a) 重启前 4 题的请求/Token 计入实际实验成本;
+   (b) 重启后重生成的同题结果按规则使用, **不从两次结果中择优**; (c) 修复应逐题持久化 + 断点恢复。
+   不扩展为新工程任务。
+5. 执行状态: Pro **CONTINUE**, GLM **CONTINUE**, 公共代码修改暂缓, 冻结实验参数不变。
+
+
+**追加观察 (16:08–16:18, 未调参)**: GLM 新增 5 条中 **2 条出现 pro 同型长尾** (362: 1531.6 s, 6937: 1531.4 s,
+均 agent_ok=False); 其余 3 条正常 (23/23/299 s)。pro #48 同窗口反而全部成功 (1114 1268 s, 6617 28 s,
+6721 738 s, 6831 754 s, hard 分别为 0/0/0/1)。
+
+**含义**: 「长尾」不再是 pro 独有现象 —— GLM 在 S₀ 提示下也开始出现同型 ~1531 s 失败, 而支持「粘滞
+按内容触发的 phenomenological 特征」的证据; 但仍不构成已证实的共享配额故障 (排队效应无法排除)。
+按用户规则不调参、不重启。
+
+**对比观察 (16:54, 近 15 条/线)**:
+
+| 线 | 提示 | 成功 | 中位耗时 | <300 s | ~1531 s 失败 |
+|---|---|---|---|---|---|
+| GLM-5.2 | S₀ (短) | 11 | 74 s | 9 | 4 |
+| Pro #48 | Arm1 skill (~3.4 KB) | 9 | 754 s | 2 | 6 |
+
+**解读**: 与 Issue #125 的「内容 × 长提示」假设一致 —— 长尾率随提示长度上升, 与模型无关 (GLM 的 S₀ 相对
+短, 长尾率也相对低)。这是**相关证据, 非因果证明**; 共享配额排队仍无法排除。按用户规则不调参。
+
+**口径澄清 (17:00, 0 API)**: 我此前提过「32 个目标/32 题」是口误。`/tmp/rq3_arm1_leftover31.txt`
+实为 **31 个唯一 id, 无重复** (logical items = unique = 31)。「32」来自我口算时把已进 cache 的一题重复计入,
+非数据问题。最终定稿以唯一题 id 交集为准 (combine 脚本按 dict key 天然去重)。
+
+**用户裁决 (2026-11-27, 17:00)**: Pro #48 继续完成剩余题; GLM 保持 2 workers / 12 RPM; 网关故障仅被动
+收集日志, 不增专项实验; 公共代码与 resume 修复暂缓; 配置与门控冻结。**不再把网关根因闭合作为推进前置条件**;
+优先级为: 实验结果 > 基础设施优化 > 网关根因研究。
+
+
+---
+
+## Issue #130 — `rq3_c_paired_eval.py` 读不了合并产物 (`KeyError: 'id'`)
+
+**日期**: 2026-11-27 17:18 · **状态**: 已修复 (单函数内, 不改统计口径)
+
+**症状**: `python3 scripts/rq3_c_paired_eval.py --arm1 outputs/rq3/deepseek-v4-pro/arm1_test_combined.json ...`
+直接 `KeyError: 'id'` (`_by_id` 第 46 行)。
+
+**根因**: `rq3_c_combine_arm1.py` 输出的合并文件是 `{id: {hard, pass_rate, agent_ok, src, skill_sha256}}` ——
+id 作 dict key, value 里**不带** `id` 字段; 而 `_by_id` 按「list 或 dict-of-record」写, 假定每条记录自身有 `id`。
+两条独立脚本的产物契约不一致。
+
+**修复**: `_by_id` 增加分支 — 当 dict 的 value 全为 dict 且无 `id` 键时, 以 key 回填 `{**v, "id": k}`。
+其余校验 (重复 id / 越界 id / 覆盖率 / 缺失 → BLOCKED) 与统计代码一行未改。
+
+**教训**: 中间产物 schema 跨脚本共享时应有显式契约; 本轮先用事后校验兜住 (结果见 memory/rq3-pro-paired-eval-20261127.md:
+2676 配对、无重复 id、无越界 id), 后续统一产物 schema 时一并收敛。
